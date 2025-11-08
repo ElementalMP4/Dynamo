@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
-	"path/filepath"
 	"sort"
 	"strings"
 
@@ -18,12 +17,8 @@ import (
 //go:embed migrations/*.sql
 var migrationFS embed.FS
 
-//go:embed sql/*.sql
-var sqlFS embed.FS
-
 var (
-	db      *sql.DB
-	scripts map[string]string
+	db *sql.DB
 )
 
 func getSortedMigrationFiles() ([]string, error) {
@@ -74,21 +69,6 @@ func InitDB() error {
 	db, err = sql.Open("sqlite3", "tinyvtm.db")
 	if err != nil {
 		return err
-	}
-
-	entries, err := fs.ReadDir(sqlFS, "sql")
-	if err != nil {
-		return err
-	}
-
-	scripts = make(map[string]string)
-	for _, script := range entries {
-		content, err := sqlFS.ReadFile("sql/" + script.Name())
-		if err != nil {
-			return err
-		}
-		scriptName := strings.Split(script.Name(), ".")[0]
-		scripts[filepath.Base(scriptName)] = string(content)
 	}
 
 	runMigrations()
