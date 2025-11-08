@@ -61,8 +61,9 @@ func runMigrations() error {
 
 	for _, file := range files {
 		f := file
-		log.LogDuration("Apply migration "+f, func() error {
-			return applyMigration(f)
+		msg := "Apply migration " + f
+		log.LogDuration(func() (string, error) {
+			return msg, applyMigration(f)
 		})
 	}
 	return nil

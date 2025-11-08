@@ -92,55 +92,68 @@ func DeleteRecordByNameType(name, rtype string) {
 	}
 }
 
+func generateResolveMessage(q dns.Question, resolver string) string {
+	return fmt.Sprintf("Resolve %s (%s %s) from %s", q.Name, dns.Type(q.Qtype), q.Name, resolver)
+}
+
 func handleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
 	msg := dns.Msg{}
 	msg.SetReply(r)
 
+	var resolver string = "internal"
+
 	for _, q := range r.Question {
-		log.LogDuration(fmt.Sprintf("Resolve %s (%s %s)", q.Name, dns.Type(q.Qtype), q.Name), func() error {
+		log.LogDuration(func() (string, error) {
 			switch q.Qtype {
 			case dns.TypeA:
 				if rec, ok := localA[q.Name]; ok {
 					ip := rec.IPv4.String()
 					rr, _ := dns.NewRR(q.Name + " IN A " + ip)
 					msg.Answer = append(msg.Answer, rr)
-					return w.WriteMsg(&msg)
+					err := w.WriteMsg(&msg)
+					return generateResolveMessage(q, resolver), err
 				}
 
 			case dns.TypeCNAME:
 				if rec, ok := localCNAME[q.Name]; ok {
 					rr, _ := dns.NewRR(q.Name + " IN CNAME " + rec.CNAME)
 					msg.Answer = append(msg.Answer, rr)
-					return w.WriteMsg(&msg)
+					err := w.WriteMsg(&msg)
+					return generateResolveMessage(q, resolver), err
 				}
 
 			case dns.TypeTXT:
 				if rec, ok := localTXT[q.Name]; ok {
 					rr, _ := dns.NewRR(q.Name + " IN TXT \"" + rec.ToTxtResponse() + "\"")
 					msg.Answer = append(msg.Answer, rr)
-					return w.WriteMsg(&msg)
+					err := w.WriteMsg(&msg)
+					return generateResolveMessage(q, resolver), err
 				}
 
 			case dns.TypeSRV:
 				if rec, ok := localSRV[q.Name]; ok {
 					rr, _ := dns.NewRR(q.Name + " IN SRV " + rec.ToSrvResponse())
 					msg.Answer = append(msg.Answer, rr)
-					return w.WriteMsg(&msg)
+					err := w.WriteMsg(&msg)
+					return generateResolveMessage(q, resolver), err
 				}
 			}
 
 			// Send upstream if we don't have a record
-			resp, err := forwardToUpstream(r)
+			resp, server, err := forwardToUpstream(r)
+			resolver = *server
 			if err == nil && resp != nil {
-				return w.WriteMsg(resp)
+				err := w.WriteMsg(&msg)
+				return generateResolveMessage(q, resolver), err
 			}
 			// Send nothing if upstream DNS fails
-			return w.WriteMsg(&msg)
+			err = w.WriteMsg(&msg)
+			return generateResolveMessage(q, resolver), err
 		})
 	}
 }
 
-func forwardToUpstream(req *dns.Msg) (*dns.Msg, error) {
+func forwardToUpstream(req *dns.Msg) (*dns.Msg, *string, error) {
 	upstreams := config.GetConfig().UpstreamDns
 	var lastErr error
 
@@ -148,10 +161,10 @@ func forwardToUpstream(req *dns.Msg) (*dns.Msg, error) {
 		c := dns.Client{Net: "udp"}
 		resp, _, err := c.Exchange(req, upstream)
 		if err == nil {
-			return resp, nil
+			return resp, &upstream, nil
 		}
 		lastErr = err
 	}
 
-	return nil, fmt.Errorf("upstream resolve failed: %v", lastErr)
+	return nil, nil, fmt.Errorf("upstream resolve failed: %v", lastErr)
 }

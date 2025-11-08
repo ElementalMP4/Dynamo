@@ -200,13 +200,13 @@ func LogFatalError(err error) {
 	os.Exit(1)
 }
 
-func LogDuration(msg string, taskFunc func() error) {
+func LogDuration(taskFunc func() (string, error)) {
 	start := time.Now()
 
-	err := taskFunc()
+	message, err := taskFunc()
 	elapsed := time.Since(start)
 
-	LogInfoNoNewline(msg)
+	LogInfoNoNewline(message)
 	if err != nil {
 		fmt.Printf("[%sFAIL%s] %s(%v)%s\n", colorRed, colorReset, colorGrey, elapsed, colorReset)
 		LogFatal(fmt.Sprintf("↳ Error: %v", err))
