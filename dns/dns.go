@@ -17,7 +17,6 @@ var localA = map[string]types.DnsRecord{}
 var localCNAME = map[string]types.DnsRecord{}
 var localTXT = map[string]types.DnsRecord{}
 var localSRV = map[string]types.DnsRecord{}
-var upstream = "8.8.8.8:53"
 
 func StartDNS() {
 	// Load records from the database into memory.
@@ -142,11 +141,17 @@ func handleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
 }
 
 func forwardToUpstream(req *dns.Msg) (*dns.Msg, error) {
-	c := dns.Client{Net: "udp"}
-	resp, _, err := c.Exchange(req, upstream)
-	if err != nil {
-		log.LogError(fmt.Sprintf("Upstream resolution failed: %v", err))
-		return nil, err
+	upstreams := config.GetConfig().UpstreamDns
+	var lastErr error
+
+	for _, upstream := range upstreams {
+		c := dns.Client{Net: "udp"}
+		resp, _, err := c.Exchange(req, upstream)
+		if err == nil {
+			return resp, nil
+		}
+		lastErr = err
 	}
-	return resp, nil
+
+	return nil, fmt.Errorf("upstream resolve failed: %v", lastErr)
 }
