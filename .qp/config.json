@@ -1,0 +1,19 @@
+{
+  "app_name": "tinyvtm",
+  "build_files": [
+    "*"
+  ],
+  "install_files": [
+    {
+      "file": "tinyvtm",
+      "from": "build"
+    },
+    {
+      "file": "config.json",
+      "from": "cwd"
+    }
+  ],
+  "build_script": "build.sh",
+  "systemd": true,
+  "exec": "/opt/qp_apps/tinyvtm/tinyvtm"
+}
