@@ -57,6 +57,7 @@ func StartDNS() {
 }
 
 func AddOrUpdateRecord(rec types.DnsRecord) {
+	fmt.Println("Adding record to map")
 	if rec.Name == "" {
 		return
 	}
@@ -64,13 +65,13 @@ func AddOrUpdateRecord(rec types.DnsRecord) {
 	defer mu.Unlock()
 	switch rec.Type {
 	case "A":
-		localA[rec.Name] = rec
+		localA[rec.NameTrailingDot()] = rec
 	case "CNAME":
-		localCNAME[rec.Name] = rec
+		localCNAME[rec.NameTrailingDot()] = rec
 	case "TXT":
-		localTXT[rec.Name] = rec
+		localTXT[rec.NameTrailingDot()] = rec
 	case "SRV":
-		localSRV[rec.Name] = rec
+		localSRV[rec.NameTrailingDot()] = rec
 	}
 }
 
@@ -93,7 +94,7 @@ func DeleteRecordByNameType(name, rtype string) {
 }
 
 func generateResolveMessage(q dns.Question, resolver string) string {
-	return fmt.Sprintf("Resolve %s (%s %s) from %s", q.Name, dns.Type(q.Qtype), q.Name, resolver)
+	return fmt.Sprintf("Resolve %s %s from %s", dns.Type(q.Qtype), q.Name, resolver)
 }
 
 func handleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
@@ -141,12 +142,13 @@ func handleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
 
 			// Send upstream if we don't have a record
 			resp, server, err := forwardToUpstream(r)
-			resolver = *server
-			if err == nil && resp != nil {
-				err := w.WriteMsg(&msg)
+			if err == nil && resp != nil && server != nil {
+				resolver = *server
+				err := w.WriteMsg(resp) // Write the upstream response directly
 				return generateResolveMessage(q, resolver), err
 			}
-			// Send nothing if upstream DNS fails
+			// Send empty response if upstream DNS fails
+			resolver = "none"
 			err = w.WriteMsg(&msg)
 			return generateResolveMessage(q, resolver), err
 		})

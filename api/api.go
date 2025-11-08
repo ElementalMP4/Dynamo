@@ -16,6 +16,30 @@ func StartAPI() {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
 
+	// Load embedded HTML templates
+	templ, err := loadEmbeddedTemplates()
+	if err != nil {
+		log.LogFatal("Failed to load templates: " + err.Error())
+	}
+	r.SetHTMLTemplate(templ)
+
+	// Serve embedded static files
+	r.StaticFS("/static", getFileSystem())
+
+	// Web routes
+	r.GET("/", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "base.html", gin.H{
+			"template": "home",
+		})
+	})
+
+	r.GET("/dns", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "base.html", gin.H{
+			"template": "dns",
+		})
+	})
+
+	// API routes
 	api := r.Group("/api/dns")
 	api.GET("", listRecords)
 	api.POST("", createRecord)
