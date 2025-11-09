@@ -1,0 +1,49 @@
+{{define "nginx"}}
+<div class="content">
+    <div class="header">
+        <h1>NGINX Config Generator</h1>
+        <div class="actions">
+            <button class="button primary" onclick="generateConfig()">Generate Config</button>
+        </div>
+    </div>
+
+    <div class="config-form">
+        <div class="form-group">
+            <label for="server-name">Server Name</label>
+            <input type="text" id="server-name" placeholder="e.g. example.com">
+        </div>
+
+        <div class="form-group">
+            <label for="proxy-pass">Proxy Target</label>
+            <input type="text" id="proxy-pass" placeholder="e.g. http://localhost:8080">
+        </div>
+
+        <div class="form-group">
+            <label>
+                <input type="checkbox" id="enable-websocket">
+                Enable WebSocket Support
+            </label>
+        </div>
+
+        <div class="form-group">
+            <label>
+                <input type="checkbox" id="enable-ssl">
+                Enable SSL
+            </label>
+        </div>
+
+        <div class="form-group" id="ssl-cert-group" style="display:none">
+            <label for="ssl-cert">Server Certificate</label>
+            <select id="ssl-cert"></select>
+        </div>
+    </div>
+
+    <div id="config-output" style="display:none">
+        <h2>Generated Config</h2>
+        <pre><code id="config-text"></code></pre>
+        <button class="button secondary" onclick="downloadConfig()">Download</button>
+    </div>
+</div>
+
+<script src="/static/nginx.js"></script>
+{{end}}
