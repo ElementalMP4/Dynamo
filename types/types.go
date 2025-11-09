@@ -47,4 +47,5 @@ type Config struct {
 	UpstreamDns   []string `json:"upstreamDns"`
 	DnsAddress    string   `json:"dnsBind"`
 	ServerAddress string   `json:"serverBind"`
+	CertsDir      string   `json:"certsDir"`
 }

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"TinyVTM/certificate"
 	"TinyVTM/config"
 	"TinyVTM/db"
 	"TinyVTM/dns"
@@ -29,17 +30,32 @@ func StartAPI() {
 	// Web routes
 	r.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "base.html", gin.H{
-			"template": "home",
+			"isHome": true,
 		})
 	})
 
 	r.GET("/dns", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "base.html", gin.H{
-			"template": "dns",
+			"isDns": true,
 		})
 	})
 
-	// API routes
+	r.GET("/certs", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "base.html", gin.H{
+			"isCerts": true,
+		})
+	})
+
+	// Cert management routes
+	certs := r.Group("/api/certs")
+	certs.POST("/root", certificate.CreateRootCA)
+	certs.POST("/server", certificate.CreateServerCert)
+	certs.POST("/client", certificate.CreateClientCert)
+	certs.DELETE("", certificate.DeleteCertGroup)
+	certs.GET("/list", certificate.ListCerts)
+	certs.GET("/download", certificate.DownloadCert)
+
+	// DNS routes
 	api := r.Group("/api/dns")
 	api.GET("", listRecords)
 	api.POST("", createRecord)

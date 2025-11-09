@@ -12,10 +12,19 @@
         <div class="nav-items">
             <a href="/" class="nav-item">Home</a>
             <a href="/dns" class="nav-item">DNS Records</a>
+            <a href="/certs" class="nav-item">Certificates</a>
         </div>
     </nav>
     <main>
-        {{template "content" .}}
+        {{if .isHome}}
+            {{template "home" .}}
+        {{else if .isDns}}
+            {{template "dns" .}}
+        {{else if .isCerts}}
+            {{template "certs" .}}
+        {{else}}
+            {{template "home" .}}
+        {{end}}
     </main>
 </body>
 </html>
