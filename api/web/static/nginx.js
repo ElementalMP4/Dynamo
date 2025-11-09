@@ -61,6 +61,7 @@ async function loadConfigs() {
 }
 
 let currentConfig = null;
+let cmEditor = null;
 
 async function loadConfig(name) {
     currentConfig = name;
@@ -68,7 +69,22 @@ async function loadConfig(name) {
     if (!res.ok) { alert('Failed to load config'); return; }
     const data = await res.json();
     document.getElementById('editor-filename').textContent = name;
-    document.getElementById('config-editor').value = data.content;
+    // open modal editor
+    document.getElementById('editor-filename-title').textContent = name;
+    showEditorModal();
+    // initialize CodeMirror if available
+    if (window.CodeMirror && !cmEditor) {
+        cmEditor = CodeMirror.fromTextArea(document.getElementById('config-editor'), {
+            mode: 'nginx',
+            theme: 'default',
+            lineNumbers: true,
+        });
+    }
+    if (cmEditor) {
+        cmEditor.setValue(data.content);
+    } else {
+        document.getElementById('config-editor').value = data.content;
+    }
     document.getElementById('editor-panel').style.display = 'block';
     document.getElementById('reload-btn').style.display = 'none';
     // update toggle button text based on enabled state
@@ -80,7 +96,7 @@ async function loadConfig(name) {
 
 async function saveConfig() {
     if (!currentConfig) return;
-    const content = document.getElementById('config-editor').value;
+    const content = cmEditor ? cmEditor.getValue() : document.getElementById('config-editor').value;
     const res = await fetch('/api/nginx/save/' + encodeURIComponent(currentConfig), {
         method: 'PUT',
         headers: {'Content-Type': 'application/json'},
@@ -147,6 +163,9 @@ async function reloadNginx() {
 // Generator modal handling
 function showGeneratorModal() { document.getElementById('generator-modal').style.display = 'flex'; }
 function hideGeneratorModal() { document.getElementById('generator-modal').style.display = 'none'; }
+
+function showEditorModal() { document.getElementById('editor-modal').style.display = 'flex'; }
+function closeEditorModal() { document.getElementById('editor-modal').style.display = 'none'; }
 
 function setupGeneratorForm() {
     document.getElementById('generator-form').addEventListener('submit', async (e) => {

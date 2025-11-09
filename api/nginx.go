@@ -4,7 +4,11 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"text/template"
+
+	"TinyVTM/config"
 
 	"github.com/gin-gonic/gin"
 )
@@ -31,8 +35,8 @@ server {
 {{ if .EnableSSL -}}
     listen 443 ssl;
 
-    ssl_certificate /etc/nginx/ssl/{{ .SSLCertBase }}.crt;
-    ssl_certificate_key /etc/nginx/ssl/{{ .SSLCertBase }}.key;
+	ssl_certificate {{ .SSLCrtPath }};
+	ssl_certificate_key {{ .SSLKeyPath }};
 
 {{ end -}}
     location / {
@@ -84,8 +88,37 @@ func generateNginxConfig(c *gin.Context) {
 		return
 	}
 
+	// prepare template data; if SSL enabled, resolve cert paths
+	data := map[string]interface{}{
+		"ServerName":      req.ServerName,
+		"ProxyPass":       req.ProxyPass,
+		"EnableWebsocket": req.EnableWebsocket,
+		"EnableSSL":       req.EnableSSL,
+		"SSLCertBase":     req.SSLCertBase,
+	}
+	if req.EnableSSL {
+		cfg := config.GetConfig()
+		certsBase := cfg.CertsDir
+		if certsBase == "" {
+			certsBase = "./certs"
+		}
+		crtPath := filepath.Join(certsBase, "server", req.SSLCertBase+".crt")
+		keyPath := filepath.Join(certsBase, "server", req.SSLCertBase+".key")
+		// check files exist
+		if _, err := os.Stat(crtPath); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "server certificate not found: " + crtPath})
+			return
+		}
+		if _, err := os.Stat(keyPath); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "server key not found: " + keyPath})
+			return
+		}
+		data["SSLCrtPath"] = crtPath
+		data["SSLKeyPath"] = keyPath
+	}
+
 	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, req); err != nil {
+	if err := tmpl.Execute(&buf, data); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("template render error: %v", err)})
 		return
 	}
