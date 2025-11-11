@@ -98,6 +98,38 @@ async function loadCerts() {
             clientSelect.appendChild(opt.cloneNode(true));
         }
     }
+
+    // Populate domain dropdown for server certs from configured DNS records
+    try {
+        const dnsRes = await fetch('/api/dns');
+        if (dnsRes.ok) {
+            const dnsList = await dnsRes.json();
+            const domainSet = new Set();
+            dnsList.forEach(r => {
+                if (r.name && r.name !== '') domainSet.add(r.name);
+            });
+            const domains = Array.from(domainSet).sort();
+            const domainSelect = document.getElementById('server-domain');
+            if (domainSelect) {
+                domainSelect.innerHTML = '';
+                if (domains.length === 0) {
+                    const opt = document.createElement('option');
+                    opt.value = '';
+                    opt.textContent = '-- no domains configured --';
+                    domainSelect.appendChild(opt);
+                } else {
+                    domains.forEach(d => {
+                        const opt = document.createElement('option');
+                        opt.value = d;
+                        opt.textContent = d;
+                        domainSelect.appendChild(opt);
+                    });
+                }
+            }
+        }
+    } catch (e) {
+        console.error('Failed to load DNS domains for cert dropdown:', e);
+    }
 }
 
 function setupModals() {

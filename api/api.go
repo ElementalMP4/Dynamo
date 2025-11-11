@@ -141,17 +141,74 @@ func updateRecord(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	var rec types.DnsRecord
-	if err := c.ShouldBindJSON(&rec); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	rec.ID = id
-	if err := db.UpdateDnsRecord(id, &rec); err != nil {
+	// Load existing record so we can merge missing fields from the incoming payload.
+	recs, err := db.GetAllDnsRecords()
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	dns.AddOrUpdateRecord(rec)
+	var existing *types.DnsRecord
+	for _, r := range recs {
+		if r.ID == id {
+			tmp := r
+			existing = &tmp
+			break
+		}
+	}
+	if existing == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+		return
+	}
+
+	var incoming types.DnsRecord
+	if err := c.ShouldBindJSON(&incoming); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Merge: start with existing, overwrite with any fields provided in incoming.
+	merged := *existing
+	if incoming.Name != "" {
+		merged.Name = incoming.Name
+	}
+	if incoming.Type != "" {
+		merged.Type = incoming.Type
+	}
+	if incoming.TTL != 0 {
+		merged.TTL = incoming.TTL
+	}
+	if incoming.Class != "" {
+		merged.Class = incoming.Class
+	}
+	if len(incoming.IPv4) != 0 {
+		merged.IPv4 = incoming.IPv4
+	}
+	if incoming.CNAME != "" {
+		merged.CNAME = incoming.CNAME
+	}
+	if len(incoming.TXT) != 0 {
+		merged.TXT = incoming.TXT
+	}
+	if incoming.Priority != 0 {
+		merged.Priority = incoming.Priority
+	}
+	if incoming.Weight != 0 {
+		merged.Weight = incoming.Weight
+	}
+	if incoming.Port != 0 {
+		merged.Port = incoming.Port
+	}
+	if incoming.Target != "" {
+		merged.Target = incoming.Target
+	}
+
+	merged.ID = id
+
+	if err := db.UpdateDnsRecord(id, &merged); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	dns.AddOrUpdateRecord(merged)
 	c.Status(http.StatusNoContent)
 }
 
