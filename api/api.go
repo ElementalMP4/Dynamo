@@ -64,26 +64,6 @@ func StartAPI() {
 	api.PUT(":id", updateRecord)
 	api.DELETE(":id", deleteRecord)
 
-	// NGINX config generator routes
-	nginx := r.Group("/api/nginx")
-	nginx.POST("/config", generateNginxConfig)
-
-	// NGINX management routes
-	nginx.GET("/list", listNginxConfigs)
-	nginx.GET("/read/:name", readNginxConfig)
-	nginx.PUT("/save/:name", saveNginxConfig)
-	nginx.POST("/enable/:name", enableNginxConfig)
-	nginx.DELETE("/disable/:name", disableNginxConfig)
-	nginx.DELETE("/delete/:name", deleteNginxConfig)
-	nginx.POST("/reload", reloadNginx)
-
-	// NGINX UI
-	r.GET("/nginx", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "base.html", gin.H{
-			"isNginx": true,
-		})
-	})
-
 	log.LogInfo("Starting admin API on " + config.GetConfig().ServerAddress)
 	if err := r.Run(config.GetConfig().ServerAddress); err != nil {
 		log.LogError("admin API failed: " + err.Error())

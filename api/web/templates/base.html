@@ -13,7 +13,6 @@
             <a href="/" class="nav-item">Home</a>
             <a href="/dns" class="nav-item">DNS Records</a>
             <a href="/certs" class="nav-item">Certificates</a>
-            <a href="/nginx" class="nav-item">NGINX</a>
         </div>
     </nav>
     <main>
@@ -23,8 +22,6 @@
             {{template "dns" .}}
         {{else if .isCerts}}
             {{template "certs" .}}
-        {{else if .isNginx}}
-            {{template "nginx" .}}
         {{else}}
             {{template "home" .}}
         {{end}}
