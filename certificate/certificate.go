@@ -46,19 +46,6 @@ func ensureCertDirs() error {
 	return nil
 }
 
-// sanitizeBase converts a filename or name into a safe base name (without extension)
-func sanitizeBase(name string) string {
-	// strip extension if present
-	name = strings.TrimSuffix(name, filepath.Ext(name))
-	// replace problematic characters
-	name = strings.ReplaceAll(name, " ", "_")
-	name = strings.ReplaceAll(name, "/", "_")
-	name = strings.ReplaceAll(name, "\\", "_")
-	name = strings.ReplaceAll(name, "..", "_")
-	name = strings.ToLower(name)
-	return name
-}
-
 // POST /api/certs/server
 // body: {"domain":"example.com","caBase":"rootCA","days":3650}
 func CreateServerCert(c *gin.Context) {
@@ -159,7 +146,7 @@ func CreateServerCert(c *gin.Context) {
 	}
 
 	serverDir := filepath.Join(base, "server")
-	fileBase := sanitizeBase(req.Domain)
+	fileBase := req.Domain
 	crtPath := filepath.Join(serverDir, fileBase+".crt")
 	keyPath := filepath.Join(serverDir, fileBase+".key")
 
@@ -231,7 +218,7 @@ func CreateRootCA(c *gin.Context) {
 
 	base := certsBaseDir()
 	rootDir := filepath.Join(base, "root")
-	fileBase := sanitizeBase(req.Name)
+	fileBase := req.Name
 	crtPath := filepath.Join(rootDir, fileBase+".crt")
 	keyPath := filepath.Join(rootDir, fileBase+".key")
 
@@ -344,7 +331,7 @@ func CreateClientCert(c *gin.Context) {
 	}
 
 	clientDir := filepath.Join(base, "client")
-	fileBase := sanitizeBase(req.Name)
+	fileBase := req.Name
 	crtPath := filepath.Join(clientDir, fileBase+".crt")
 	keyPath := filepath.Join(clientDir, fileBase+".key")
 	p12Path := filepath.Join(clientDir, fileBase+".p12")
@@ -444,11 +431,10 @@ func ListCerts(c *gin.Context) {
 				continue
 			}
 			name := e.Name()
-			baseName := sanitizeBase(name)
-			g, ok := groups[baseName]
+			g, ok := groups[name]
 			if !ok {
-				g = &CertGroup{Base: baseName, Files: []CertFile{}}
-				groups[baseName] = g
+				g = &CertGroup{Base: name, Files: []CertFile{}}
+				groups[name] = g
 			}
 			ext := strings.ToLower(filepath.Ext(name))
 			g.Files = append(g.Files, CertFile{Name: name, Ext: ext})
@@ -539,7 +525,6 @@ func DeleteCertGroup(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "kind and base required"})
 		return
 	}
-	base = sanitizeBase(base)
 
 	root := certsBaseDir()
 	srcDir := filepath.Join(root, kind)
@@ -561,9 +546,6 @@ func DeleteCertGroup(c *gin.Context) {
 			continue
 		}
 		name := e.Name()
-		if sanitizeBase(name) != base {
-			continue
-		}
 		srcPath := filepath.Join(srcDir, name)
 		dstPath := filepath.Join(revokedDir, name)
 		// try rename first
