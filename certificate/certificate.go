@@ -344,7 +344,7 @@ func CreateClientCert(c *gin.Context) {
 	}
 
 	clientDir := filepath.Join(base, "client")
-	fileBase := sanitizeBase(req.Name)
+	fileBase := req.Name
 	crtPath := filepath.Join(clientDir, fileBase+".crt")
 	keyPath := filepath.Join(clientDir, fileBase+".key")
 	p12Path := filepath.Join(clientDir, fileBase+".p12")
