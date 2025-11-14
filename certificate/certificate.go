@@ -46,6 +46,19 @@ func ensureCertDirs() error {
 	return nil
 }
 
+// sanitizeBase converts a filename or name into a safe base name (without extension)
+func sanitizeBase(name string) string {
+	// strip extension if present
+	name = strings.TrimSuffix(name, filepath.Ext(name))
+	// replace problematic characters
+	name = strings.ReplaceAll(name, " ", "_")
+	name = strings.ReplaceAll(name, "/", "_")
+	name = strings.ReplaceAll(name, "\\", "_")
+	name = strings.ReplaceAll(name, "..", "_")
+	name = strings.ToLower(name)
+	return name
+}
+
 // POST /api/certs/server
 // body: {"domain":"example.com","caBase":"rootCA","days":3650}
 func CreateServerCert(c *gin.Context) {
@@ -218,7 +231,7 @@ func CreateRootCA(c *gin.Context) {
 
 	base := certsBaseDir()
 	rootDir := filepath.Join(base, "root")
-	fileBase := req.Name
+	fileBase := sanitizeBase(req.Name)
 	crtPath := filepath.Join(rootDir, fileBase+".crt")
 	keyPath := filepath.Join(rootDir, fileBase+".key")
 
@@ -331,7 +344,7 @@ func CreateClientCert(c *gin.Context) {
 	}
 
 	clientDir := filepath.Join(base, "client")
-	fileBase := req.Name
+	fileBase := sanitizeBase(req.Name)
 	crtPath := filepath.Join(clientDir, fileBase+".crt")
 	keyPath := filepath.Join(clientDir, fileBase+".key")
 	p12Path := filepath.Join(clientDir, fileBase+".p12")
@@ -431,10 +444,11 @@ func ListCerts(c *gin.Context) {
 				continue
 			}
 			name := e.Name()
-			g, ok := groups[name]
+			baseName := sanitizeBase(name)
+			g, ok := groups[baseName]
 			if !ok {
-				g = &CertGroup{Base: name, Files: []CertFile{}}
-				groups[name] = g
+				g = &CertGroup{Base: baseName, Files: []CertFile{}}
+				groups[baseName] = g
 			}
 			ext := strings.ToLower(filepath.Ext(name))
 			g.Files = append(g.Files, CertFile{Name: name, Ext: ext})
