@@ -14,6 +14,11 @@ import (
 )
 
 func StartAPI() {
+	err := certificate.EnsureSslDirs()
+	if err != nil {
+		panic(err) //TODO
+	}
+
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
 

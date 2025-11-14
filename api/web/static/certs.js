@@ -1,3 +1,5 @@
+"use strict";
+
 document.addEventListener('DOMContentLoaded', () => {
     loadCerts();
     setupModals();
@@ -14,32 +16,22 @@ async function loadCerts() {
             li.className = 'cert-bubble';
             const title = document.createElement('div');
             title.className = 'cert-title';
-            title.textContent = group.cn || group.base;
-            const meta = document.createElement('div');
-            meta.className = 'cert-meta';
-            const lines = [];
-            if (group.cn) lines.push('CN: ' + group.cn);
-            if (group.notBefore) lines.push('Valid from: ' + new Date(group.notBefore).toLocaleString());
-            if (group.notAfter) lines.push('Expires: ' + new Date(group.notAfter).toLocaleString());
-
-            meta.innerHTML = lines.join('<br>');
+            title.textContent = group.name;
             li.appendChild(title);
-            li.appendChild(meta);
 
             // file buttons
             const filesDiv = document.createElement('div');
             filesDiv.className = 'cert-files';
             // tooltip on meta with file list
-            meta.title = (group.files || []).map(f => f.name).join('\n');
             (group.files || []).forEach(f => {
                 const btn = document.createElement('a');
                 btn.className = 'button secondary';
                 // friendly label
-                let label = (f.ext || '').replace('.', '').toUpperCase();
+                let label = f;
                 if (label === '') label = 'FILE';
                 btn.textContent = label;
-                btn.href = `/api/certs/download?kind=${kind}&name=${encodeURIComponent(f.name)}`;
-                btn.title = `Download ${f.name}`;
+                btn.href = `/api/certs/download?kind=${kind}&name=${encodeURIComponent(f)}&base=${group.name}`;
+                btn.title = `Download ${f}`;
                 filesDiv.appendChild(btn);
             });
 
@@ -50,8 +42,8 @@ async function loadCerts() {
             delBtn.textContent = 'Delete';
             delBtn.title = 'Delete & revoke this certificate (moves files to revoked)';
             delBtn.addEventListener('click', async (e) => {
-                if (!confirm(`Delete and revoke ${group.base || group.cn || 'certificate'}? This action cannot be undone.`)) return;
-                const res = await fetch(`/api/certs?kind=${kind}&base=${encodeURIComponent(group.base)}`, {method: 'DELETE'});
+                if (!confirm(`Delete and revoke ${group.name}? This action cannot be undone.`)) return;
+                const res = await fetch(`/api/certs?kind=${kind}&base=${encodeURIComponent(group.name)}`, {method: 'DELETE'});
                 if (res.ok) {
                     loadCerts();
                 } else {
@@ -76,18 +68,15 @@ async function loadCerts() {
         clientSelect.innerHTML = '';
         // populate options from root groups (use base)
         rootGroups.forEach(g => {
-            // only include groups that have a .crt file
-            const hasCrt = (g.files || []).some(f => f.ext === '.crt' || f.ext === '.pem');
-            if (!hasCrt) return;
-            const opt1 = document.createElement('option');
-            opt1.value = g.base;
-            opt1.textContent = g.base;
-            serverSelect.appendChild(opt1);
+            const serverOpt = document.createElement('option');
+            serverOpt.value = g.name;
+            serverOpt.textContent = g.name;
+            serverSelect.appendChild(serverOpt);
 
-            const opt2 = document.createElement('option');
-            opt2.value = g.base;
-            opt2.textContent = g.base;
-            clientSelect.appendChild(opt2);
+            const clientOpt = document.createElement('option');
+            clientOpt.value = g.name;
+            clientOpt.textContent = g.name;
+            clientSelect.appendChild(clientOpt);
         });
         // if no roots exist, add a placeholder
         if (serverSelect.options.length === 0) {

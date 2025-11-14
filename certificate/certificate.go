@@ -6,12 +6,12 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"math/big"
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"TinyVTM/config"
@@ -31,15 +31,25 @@ func certsBaseDir() string {
 }
 
 // ensureCertDirs makes sure root, server and client subdirs exist
-func ensureCertDirs() error {
+func ensureCertDirs(group string, crt string) error {
+	base := certsBaseDir()
+	dir := filepath.Join(base, group, crt)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	return nil
+}
+
+func EnsureSslDirs() error {
 	base := certsBaseDir()
 	dirs := []string{
-		filepath.Join(base, "root"),
 		filepath.Join(base, "server"),
 		filepath.Join(base, "client"),
+		filepath.Join(base, "root"),
 	}
-	for _, d := range dirs {
-		if err := os.MkdirAll(d, 0o755); err != nil {
+
+	for _, dir := range dirs {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
 			return err
 		}
 	}
@@ -69,14 +79,14 @@ func CreateServerCert(c *gin.Context) {
 		req.Days = 3650
 	}
 
-	if err := ensureCertDirs(); err != nil {
+	if err := ensureCertDirs("server", req.Domain); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	base := certsBaseDir()
-	caKeyPath := filepath.Join(base, "root", req.CaBase+".key")
-	caCrtPath := filepath.Join(base, "root", req.CaBase+".crt")
+	caKeyPath := filepath.Join(base, "root", req.CaBase, req.CaBase+".key")
+	caCrtPath := filepath.Join(base, "root", req.CaBase, req.CaBase+".crt")
 
 	// load CA
 	caCertPEM, err := os.ReadFile(caCrtPath)
@@ -147,8 +157,8 @@ func CreateServerCert(c *gin.Context) {
 
 	serverDir := filepath.Join(base, "server")
 	fileBase := req.Domain
-	crtPath := filepath.Join(serverDir, fileBase+".crt")
-	keyPath := filepath.Join(serverDir, fileBase+".key")
+	crtPath := filepath.Join(serverDir, fileBase, fileBase+".crt")
+	keyPath := filepath.Join(serverDir, fileBase, fileBase+".key")
 
 	if err := os.WriteFile(crtPath, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: derBytes}), 0o644); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -181,7 +191,7 @@ func CreateRootCA(c *gin.Context) {
 		req.Days = 3650
 	}
 
-	if err := ensureCertDirs(); err != nil {
+	if err := ensureCertDirs("root", req.Name); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -218,9 +228,8 @@ func CreateRootCA(c *gin.Context) {
 
 	base := certsBaseDir()
 	rootDir := filepath.Join(base, "root")
-	fileBase := req.Name
-	crtPath := filepath.Join(rootDir, fileBase+".crt")
-	keyPath := filepath.Join(rootDir, fileBase+".key")
+	crtPath := filepath.Join(rootDir, req.Name+"/"+req.Name+".crt")
+	keyPath := filepath.Join(rootDir, req.Name+"/"+req.Name+".key")
 
 	if err := os.WriteFile(crtPath, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: derBytes}), 0o644); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -259,14 +268,14 @@ func CreateClientCert(c *gin.Context) {
 		req.Days = 3650
 	}
 
-	if err := ensureCertDirs(); err != nil {
+	if err := ensureCertDirs("client", req.Name); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	base := certsBaseDir()
-	caKeyPath := filepath.Join(base, "root", req.CaBase+".key")
-	caCrtPath := filepath.Join(base, "root", req.CaBase+".crt")
+	caKeyPath := filepath.Join(base, "root", req.CaBase, req.CaBase+".key")
+	caCrtPath := filepath.Join(base, "root", req.CaBase, req.CaBase+".crt")
 
 	caCertPEM, err := os.ReadFile(caCrtPath)
 	if err != nil {
@@ -332,9 +341,9 @@ func CreateClientCert(c *gin.Context) {
 
 	clientDir := filepath.Join(base, "client")
 	fileBase := req.Name
-	crtPath := filepath.Join(clientDir, fileBase+".crt")
-	keyPath := filepath.Join(clientDir, fileBase+".key")
-	p12Path := filepath.Join(clientDir, fileBase+".p12")
+	crtPath := filepath.Join(clientDir, fileBase, fileBase+".crt")
+	keyPath := filepath.Join(clientDir, fileBase, fileBase+".key")
+	p12Path := filepath.Join(clientDir, fileBase, fileBase+".p12")
 
 	if err := os.WriteFile(crtPath, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: derBytes}), 0o644); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -375,7 +384,7 @@ func CreateClientCert(c *gin.Context) {
 	if merr == nil {
 		// if legacy already wrote the canonical file, write modern as a sibling
 		if written {
-			modernPath := filepath.Join(clientDir, fileBase+".modern.p12")
+			modernPath := filepath.Join(clientDir, fileBase, fileBase+".modern.p12")
 			_ = os.WriteFile(modernPath, modernData, 0o600)
 		} else {
 			// write modern to the canonical path if legacy failed
@@ -404,117 +413,68 @@ func CreateClientCert(c *gin.Context) {
 func ListCerts(c *gin.Context) {
 	base := certsBaseDir()
 	kinds := []string{"root", "server", "client"}
-	type CertFile struct {
-		Name string `json:"name"`
-		Ext  string `json:"ext"`
-	}
-	type CertGroup struct {
-		Base       string     `json:"base"`
-		CommonName string     `json:"cn,omitempty"`
-		NotBefore  time.Time  `json:"notBefore,omitempty"`
-		NotAfter   time.Time  `json:"notAfter,omitempty"`
-		Files      []CertFile `json:"files"`
+	type CertDir struct {
+		Name  string   `json:"name,omitempty"`
+		Files []string `json:"files"`
 	}
 
-	out := map[string][]CertGroup{}
+	out := map[string][]CertDir{}
 	for _, k := range kinds {
 		dir := filepath.Join(base, k)
 		entries, err := os.ReadDir(dir)
-		if err != nil {
-			out[k] = []CertGroup{}
-			continue
-		}
-		groups := map[string]*CertGroup{}
-		// iterate files and group by sanitized base
-		for _, e := range entries {
-			if e.IsDir() {
-				continue
-			}
-			name := e.Name()
-			baseName := name
-			g, ok := groups[baseName]
-			if !ok {
-				g = &CertGroup{Base: baseName, Files: []CertFile{}}
-				groups[baseName] = g
-			}
-			ext := strings.ToLower(filepath.Ext(name))
-			g.Files = append(g.Files, CertFile{Name: name, Ext: ext})
 
-			// if this file looks like a cert, try to parse to extract CN and validity
-			if ext == ".crt" || ext == ".pem" {
-				data, err := os.ReadFile(filepath.Join(dir, name))
-				if err == nil {
-					var block *pem.Block
-					rest := data
-					for {
-						block, rest = pem.Decode(rest)
-						if block == nil {
-							break
-						}
-						if block.Type == "CERTIFICATE" {
-							cert, err := x509.ParseCertificate(block.Bytes)
-							if err == nil {
-								// set CN and validity if not already set
-								if g.CommonName == "" {
-									g.CommonName = cert.Subject.CommonName
-								}
-								if g.NotBefore.IsZero() {
-									g.NotBefore = cert.NotBefore
-								}
-								if g.NotAfter.IsZero() {
-									g.NotAfter = cert.NotAfter
-								}
-								break
-							}
-						}
-					}
-				}
+		if err != nil {
+			panic(err) //TODO
+		}
+
+		var kindCerts []CertDir
+		for _, entry := range entries {
+			subDir := filepath.Join(base, k, entry.Name())
+			certFiles, err := os.ReadDir(subDir)
+			if err != nil {
+				panic(err) //TODO
 			}
+
+			var files []string
+			for _, certFile := range certFiles {
+				files = append(files, certFile.Name())
+			}
+
+			found := CertDir{
+				Name:  entry.Name(),
+				Files: files,
+			}
+
+			kindCerts = append(kindCerts, found)
 		}
-		// convert map to slice preserving insertion-ish order
-		var list []CertGroup
-		for _, g := range groups {
-			list = append(list, *g)
-		}
-		out[k] = list
+
+		out[k] = kindCerts
+
 	}
 	c.JSON(http.StatusOK, out)
 }
 
-// GET /api/certs/download?kind=client&name=alice_client.p12
+// GET /api/certs/download?kind=client&base=alice&name=alice.p12
 func DownloadCert(c *gin.Context) {
 	kind := c.Query("kind")
 	name := c.Query("name")
-	if kind == "" || name == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "kind and name required"})
+	base := c.Query("base")
+	if kind == "" || name == "" || base == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "kind, base and name required"})
 		return
 	}
-	base := certsBaseDir()
-	path := filepath.Join(base, kind, filepath.Clean(name))
-	// Prevent directory traversal by ensuring path has expected prefix
-	absBase, err := filepath.Abs(filepath.Join(base, kind))
+	certsBase := certsBaseDir()
+	path, err := filepath.Abs(filepath.Join(certsBase, kind, base, filepath.Clean(name)))
+
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+		panic(err) //TODO
 	}
-	absPath, err := filepath.Abs(path)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+
+	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
+		panic(err) //TODO
 	}
-	if len(absPath) < len(absBase) || absPath[:len(absBase)] != absBase {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid file"})
-		return
-	}
-	if _, err := os.Stat(absPath); err != nil {
-		if os.IsNotExist(err) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.FileAttachment(absPath, filepath.Base(absPath))
+
+	c.FileAttachment(path, filepath.Base(path))
 }
 
 // DELETE /api/certs?kind=client&base=alice
@@ -528,50 +488,13 @@ func DeleteCertGroup(c *gin.Context) {
 	}
 
 	root := certsBaseDir()
-	srcDir := filepath.Join(root, kind)
-	entries, err := os.ReadDir(srcDir)
+	dirToDelete := filepath.Join(root, kind, base)
+
+	err := os.RemoveAll(dirToDelete)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+		panic(err)
 	}
 
-	revokedDir := filepath.Join(root, "revoked", kind, base)
-	if err := os.MkdirAll(revokedDir, 0o755); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	moved := 0
-	for _, e := range entries {
-		if e.IsDir() {
-			continue
-		}
-		name := e.Name()
-		srcPath := filepath.Join(srcDir, name)
-		dstPath := filepath.Join(revokedDir, name)
-		// try rename first
-		if err := os.Rename(srcPath, dstPath); err != nil {
-			// fallback to copy
-			in, err := os.ReadFile(srcPath)
-			if err != nil {
-				continue
-			}
-			if err := os.WriteFile(dstPath, in, 0o600); err != nil {
-				continue
-			}
-			_ = os.Remove(srcPath)
-		}
-		moved++
-	}
-
-	// write revocation metadata
-	revMeta := fmt.Sprintf("{\"base\":%q,\"kind\":%q,\"revokedAt\":%q}", base, kind, time.Now().UTC().Format(time.RFC3339))
-	_ = os.WriteFile(filepath.Join(revokedDir, "revocation.json"), []byte(revMeta), 0o644)
-
-	if moved == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"error": "no matching files found"})
-		return
-	}
-	log.LogInfo(fmt.Sprintf("Revoked %d files for %s/%s", moved, kind, base))
+	log.LogInfo(fmt.Sprintf("Deleted %s/%s", kind, base))
 	c.Status(http.StatusNoContent)
 }
