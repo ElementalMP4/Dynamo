@@ -140,13 +140,16 @@ func CreateServerCert(c *gin.Context) {
 
 	now := time.Now()
 	tmpl := x509.Certificate{
-		SerialNumber: serial,
-		Subject:      pkix.Name{CommonName: req.Domain},
-		NotBefore:    now.Add(-time.Hour),
-		NotAfter:     now.AddDate(0, 0, req.Days),
-		KeyUsage:     x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
-		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-		DNSNames:     []string{req.Domain},
+		SerialNumber:          serial,
+		Subject:               pkix.Name{CommonName: req.Domain},
+		NotBefore:             now.Add(-time.Hour),
+		NotAfter:              now.AddDate(0, 0, req.Days),
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		DNSNames:              []string{req.Domain},
+		BasicConstraintsValid: true,
+		IsCA:                  false,
+		AuthorityKeyId:        caCert.SubjectKeyId,
 	}
 
 	derBytes, err := x509.CreateCertificate(rand.Reader, &tmpl, caCert, &priv.PublicKey, caKey)
