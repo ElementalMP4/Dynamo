@@ -362,15 +362,46 @@ func CreateClientCert(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to parse client cert: " + err.Error()})
 		return
 	}
-	// use Modern encoder for better security
-	p12Data, err := pkcs12.Modern.Encode(priv, clientCert, []*x509.Certificate{caCert}, p12pwd)
-	if err != nil {
-		log.LogInfo(fmt.Sprintf("pkcs12 encode failed: %v", err))
-		c.JSON(http.StatusCreated, gin.H{"cert": crtPath, "key": keyPath, "p12": nil, "warning": "pkcs12 encode failed; .p12 not created"})
-		return
+
+	// Try the legacy encoder first for maximum compatibility (macOS Keychain
+	// historically expects older algorithm choices). If that fails, fall back
+	// to the Modern encoder. If both succeed, write the legacy .p12 to the
+	// canonical filename and the modern one alongside with a .modern.p12 suffix.
+	var written bool
+	// attempt legacy encode (provides wider compatibility with older importers)
+	p12Data, err := pkcs12.Legacy.Encode(priv, clientCert, []*x509.Certificate{caCert}, p12pwd)
+	if err == nil {
+		if err := os.WriteFile(p12Path, p12Data, 0o600); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		written = true
+	} else {
+		log.LogInfo(fmt.Sprintf("legacy pkcs12 encode failed: %v", err))
 	}
-	if err := os.WriteFile(p12Path, p12Data, 0o600); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+
+	// try modern encoder as a fallback and also to provide a stronger bundle
+	modernData, merr := pkcs12.Modern.Encode(priv, clientCert, []*x509.Certificate{caCert}, p12pwd)
+	if merr == nil {
+		// if legacy already wrote the canonical file, write modern as a sibling
+		if written {
+			modernPath := filepath.Join(clientDir, fileBase+".modern.p12")
+			_ = os.WriteFile(modernPath, modernData, 0o600)
+		} else {
+			// write modern to the canonical path if legacy failed
+			if err := os.WriteFile(p12Path, modernData, 0o600); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			written = true
+		}
+	} else {
+		log.LogInfo(fmt.Sprintf("modern pkcs12 encode failed: %v", merr))
+	}
+
+	if !written {
+		log.LogInfo("pkcs12 encode failed (both legacy and modern)")
+		c.JSON(http.StatusCreated, gin.H{"cert": crtPath, "key": keyPath, "p12": nil, "warning": "pkcs12 encode failed; .p12 not created"})
 		return
 	}
 
