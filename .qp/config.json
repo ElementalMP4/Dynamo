@@ -7,10 +7,6 @@
     {
       "file": "tinyvtm",
       "from": "build"
-    },
-    {
-      "file": "config.json",
-      "from": "cwd"
     }
   ],
   "build_script": "build.sh",
