@@ -30,7 +30,6 @@ func certsBaseDir() string {
 	return "./certs"
 }
 
-// ensureCertDirs makes sure root, server and client subdirs exist
 func ensureCertDirs(group string, crt string) error {
 	base := certsBaseDir()
 	dir := filepath.Join(base, group, crt)
