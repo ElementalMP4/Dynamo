@@ -11,5 +11,5 @@
   ],
   "build_script": "build.sh",
   "systemd": true,
-  "exec": "/opt/qp_apps/dynamo/dynamo"
+  "exec": "/opt/dynamo/dynamo"
 }
