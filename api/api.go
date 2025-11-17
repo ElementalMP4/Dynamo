@@ -1,12 +1,12 @@
 package api
 
 import (
-	"TinyVTM/certificate"
-	"TinyVTM/config"
-	"TinyVTM/db"
-	"TinyVTM/dns"
-	"TinyVTM/log"
-	"TinyVTM/types"
+	"Dynamo/certificate"
+	"Dynamo/config"
+	"Dynamo/db"
+	"Dynamo/dns"
+	"Dynamo/log"
+	"Dynamo/types"
 	"net/http"
 	"strconv"
 

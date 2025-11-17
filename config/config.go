@@ -1,7 +1,7 @@
 package config
 
 import (
-	"TinyVTM/types"
+	"Dynamo/types"
 	"encoding/json"
 	"os"
 )

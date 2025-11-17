@@ -1,11 +1,11 @@
 package main
 
 import (
-	"TinyVTM/api"
-	"TinyVTM/config"
-	"TinyVTM/db"
-	"TinyVTM/dns"
-	"TinyVTM/log"
+	"Dynamo/api"
+	"Dynamo/config"
+	"Dynamo/db"
+	"Dynamo/dns"
+	"Dynamo/log"
 )
 
 func main() {

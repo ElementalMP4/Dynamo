@@ -1,10 +1,10 @@
 package dns
 
 import (
-	"TinyVTM/config"
-	"TinyVTM/db"
-	"TinyVTM/log"
-	"TinyVTM/types"
+	"Dynamo/config"
+	"Dynamo/db"
+	"Dynamo/log"
+	"Dynamo/types"
 	"fmt"
 	"sync"
 

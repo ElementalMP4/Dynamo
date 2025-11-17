@@ -14,8 +14,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"TinyVTM/config"
-	"TinyVTM/log"
+	"Dynamo/config"
+	"Dynamo/log"
 
 	"github.com/gin-gonic/gin"
 	pkcs12 "software.sslmate.com/src/go-pkcs12"

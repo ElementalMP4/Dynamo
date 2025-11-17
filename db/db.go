@@ -1,8 +1,8 @@
 package db
 
 import (
-	"TinyVTM/log"
-	"TinyVTM/types"
+	"Dynamo/log"
+	"Dynamo/types"
 	"database/sql"
 	"embed"
 	"encoding/json"
@@ -66,7 +66,7 @@ func runMigrations() error {
 
 func InitDB() error {
 	var err error
-	db, err = sql.Open("sqlite3", "tinyvtm.db")
+	db, err = sql.Open("sqlite3", "dynamo.db")
 	if err != nil {
 		return err
 	}

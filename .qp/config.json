@@ -1,15 +1,15 @@
 {
-  "app_name": "tinyvtm",
+  "app_name": "dynamo",
   "build_files": [
     "*"
   ],
   "install_files": [
     {
-      "file": "tinyvtm",
+      "file": "dynamo",
       "from": "build"
     }
   ],
   "build_script": "build.sh",
   "systemd": true,
-  "exec": "/opt/qp_apps/tinyvtm/tinyvtm"
+  "exec": "/opt/qp_apps/dynamo/dynamo"
 }

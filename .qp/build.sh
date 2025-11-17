@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
 
-go build -o tinyvtm
+go build -o dynamo
 
 exit 0

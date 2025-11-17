@@ -1,4 +1,4 @@
-module TinyVTM
+module Dynamo
 
 go 1.24.1
 
