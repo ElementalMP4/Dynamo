@@ -179,9 +179,9 @@ func writeRecords(records []types.DNSRecord) error {
 
 		switch r.Type {
 		case "A":
-			out.WriteString(fmt.Sprintf("address=/%s/%s\n", r.Name, r.IPv4))
+			out.WriteString(fmt.Sprintf("address=/%s/%s\n", r.Name, *r.IPv4))
 		case "CNAME":
-			out.WriteString(fmt.Sprintf("cname=%s,%s\n", r.Name, r.CNAME))
+			out.WriteString(fmt.Sprintf("cname=%s,%s\n", r.Name, *r.CNAME))
 		case "TXT":
 			for _, t := range r.TXT {
 				out.WriteString(fmt.Sprintf("txt-record=%s,\"%s\"\n", r.Name, t))
@@ -189,7 +189,7 @@ func writeRecords(records []types.DNSRecord) error {
 		case "SRV":
 			out.WriteString(fmt.Sprintf(
 				"srv-host=%s,%s,%d,%d,%d\n",
-				r.Name, r.Target, r.Port, r.Priority, r.Weight,
+				r.Name, *r.Target, r.Port, r.Priority, r.Weight,
 			))
 		}
 
