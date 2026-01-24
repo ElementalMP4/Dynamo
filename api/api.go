@@ -133,13 +133,13 @@ func loadRecords() ([]types.DNSRecord, error) {
 			rec.Type = "A"
 			parts := strings.Split(strings.TrimPrefix(line, "address=/"), "/")
 			rec.Name = parts[0]
-			rec.IPv4 = &parts[1]
+			rec.IPv4 = parts[1]
 
 		case strings.HasPrefix(line, "cname="):
 			rec.Type = "CNAME"
 			parts := strings.Split(strings.TrimPrefix(line, "cname="), ",")
 			rec.Name = parts[0]
-			rec.CNAME = &parts[1]
+			rec.CNAME = parts[1]
 
 		case strings.HasPrefix(line, "txt-record="):
 			rec.Type = "TXT"
@@ -151,9 +151,9 @@ func loadRecords() ([]types.DNSRecord, error) {
 			rec.Type = "SRV"
 			parts := strings.Split(strings.TrimPrefix(line, "srv-host="), ",")
 			rec.Name = parts[0]
-			rec.Target = &parts[1]
+			rec.Target = parts[1]
 			port, _ := strconv.Atoi(parts[2])
-			rec.Port = &port
+			rec.Port = port
 			priority, _ := strconv.Atoi(parts[3])
 			rec.Priority = &priority
 			weight, _ := strconv.Atoi(parts[4])
@@ -179,9 +179,9 @@ func writeRecords(records []types.DNSRecord) error {
 
 		switch r.Type {
 		case "A":
-			out.WriteString(fmt.Sprintf("address=/%s/%s\n", r.Name, *r.IPv4))
+			out.WriteString(fmt.Sprintf("address=/%s/%s\n", r.Name, r.IPv4))
 		case "CNAME":
-			out.WriteString(fmt.Sprintf("cname=%s,%s\n", r.Name, *r.CNAME))
+			out.WriteString(fmt.Sprintf("cname=%s,%s\n", r.Name, r.CNAME))
 		case "TXT":
 			for _, t := range r.TXT {
 				out.WriteString(fmt.Sprintf("txt-record=%s,\"%s\"\n", r.Name, t))
@@ -189,7 +189,7 @@ func writeRecords(records []types.DNSRecord) error {
 		case "SRV":
 			out.WriteString(fmt.Sprintf(
 				"srv-host=%s,%s,%d,%d,%d\n",
-				r.Name, *r.Target, r.Port, r.Priority, r.Weight,
+				r.Name, r.Target, r.Port, &r.Priority, &r.Weight,
 			))
 		}
 
