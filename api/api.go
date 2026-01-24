@@ -16,12 +16,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const dnsmasqFile = "/etc/dnsmasq.d/admin-ui.conf"
+const dnsmasqFile = "/etc/dnsmasq.d/dynamo.conf"
 
 func StartAPI() {
 	err := certificate.EnsureSslDirs()
 	if err != nil {
-		panic(err) //TODO
+		panic(err)
+	}
+
+	err = ensureWritable()
+	if err != nil {
+		panic(err)
 	}
 
 	gin.SetMode(gin.ReleaseMode)
@@ -79,12 +84,14 @@ func StartAPI() {
 	}
 }
 
-func ensureWritable() {
+func ensureWritable() error {
 	f, err := os.OpenFile(dnsmasqFile, os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
-		panic("Cannot write dnsmasq config: " + err.Error())
+		return err
 	}
 	f.Close()
+
+	return nil
 }
 
 func reloadDnsmasq() error {
@@ -163,7 +170,7 @@ func loadRecords() ([]types.DNSRecord, error) {
 func writeRecords(records []types.DNSRecord) error {
 	var out strings.Builder
 
-	out.WriteString("# Managed by Admin UI\n\n")
+	out.WriteString("# Managed by Dynamo\n\n")
 
 	for _, r := range records {
 		out.WriteString(fmt.Sprintf("# ttl=%d\n", r.TTL))
