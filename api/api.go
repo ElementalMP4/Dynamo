@@ -155,9 +155,9 @@ func loadRecords() ([]types.DNSRecord, error) {
 			port, _ := strconv.Atoi(parts[2])
 			rec.Port = port
 			priority, _ := strconv.Atoi(parts[3])
-			rec.Priority = &priority
+			rec.Priority = priority
 			weight, _ := strconv.Atoi(parts[4])
-			rec.Weight = &weight
+			rec.Weight = weight
 		default:
 			continue
 		}
@@ -189,7 +189,7 @@ func writeRecords(records []types.DNSRecord) error {
 		case "SRV":
 			out.WriteString(fmt.Sprintf(
 				"srv-host=%s,%s,%d,%d,%d\n",
-				r.Name, r.Target, r.Port, &r.Priority, &r.Weight,
+				r.Name, r.Target, r.Port, r.Priority, r.Weight,
 			))
 		}
 
