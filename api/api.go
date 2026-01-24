@@ -133,13 +133,13 @@ func loadRecords() ([]types.DNSRecord, error) {
 			rec.Type = "A"
 			parts := strings.Split(strings.TrimPrefix(line, "address=/"), "/")
 			rec.Name = parts[0]
-			rec.IPv4 = parts[1]
+			rec.IPv4 = &parts[1]
 
 		case strings.HasPrefix(line, "cname="):
 			rec.Type = "CNAME"
 			parts := strings.Split(strings.TrimPrefix(line, "cname="), ",")
 			rec.Name = parts[0]
-			rec.CNAME = parts[1]
+			rec.CNAME = &parts[1]
 
 		case strings.HasPrefix(line, "txt-record="):
 			rec.Type = "TXT"
@@ -151,10 +151,13 @@ func loadRecords() ([]types.DNSRecord, error) {
 			rec.Type = "SRV"
 			parts := strings.Split(strings.TrimPrefix(line, "srv-host="), ",")
 			rec.Name = parts[0]
-			rec.Target = parts[1]
-			rec.Port, _ = strconv.Atoi(parts[2])
-			rec.Priority, _ = strconv.Atoi(parts[3])
-			rec.Weight, _ = strconv.Atoi(parts[4])
+			rec.Target = &parts[1]
+			port, _ := strconv.Atoi(parts[2])
+			rec.Port = &port
+			priority, _ := strconv.Atoi(parts[3])
+			rec.Priority = &priority
+			weight, _ := strconv.Atoi(parts[4])
+			rec.Weight = &weight
 		default:
 			continue
 		}
