@@ -1,6 +1,4 @@
 {
-    "upstreamDns": ["1.1.1.1:53", "1.0.0.1:53"],
-    "dnsBind": ":53",
     "serverBind": ":6789",
     "certsDir": "./ssl"
 }
