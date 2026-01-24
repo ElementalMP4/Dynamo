@@ -154,6 +154,7 @@ func loadRecords() ([]types.DNSRecord, error) {
 			rec.Target = parts[1]
 			rec.Port, _ = strconv.Atoi(parts[2])
 			rec.Priority, _ = strconv.Atoi(parts[3])
+			rec.Weight, _ = strconv.Atoi(parts[4])
 		default:
 			continue
 		}
