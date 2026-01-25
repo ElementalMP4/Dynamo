@@ -160,7 +160,7 @@ func CreateServerCert(c *gin.Context) {
 	keyAbs, _ := filepath.Abs(keyPath)
 	caAbs, _ := filepath.Abs(caCrtPath)
 
-	nginxPath := filepath.Join(serverDir, fileBase, "nginx-mtls.conf")
+	nginxPath := filepath.Join(serverDir, fileBase, "nginx.conf")
 	nginxAbs, _ := filepath.Abs(nginxPath)
 
 	if err := writeNginxMTLSConfig(
