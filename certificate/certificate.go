@@ -21,7 +21,6 @@ import (
 	pkcs12 "software.sslmate.com/src/go-pkcs12"
 )
 
-// helper: return configured certs base dir or default
 func certsBaseDir() string {
 	cfg := config.GetConfig()
 	if cfg.CertsDir != "" {
@@ -55,8 +54,6 @@ func EnsureSslDirs() error {
 	return nil
 }
 
-// POST /api/certs/server
-// body: {"domain":"example.com","caBase":"rootCA","days":3650}
 func CreateServerCert(c *gin.Context) {
 	var req struct {
 		Domain string `json:"domain"`
@@ -172,8 +169,6 @@ func CreateServerCert(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"cert": crtPath, "key": keyPath})
 }
 
-// POST /api/certs/root
-// body: {"name":"rootCA","days":3650}
 func CreateRootCA(c *gin.Context) {
 	var req struct {
 		Name string `json:"name"`
@@ -243,8 +238,6 @@ func CreateRootCA(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"cert": crtPath, "key": keyPath})
 }
 
-// POST /api/certs/client
-// body: {"name":"alice","caBase":"rootCA","days":3650, "p12Pass":"secret"}
 func CreateClientCert(c *gin.Context) {
 	var req struct {
 		Name   string `json:"name"`
@@ -353,7 +346,7 @@ func CreateClientCert(c *gin.Context) {
 		return
 	}
 
-	// create p12 bundle using pure-Go pkcs12 encoder
+	// create p12 bundle using pkcs12 encoder
 	p12pwd := req.P12Pwd
 	clientCert, err := x509.ParseCertificate(derBytes)
 	if err != nil {
@@ -407,8 +400,6 @@ func CreateClientCert(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"cert": crtPath, "key": keyPath, "p12": p12Path})
 }
 
-// GET /api/certs/list
-// returns a JSON map of kind->[]files
 func ListCerts(c *gin.Context) {
 	base := certsBaseDir()
 	kinds := []string{"root", "server", "client"}
@@ -453,7 +444,6 @@ func ListCerts(c *gin.Context) {
 	c.JSON(http.StatusOK, out)
 }
 
-// GET /api/certs/download?kind=client&base=alice&name=alice.p12
 func DownloadCert(c *gin.Context) {
 	kind := c.Query("kind")
 	name := c.Query("name")
@@ -476,8 +466,6 @@ func DownloadCert(c *gin.Context) {
 	c.FileAttachment(path, filepath.Base(path))
 }
 
-// DELETE /api/certs?kind=client&base=alice
-// Moves files for the given cert base into a revoked directory and creates a revocation metadata file.
 func DeleteCertGroup(c *gin.Context) {
 	kind := c.Query("kind")
 	base := c.Query("base")
