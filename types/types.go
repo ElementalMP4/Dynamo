@@ -11,8 +11,8 @@ type DNSRecord struct {
 	CNAME string   `json:"cname,omitempty"`
 	TXT   []string `json:"txt,omitempty"`
 
-	Priority int    `json:"priority,omitempty"`
-	Weight   int    `json:"weight,omitempty"`
+	Priority int    `json:"priority"`
+	Weight   int    `json:"weight"`
 	Port     int    `json:"port,omitempty"`
 	Target   string `json:"target,omitempty"`
 }
