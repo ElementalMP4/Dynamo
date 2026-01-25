@@ -109,7 +109,7 @@ func loadRecords() ([]types.DNSRecord, error) {
 	var records []types.DNSRecord
 	scanner := bufio.NewScanner(file)
 	id := 1
-	ttl := 300
+	ttl := 0
 
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
