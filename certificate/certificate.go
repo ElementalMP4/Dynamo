@@ -156,6 +156,26 @@ func CreateServerCert(c *gin.Context) {
 	crtPath := filepath.Join(serverDir, fileBase, fileBase+".crt")
 	keyPath := filepath.Join(serverDir, fileBase, fileBase+".key")
 
+	crtAbs, _ := filepath.Abs(crtPath)
+	keyAbs, _ := filepath.Abs(keyPath)
+	caAbs, _ := filepath.Abs(caCrtPath)
+
+	nginxPath := filepath.Join(serverDir, fileBase, "nginx-mtls.conf")
+	nginxAbs, _ := filepath.Abs(nginxPath)
+
+	if err := writeNginxMTLSConfig(
+		req.Domain,
+		crtAbs,
+		keyAbs,
+		caAbs,
+		nginxAbs,
+	); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to write nginx config: " + err.Error(),
+		})
+		return
+	}
+
 	if err := os.WriteFile(crtPath, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: derBytes}), 0o644); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -165,8 +185,17 @@ func CreateServerCert(c *gin.Context) {
 		return
 	}
 
-	log.LogInfo(fmt.Sprintf("Created server cert: %s and %s", crtPath, keyPath))
-	c.JSON(http.StatusCreated, gin.H{"cert": crtPath, "key": keyPath})
+	log.LogInfo(fmt.Sprintf(
+		"Created server cert: %s, %s, nginx: %s",
+		crtPath, keyPath, nginxPath,
+	))
+
+	c.JSON(http.StatusCreated, gin.H{
+		"cert":  crtPath,
+		"key":   keyPath,
+		"nginx": nginxAbs,
+	})
+
 }
 
 func CreateRootCA(c *gin.Context) {
@@ -484,4 +513,29 @@ func DeleteCertGroup(c *gin.Context) {
 
 	log.LogInfo(fmt.Sprintf("Deleted %s/%s", kind, base))
 	c.Status(http.StatusNoContent)
+}
+
+func writeNginxMTLSConfig(
+	serverName string,
+	serverCrt string,
+	serverKey string,
+	caCrt string,
+	outPath string,
+) error {
+
+	conf := fmt.Sprintf(`
+listen 443 ssl;
+server_name %s;
+
+ssl_certificate     %s;
+ssl_certificate_key %s;
+
+ssl_client_certificate %s;
+ssl_verify_client on;
+
+ssl_protocols TLSv1.2 TLSv1.3;
+ssl_prefer_server_ciphers on;
+`, serverName, serverCrt, serverKey, caCrt)
+
+	return os.WriteFile(outPath, []byte(conf), 0o644)
 }
