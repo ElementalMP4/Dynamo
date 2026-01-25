@@ -95,7 +95,7 @@ func ensureWritable() error {
 }
 
 func reloadDnsmasq() error {
-	cmd := exec.Command("systemctl", "reload", "dnsmasq")
+	cmd := exec.Command("systemctl", "restart", "dnsmasq")
 	return cmd.Run()
 }
 
