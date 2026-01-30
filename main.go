@@ -9,7 +9,7 @@ import (
 func main() {
 	log.ShowTheBanner()
 	config.LoadConfig()
-	go api.StartAPI()
+	api.StartAPI()
 
 	select {}
 }
