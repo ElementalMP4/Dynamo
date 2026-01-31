@@ -72,12 +72,12 @@ func StartAPI() {
 	api.DELETE(":id", deleteRecord)
 
 	circuits := r.Group("/api/circuits")
-	circuits.GET("/", listCircuits)
-	circuits.POST("/", createCircuit)
-	circuits.PUT("/:id", updateCircuit)
-	circuits.POST("/:id/enable", enableCircuit)
-	circuits.POST("/:id/disable", disableCircuit)
-	circuits.DELETE("/:id", deleteCircuit)
+	circuits.GET("", listCircuits)
+	circuits.POST("", createCircuit)
+	circuits.PUT(":id", updateCircuit)
+	circuits.POST(":id/enable", enableCircuit)
+	circuits.POST("/id/disable", disableCircuit)
+	circuits.DELETE(":id", deleteCircuit)
 
 	log.LogInfo("Starting admin API on " + config.GetConfig().ServerAddress)
 	if err := r.Run(config.GetConfig().ServerAddress); err != nil {
