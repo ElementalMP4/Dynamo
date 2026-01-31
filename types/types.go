@@ -1,5 +1,10 @@
 package types
 
+import (
+	"fmt"
+	"strconv"
+)
+
 type DNSRecord struct {
 	ID    int    `json:"id"`
 	Name  string `json:"name"`
@@ -20,4 +25,74 @@ type DNSRecord struct {
 type Config struct {
 	ServerAddress string `json:"serverBind"`
 	CertsDir      string `json:"certsDir"`
+}
+
+type CircuitType string
+
+const (
+	CircuitRedirect CircuitType = "REDIRECT"
+	CircuitDNAT     CircuitType = "DNAT"
+)
+
+type RoutingCircuit struct {
+	ID      int64       `db:"id" json:"id"`
+	Name    string      `db:"name" json:"name"`
+	Type    CircuitType `db:"type" json:"type"`
+	Enabled bool        `db:"enabled" json:"enabled"`
+
+	InInterface *string `db:"in_interface" json:"in_interface,omitempty"`
+	Protocol    string  `db:"protocol" json:"protocol"`
+	SrcPort     int     `db:"src_port" json:"src_port"`
+
+	RedirectPort *int `db:"redirect_port" json:"redirect_port,omitempty"`
+
+	DestIP   *string `db:"dest_ip" json:"dest_ip,omitempty"`
+	DestPort *int    `db:"dest_port" json:"dest_port,omitempty"`
+}
+
+func (c RoutingCircuit) IPTablesRules() [][]string {
+	var rules [][]string
+
+	switch c.Type {
+	case CircuitRedirect:
+		args := []string{
+			"-t", "nat",
+			"-A", "PREROUTING",
+			"-p", c.Protocol,
+			"--dport", strconv.Itoa(c.SrcPort),
+		}
+
+		if c.InInterface != nil {
+			args = append(args, "-i", *c.InInterface)
+		}
+
+		args = append(args,
+			"-j", "REDIRECT",
+			"--to-port", strconv.Itoa(*c.RedirectPort),
+		)
+
+		rules = append(rules, args)
+
+	case CircuitDNAT:
+		// PREROUTING
+		rules = append(rules, []string{
+			"-t", "nat",
+			"-A", "PREROUTING",
+			"-p", c.Protocol,
+			"--dport", strconv.Itoa(c.SrcPort),
+			"-j", "DNAT",
+			"--to-destination", fmt.Sprintf("%s:%d", *c.DestIP, *c.DestPort),
+		})
+
+		// FORWARD
+		rules = append(rules, []string{
+			"-A", "FORWARD",
+			"-p", c.Protocol,
+			"-d", *c.DestIP,
+			"--dport", strconv.Itoa(*c.DestPort),
+			"-j", "ACCEPT",
+		})
+	}
+
+	return rules
 }

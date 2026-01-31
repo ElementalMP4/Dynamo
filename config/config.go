@@ -8,14 +8,16 @@ import (
 
 var config types.Config
 
-func LoadConfig() {
+func LoadConfig() error {
 	data, err := os.ReadFile("config.json")
 	if err != nil {
-		panic(err)
+		return err
 	}
 	if err := json.Unmarshal(data, &config); err != nil {
-		panic(err)
+		return err
 	}
+
+	return nil
 }
 
 func GetConfig() types.Config {
