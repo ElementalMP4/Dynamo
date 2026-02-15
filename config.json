@@ -1,4 +1,4 @@
 {
-    "serverBind": ":6789",
+    "serverBind": "127.0.0.1:6789",
     "certsDir": "./ssl"
 }
