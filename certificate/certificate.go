@@ -160,18 +160,31 @@ func CreateServerCert(c *gin.Context) {
 	keyAbs, _ := filepath.Abs(keyPath)
 	caAbs, _ := filepath.Abs(caCrtPath)
 
-	nginxPath := filepath.Join(serverDir, fileBase, "nginx.conf")
-	nginxAbs, _ := filepath.Abs(nginxPath)
+	nginxMtlsPath := filepath.Join(serverDir, fileBase, "nginx-mtls.conf")
+	nginxMtlsAbs, _ := filepath.Abs(nginxMtlsPath)
+
+	nginxRedirectPath := filepath.Join(serverDir, fileBase, "nginx-redirect.conf")
+	nginxRedirectAbs, _ := filepath.Abs(nginxRedirectPath)
 
 	if err := writeNginxMTLSConfig(
 		req.Domain,
 		crtAbs,
 		keyAbs,
 		caAbs,
-		nginxAbs,
+		nginxMtlsAbs,
 	); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "failed to write nginx config: " + err.Error(),
+			"error": "failed to write nginx mTLS config: " + err.Error(),
+		})
+		return
+	}
+
+	if err := writeNginxRedirectConfig(
+		req.Domain,
+		nginxRedirectAbs,
+	); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to write nginx redirect config: " + err.Error(),
 		})
 		return
 	}
@@ -186,14 +199,15 @@ func CreateServerCert(c *gin.Context) {
 	}
 
 	log.LogInfo(fmt.Sprintf(
-		"Created server cert: %s, %s, nginx: %s",
-		crtPath, keyPath, nginxPath,
+		"Created server cert: %s, %s, nginx mTLS: %s nginx redirect: %s",
+		crtPath, keyPath, nginxMtlsPath, nginxRedirectPath,
 	))
 
 	c.JSON(http.StatusCreated, gin.H{
-		"cert":  crtPath,
-		"key":   keyPath,
-		"nginx": nginxAbs,
+		"cert":          crtPath,
+		"key":           keyPath,
+		"nginxMtls":     nginxMtlsAbs,
+		"nginxRedirect": nginxRedirectAbs,
 	})
 
 }
@@ -537,5 +551,21 @@ ssl_protocols TLSv1.2 TLSv1.3;
 ssl_prefer_server_ciphers on;
 `, serverName, serverCrt, serverKey, caCrt)
 
+	return os.WriteFile(outPath, []byte(conf), 0o644)
+}
+
+func writeNginxRedirectConfig(
+	serverName string,
+	outPath string,
+) error {
+
+	conf := fmt.Sprintf(`
+server {
+    listen 80;
+    server_name %s;
+
+    return 301 https://$host$request_uri;
+}
+`, serverName)
 	return os.WriteFile(outPath, []byte(conf), 0o644)
 }
