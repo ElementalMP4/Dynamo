@@ -223,12 +223,6 @@ main {
     margin-top: 2rem;
 }
 
-.certs-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1rem;
-}
-
 .cert-section ul {
     list-style: none;
     margin-top: 1rem;

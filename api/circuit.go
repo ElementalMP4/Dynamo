@@ -202,7 +202,7 @@ func updateCircuit(c *gin.Context) {
 
 	var existing types.RoutingCircuit
 	row := db.DB().QueryRow(`SELECT * FROM routing_circuits WHERE id = ?`, id)
-	if err := row.Scan( /* same fields as scanCircuit */ ); err != nil {
+	if err := row.Scan(); err != nil {
 		c.JSON(404, gin.H{"error": "not found"})
 		return
 	}
@@ -255,7 +255,7 @@ func deleteCircuit(c *gin.Context) {
 
 	var rc types.RoutingCircuit
 	row := db.DB().QueryRow(`SELECT * FROM routing_circuits WHERE id = ?`, id)
-	if err := row.Scan( /* fields */ ); err != nil {
+	if err := row.Scan(); err != nil {
 		c.JSON(404, gin.H{"error": "not found"})
 		return
 	}

@@ -1,62 +1,69 @@
 {{define "certs"}}
 <div class="dns-manager">
-    <div class="dns-header">
-        <h1>Certificates</h1>
-    </div>
+  <div class="dns-header">
+    <h1>Certificates</h1>
+  </div>
 
-    <div class="certs-grid">
-        <div class="cert-section">
-            <h2>Root CA</h2>
-            <button class="button" onclick="showRootModal()">Create Root CA</button>
-            <ul id="root-list"></ul>
-        </div>
+  <div class="cert-section">
+    <h2>Root CA</h2>
+    <button class="button" onclick="showRootModal()">Create Root CA</button>
+    <ul id="root-list"></ul>
+  </div>
 
-        <div class="cert-section">
-            <h2>Server Certificates</h2>
-            <button class="button" onclick="showServerModal()">Create Server Cert</button>
-            <ul id="server-list"></ul>
-        </div>
+  <div class="cert-section">
+    <h2>Server Certificates</h2>
+    <button class="button" onclick="showServerModal()">Create Server Cert</button>
+    <ul id="server-list"></ul>
+  </div>
 
-        <div class="cert-section">
-            <h2>Client Certificates</h2>
-            <button class="button" onclick="showClientModal()">Create Client Cert</button>
-            <ul id="client-list"></ul>
-        </div>
-    </div>
+  <div class="cert-section">
+    <h2>Client Certificates</h2>
+    <button class="button" onclick="showClientModal()">Create Client Cert</button>
+    <ul id="client-list"></ul>
+  </div>
 </div>
 
 <!-- Modals -->
-<div id="root-modal" class="modal"><div class="modal-content">
-<h2>Create Root CA</h2>
-<form id="root-form">
-  <div class="form-group"><label>Name</label><input id="root-name" required></div>
-  <div class="form-group"><label>Days</label><input id="root-days" type="number" value="3650"></div>
-  <div class="form-actions"><button type="button" class="button secondary" onclick="hideRootModal()">Cancel</button><button class="button" type="submit">Create</button></div>
-</form>
-</div></div>
-
-<div id="server-modal" class="modal"><div class="modal-content">
-<h2>Create Server Cert</h2>
-<form id="server-form">
-  <div class="form-group"><label>Domain</label>
-    <select id="server-domain" required>
-      <option value="">-- loading domains --</option>
-    </select>
+<div id="root-modal" class="modal">
+  <div class="modal-content">
+    <h2>Create Root CA</h2>
+    <form id="root-form">
+      <div class="form-group"><label>Name</label><input id="root-name" required></div>
+      <div class="form-group"><label>Days</label><input id="root-days" type="number" value="3650"></div>
+      <div class="form-actions"><button type="button" class="button secondary"
+          onclick="hideRootModal()">Cancel</button><button class="button" type="submit">Create</button></div>
+    </form>
   </div>
-  <div class="form-group"><label>Root CA</label><select id="server-cabase"></select></div>
-  <div class="form-actions"><button type="button" class="button secondary" onclick="hideServerModal()">Cancel</button><button class="button" type="submit">Create</button></div>
-</form>
-</div></div>
+</div>
 
-<div id="client-modal" class="modal"><div class="modal-content">
-<h2>Create Client Cert</h2>
-<form id="client-form">
-  <div class="form-group"><label>Name</label><input id="client-name" required></div>
-  <div class="form-group"><label>Root CA</label><select id="client-cabase"></select></div>
-  <div class="form-group"><label>P12 Password</label><input id="client-pass" type="password"></div>
-  <div class="form-actions"><button type="button" class="button secondary" onclick="hideClientModal()">Cancel</button><button class="button" type="submit">Create</button></div>
-</form>
-</div></div>
+<div id="server-modal" class="modal">
+  <div class="modal-content">
+    <h2>Create Server Cert</h2>
+    <form id="server-form">
+      <div class="form-group"><label>Domain</label>
+        <select id="server-domain" required>
+          <option value="">-- loading domains --</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Root CA</label><select id="server-cabase"></select></div>
+      <div class="form-actions"><button type="button" class="button secondary"
+          onclick="hideServerModal()">Cancel</button><button class="button" type="submit">Create</button></div>
+    </form>
+  </div>
+</div>
+
+<div id="client-modal" class="modal">
+  <div class="modal-content">
+    <h2>Create Client Cert</h2>
+    <form id="client-form">
+      <div class="form-group"><label>Name</label><input id="client-name" required></div>
+      <div class="form-group"><label>Root CA</label><select id="client-cabase"></select></div>
+      <div class="form-group"><label>P12 Password</label><input id="client-pass" type="password"></div>
+      <div class="form-actions"><button type="button" class="button secondary"
+          onclick="hideClientModal()">Cancel</button><button class="button" type="submit">Create</button></div>
+    </form>
+  </div>
+</div>
 
 <script src="/static/certs.js"></script>
 {{end}}

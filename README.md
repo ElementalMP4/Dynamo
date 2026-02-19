@@ -25,8 +25,10 @@ Network Management Platform
 ## Example NGINX config
 
 ```nginx
+include /opt/Dynamo/ssl/server/<sevrice name>/nginx-redirect.conf;
+
 server {
-    include /opt/Dynamo/ssl/server/<sevrice name>/nginx.conf;
+    include /opt/Dynamo/ssl/server/<sevrice name>/nginx-mtls.conf;
     location / {
         proxy_pass http://127.0.0.1:8080;
     }
