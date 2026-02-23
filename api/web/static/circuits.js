@@ -6,9 +6,9 @@ function buildMeta(rc) {
     if (rc.protocol) parts.push(rc.protocol.toUpperCase());
     if (rc.src_port) parts.push(`:${rc.src_port}`);
     if (rc.type === 'DNAT' && rc.dest_ip && rc.dest_port) {
-        parts.push(`→ ${rc.dest_ip}:${rc.dest_port}`);
+        parts.push(`-> ${rc.dest_ip}:${rc.dest_port}`);
     } else if (rc.type === 'REDIRECT' && rc.redirect_port) {
-        parts.push(`→ :${rc.redirect_port}`);
+        parts.push(`-> :${rc.redirect_port}`);
     }
     return parts.join('  ·  ');
 }

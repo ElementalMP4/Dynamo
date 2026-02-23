@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS routing_circuits (
     enabled BOOLEAN NOT NULL DEFAULT 0,
 
     in_interface TEXT,
-    protocol TEXT NOT NULL CHECK (protocol IN ('tcp', 'udp')),
+    protocol TEXT NOT NULL CHECK (protocol IN ('tcp', 'udp', 'both')),
     src_port INTEGER NOT NULL,
 
     redirect_port INTEGER,

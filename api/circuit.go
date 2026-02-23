@@ -13,6 +13,20 @@ import (
 
 const iptablesTimeout = 10 * time.Second
 
+func expandProtocols(c types.RoutingCircuit) []types.RoutingCircuit {
+	if c.Protocol != "both" {
+		return []types.RoutingCircuit{c}
+	}
+
+	tcp := c
+	tcp.Protocol = "tcp"
+
+	udp := c
+	udp.Protocol = "udp"
+
+	return []types.RoutingCircuit{tcp, udp}
+}
+
 func iptablesExists(args []string) bool {
 	if len(args) < 2 {
 		return false
@@ -52,17 +66,21 @@ func iptablesDelete(args []string) error {
 }
 
 func EnableCircuit(c types.RoutingCircuit) error {
-	for _, rule := range c.IPTablesRules() {
-		if err := iptablesAdd(rule); err != nil {
-			return err
+	for _, expanded := range expandProtocols(c) {
+		for _, rule := range expanded.IPTablesRules() {
+			if err := iptablesAdd(rule); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
 }
 
 func DisableCircuit(c types.RoutingCircuit) {
-	for _, rule := range c.IPTablesRules() {
-		_ = iptablesDelete(rule) // best-effort
+	for _, expanded := range expandProtocols(c) {
+		for _, rule := range expanded.IPTablesRules() {
+			_ = iptablesDelete(rule)
+		}
 	}
 }
 
