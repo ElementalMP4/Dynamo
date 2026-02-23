@@ -236,10 +236,8 @@ main {
     padding: 0.75rem 1rem;
     border-radius: 0.5rem;
     display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
 .cert-title {
@@ -249,5 +247,4 @@ main {
 .cert-meta {
     color: var(--text-secondary);
     font-size: 0.95rem;
-    white-space: nowrap;
 }
