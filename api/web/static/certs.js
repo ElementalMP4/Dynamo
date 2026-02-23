@@ -138,7 +138,7 @@ function setupModals() {
 
     document.getElementById('client-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const body = {name: document.getElementById('client-name').value, caBase: document.getElementById('client-cabase').value, p12Pass: document.getElementById('client-pass').value};
+        const body = {name: document.getElementById('client-name').value, caBase: document.getElementById('client-cabase').value, p12Pass: document.getElementById('client-pass').value, identity: document.getElementById("client-identity").value};
         const res = await fetch('/api/certs/client', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
         if (res.ok) { hideClientModal(); loadCerts(); } else { alert('Failed to create client cert'); }
     });

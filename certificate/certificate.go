@@ -283,10 +283,11 @@ func CreateRootCA(c *gin.Context) {
 
 func CreateClientCert(c *gin.Context) {
 	var req struct {
-		Name   string `json:"name"`
-		CaBase string `json:"caBase"`
-		Days   int    `json:"days"`
-		P12Pwd string `json:"p12Pass"`
+		Name     string `json:"name"`
+		Identity string `json:"identity"`
+		CaBase   string `json:"caBase"`
+		Days     int    `json:"days"`
+		P12Pwd   string `json:"p12Pass"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -359,9 +360,21 @@ func CreateClientCert(c *gin.Context) {
 	}
 
 	now := time.Now()
+	subject := pkix.Name{CommonName: req.Name}
+
+	subject.ExtraNames = append(subject.ExtraNames, pkix.AttributeTypeAndValue{
+		Type:  []int{2, 5, 4, 42}, // OID for givenName
+		Value: req.Identity,
+	})
+
+	subject.ExtraNames = append(subject.ExtraNames, pkix.AttributeTypeAndValue{
+		Type:  []int{1, 2, 840, 113549, 1, 9, 1}, // OID for emailAddress
+		Value: req.Identity,
+	})
+
 	tmpl := x509.Certificate{
 		SerialNumber: serial,
-		Subject:      pkix.Name{CommonName: req.Name},
+		Subject:      subject,
 		NotBefore:    now.Add(-time.Hour),
 		NotAfter:     now.AddDate(0, 0, req.Days),
 		KeyUsage:     x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
