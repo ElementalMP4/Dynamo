@@ -13,6 +13,7 @@
             <a href="/" class="nav-item">Home</a>
             <a href="/dns" class="nav-item">DNS Records</a>
             <a href="/certs" class="nav-item">Certificates</a>
+            <a href="/circuits" class="nav-item">Circuits</a>
         </div>
     </nav>
     <main>
@@ -22,6 +23,8 @@
             {{template "dns" .}}
         {{else if .isCerts}}
             {{template "certs" .}}
+        {{else if .isCircuits}}
+            {{template "circuits" .}}
         {{else}}
             {{template "home" .}}
         {{end}}

@@ -54,6 +54,12 @@ func StartAPI() {
 		})
 	})
 
+	r.GET("/circuits", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "base.html", gin.H{
+			"isCircuits": true,
+		})
+	})
+
 	// Cert management routes
 	certs := r.Group("/api/certs")
 	certs.POST("/root", certificate.CreateRootCA)
