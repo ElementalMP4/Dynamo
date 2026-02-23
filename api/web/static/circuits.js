@@ -94,8 +94,11 @@ async function confirmDelete() {
 
 function onTypeChange() {
     const type = document.getElementById('circuit-type').value;
-    document.getElementById('dest-ip-group').style.display = type === 'DNAT' ? '' : 'none';
-    document.getElementById('redirect-port-group').style.display = type === 'REDIRECT' ? '' : 'none';
+    const isDNAT = type === 'DNAT';
+    const isRedirect = type === 'REDIRECT';
+    document.getElementById('redirect-port-group').style.display = isRedirect ? '' : 'none';
+    document.getElementById('dest-ip-group').style.display = isDNAT ? '' : 'none';
+    document.getElementById('dest-port-group').style.display = isDNAT ? '' : 'none';
 }
 
 function formToPayload() {
