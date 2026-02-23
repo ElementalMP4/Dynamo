@@ -3,15 +3,26 @@ package api
 import (
 	"Dynamo/db"
 	"Dynamo/types"
+	"context"
 	"fmt"
 	"os/exec"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
+const iptablesTimeout = 10 * time.Second
+
 func iptablesExists(args []string) bool {
+	if len(args) < 2 {
+		return false
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), iptablesTimeout)
+	defer cancel()
+
 	checkArgs := append([]string{"-C"}, args[1:]...)
-	cmd := exec.Command("iptables", checkArgs...)
+	cmd := exec.CommandContext(ctx, "iptables", checkArgs...)
 	return cmd.Run() == nil
 }
 
@@ -19,13 +30,24 @@ func iptablesAdd(args []string) error {
 	if iptablesExists(args) {
 		return nil
 	}
-	cmd := exec.Command("iptables", args...)
+
+	ctx, cancel := context.WithTimeout(context.Background(), iptablesTimeout)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "iptables", args...)
 	return cmd.Run()
 }
 
 func iptablesDelete(args []string) error {
+	if len(args) < 2 {
+		return nil
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), iptablesTimeout)
+	defer cancel()
+
 	delArgs := append([]string{"-D"}, args[1:]...)
-	cmd := exec.Command("iptables", delArgs...)
+	cmd := exec.CommandContext(ctx, "iptables", delArgs...)
 	return cmd.Run()
 }
 
@@ -38,15 +60,19 @@ func EnableCircuit(c types.RoutingCircuit) error {
 	return nil
 }
 
-func DisableCircuit(c types.RoutingCircuit) error {
+func DisableCircuit(c types.RoutingCircuit) {
 	for _, rule := range c.IPTablesRules() {
 		_ = iptablesDelete(rule) // best-effort
 	}
-	return nil
 }
 
 func SyncCircuits() error {
-	rows, err := db.DB().Query(`SELECT * FROM routing_circuits`)
+	rows, err := db.DB().Query(`
+		SELECT
+			id, name, type, enabled, in_interface,
+			protocol, src_port, redirect_port, dest_ip, dest_port
+		FROM routing_circuits
+	`)
 	if err != nil {
 		return err
 	}
@@ -99,7 +125,6 @@ func createCircuit(c *gin.Context) {
 		rc.DestIP,
 		rc.DestPort,
 	)
-
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
@@ -113,17 +138,18 @@ func createCircuit(c *gin.Context) {
 
 	rc.ID = id
 	rc.Enabled = false
-
 	c.JSON(201, rc)
 }
 
 func enableCircuit(c *gin.Context) {
 	id := c.Param("id")
 
-	row := db.DB().QueryRow(
-		`SELECT * FROM routing_circuits WHERE id = ?`,
-		id,
-	)
+	row := db.DB().QueryRow(`
+		SELECT
+			id, name, type, enabled, in_interface,
+			protocol, src_port, redirect_port, dest_ip, dest_port
+		FROM routing_circuits WHERE id = ?
+	`, id)
 
 	rc, err := db.ScanCircuitRow(row)
 	if err != nil {
@@ -131,30 +157,38 @@ func enableCircuit(c *gin.Context) {
 		return
 	}
 
-	if err := EnableCircuit(rc); err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
-		return
-	}
-
-	_, err = db.DB().Exec(
-		`UPDATE routing_circuits SET enabled = 1 WHERE id = ?`,
-		id,
-	)
+	tx, err := db.DB().Begin()
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 
+	if err := EnableCircuit(rc); err != nil {
+		tx.Rollback()
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	if _, err := tx.Exec(`UPDATE routing_circuits SET enabled = 1 WHERE id = ?`, id); err != nil {
+		DisableCircuit(rc) // rollback firewall state
+		tx.Rollback()
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	tx.Commit()
 	c.Status(204)
 }
 
 func disableCircuit(c *gin.Context) {
 	id := c.Param("id")
 
-	row := db.DB().QueryRow(
-		`SELECT * FROM routing_circuits WHERE id = ?`,
-		id,
-	)
+	row := db.DB().QueryRow(`
+		SELECT
+			id, name, type, enabled, in_interface,
+			protocol, src_port, redirect_port, dest_ip, dest_port
+		FROM routing_circuits WHERE id = ?
+	`, id)
 
 	rc, err := db.ScanCircuitRow(row)
 	if err != nil {
@@ -162,22 +196,32 @@ func disableCircuit(c *gin.Context) {
 		return
 	}
 
-	DisableCircuit(rc)
-
-	_, err = db.DB().Exec(
-		`UPDATE routing_circuits SET enabled = 0 WHERE id = ?`,
-		id,
-	)
+	tx, err := db.DB().Begin()
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 
+	DisableCircuit(rc)
+
+	if _, err := tx.Exec(`UPDATE routing_circuits SET enabled = 0 WHERE id = ?`, id); err != nil {
+		tx.Rollback()
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	tx.Commit()
 	c.Status(204)
 }
 
 func listCircuits(c *gin.Context) {
-	rows, err := db.DB().Query(`SELECT * FROM routing_circuits ORDER BY id`)
+	rows, err := db.DB().Query(`
+		SELECT
+			id, name, type, enabled, in_interface,
+			protocol, src_port, redirect_port, dest_ip, dest_port
+		FROM routing_circuits
+		ORDER BY id
+	`)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
@@ -200,9 +244,15 @@ func listCircuits(c *gin.Context) {
 func updateCircuit(c *gin.Context) {
 	id := c.Param("id")
 
-	var existing types.RoutingCircuit
-	row := db.DB().QueryRow(`SELECT * FROM routing_circuits WHERE id = ?`, id)
-	if err := row.Scan(); err != nil {
+	row := db.DB().QueryRow(`
+		SELECT
+			id, name, type, enabled, in_interface,
+			protocol, src_port, redirect_port, dest_ip, dest_port
+		FROM routing_circuits WHERE id = ?
+	`, id)
+
+	existing, err := db.ScanCircuitRow(row)
+	if err != nil {
 		c.JSON(404, gin.H{"error": "not found"})
 		return
 	}
@@ -218,7 +268,7 @@ func updateCircuit(c *gin.Context) {
 		return
 	}
 
-	_, err := db.DB().Exec(`
+	if _, err := db.DB().Exec(`
 		UPDATE routing_circuits SET
 			name = ?,
 			type = ?,
@@ -240,9 +290,7 @@ func updateCircuit(c *gin.Context) {
 		updated.DestIP,
 		updated.DestPort,
 		id,
-	)
-
-	if err != nil {
+	); err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
@@ -253,9 +301,15 @@ func updateCircuit(c *gin.Context) {
 func deleteCircuit(c *gin.Context) {
 	id := c.Param("id")
 
-	var rc types.RoutingCircuit
-	row := db.DB().QueryRow(`SELECT * FROM routing_circuits WHERE id = ?`, id)
-	if err := row.Scan(); err != nil {
+	row := db.DB().QueryRow(`
+		SELECT
+			id, name, type, enabled, in_interface,
+			protocol, src_port, redirect_port, dest_ip, dest_port
+		FROM routing_circuits WHERE id = ?
+	`, id)
+
+	rc, err := db.ScanCircuitRow(row)
+	if err != nil {
 		c.JSON(404, gin.H{"error": "not found"})
 		return
 	}
@@ -264,8 +318,7 @@ func deleteCircuit(c *gin.Context) {
 		DisableCircuit(rc)
 	}
 
-	_, err := db.DB().Exec(`DELETE FROM routing_circuits WHERE id = ?`, id)
-	if err != nil {
+	if _, err := db.DB().Exec(`DELETE FROM routing_circuits WHERE id = ?`, id); err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}

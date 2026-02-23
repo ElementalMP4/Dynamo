@@ -1,0 +1,89 @@
+{{define "circuits"}}
+<div class="dns-manager">
+  <div class="dns-header">
+    <h1>Routing Circuits</h1>
+    <button class="button" onclick="showCreateModal()">Add Circuit</button>
+  </div>
+
+  <div id="circuits-list" class="records">
+    <p style="color: var(--text-secondary)">Loading circuits…</p>
+  </div>
+</div>
+
+<!-- Create / Edit Modal -->
+<div id="circuit-modal" class="modal">
+  <div class="modal-content">
+    <h2 id="modal-title">Create Circuit</h2>
+    <form id="circuit-form">
+      <input type="hidden" id="circuit-id">
+
+      <div class="form-group">
+        <label>Name</label>
+        <input id="circuit-name" required placeholder="e.g. web-redirect">
+      </div>
+
+      <div class="form-group">
+        <label>Type</label>
+        <select id="circuit-type" onchange="onTypeChange()">
+          <option value="DNAT">DNAT (port forward)</option>
+          <option value="REDIRECT">REDIRECT (local redirect)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>In Interface</label>
+        <input id="circuit-interface" placeholder="e.g. eth0">
+      </div>
+
+      <div class="form-group">
+        <label>Protocol</label>
+        <select id="circuit-protocol">
+          <option value="tcp">TCP</option>
+          <option value="udp">UDP</option>
+          <option value="both">Both</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Source Port</label>
+        <input id="circuit-src-port" type="number" min="1" max="65535" placeholder="e.g. 80">
+      </div>
+
+      <div class="form-group" id="redirect-port-group">
+        <label>Redirect Port</label>
+        <input id="circuit-redirect-port" type="number" min="1" max="65535" placeholder="e.g. 8080">
+      </div>
+
+      <div class="form-group" id="dest-ip-group">
+        <label>Destination IP</label>
+        <input id="circuit-dest-ip" placeholder="e.g. 192.168.1.10">
+      </div>
+
+      <div class="form-group">
+        <label>Destination Port</label>
+        <input id="circuit-dest-port" type="number" min="1" max="65535" placeholder="e.g. 8080">
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="button secondary" onclick="hideModal()">Cancel</button>
+        <button class="button" type="submit" id="modal-submit-btn">Create</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Delete Confirm Modal -->
+<div id="delete-modal" class="modal">
+  <div class="modal-content">
+    <h2>Delete Circuit</h2>
+    <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+      Are you sure you want to delete <strong id="delete-name"></strong>? This will remove all associated iptables rules.
+    </p>
+    <div class="form-actions">
+      <button type="button" class="button secondary" onclick="hideDeleteModal()">Cancel</button>
+      <button class="button danger" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/circuits.js"></script>
