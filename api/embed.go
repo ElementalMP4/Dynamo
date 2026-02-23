@@ -26,5 +26,6 @@ func loadEmbeddedTemplates() (*template.Template, error) {
 		"web/templates/home.html",
 		"web/templates/dns.html",
 		"web/templates/certs.html",
+		"web/templates/circuits.html",
 	)
 }
