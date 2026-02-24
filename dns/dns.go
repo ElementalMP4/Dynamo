@@ -191,7 +191,39 @@ func UpdateRecord(c *gin.Context) {
 
 	for i := range records {
 		if records[i].ID == id {
-			records[i] = update
+			if update.Name != "" && update.Name != records[i].Name {
+				records[i].Name = update.Name
+			}
+			if update.Type != "" && update.Type != records[i].Type {
+				records[i].Type = update.Type
+			}
+			if update.TTL != records[i].TTL {
+				records[i].TTL = update.TTL
+			}
+			if update.Class != "" && update.Class != records[i].Class {
+				records[i].Class = update.Class
+			}
+			if update.IPv4 != "" && update.IPv4 != records[i].IPv4 {
+				records[i].IPv4 = update.IPv4
+			}
+			if update.CNAME != "" && update.CNAME != records[i].CNAME {
+				records[i].CNAME = update.CNAME
+			}
+			if len(update.TXT) > 0 {
+				records[i].TXT = update.TXT
+			}
+			if update.Target != "" && update.Target != records[i].Target {
+				records[i].Target = update.Target
+			}
+			if update.Port != records[i].Port && update.Port != 0 {
+				records[i].Port = update.Port
+			}
+			if update.Priority != records[i].Priority && update.Priority != 0 {
+				records[i].Priority = update.Priority
+			}
+			if update.Weight != records[i].Weight && update.Weight != 0 {
+				records[i].Weight = update.Weight
+			}
 
 			if err := writeRecords(records); err != nil {
 				c.JSON(500, gin.H{"error": err.Error()})
