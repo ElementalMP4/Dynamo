@@ -35,14 +35,14 @@ const (
 )
 
 type RoutingCircuit struct {
-	ID      int64       `db:"id" json:"id"`
-	Name    string      `db:"name" json:"name"`
-	Type    CircuitType `db:"type" json:"type"`
-	Enabled bool        `db:"enabled" json:"enabled"`
+	ID          int64       `db:"id" json:"id"`
+	Name        string      `db:"name" json:"name"`
+	Type        CircuitType `db:"type" json:"type"`
+	Enabled     bool        `db:"enabled" json:"enabled"`
+	InInterface *string     `db:"in_interface" json:"in_interface,omitempty"`
 
-	InInterface *string `db:"in_interface" json:"in_interface,omitempty"`
-	Protocol    string  `db:"protocol" json:"protocol"`
-	SrcPort     int     `db:"src_port" json:"src_port"`
+	Protocol string `db:"protocol" json:"protocol"`
+	SrcPort  int    `db:"src_port" json:"src_port"`
 
 	RedirectPort *int `db:"redirect_port" json:"redirect_port,omitempty"`
 
@@ -52,8 +52,10 @@ type RoutingCircuit struct {
 
 func (c RoutingCircuit) IPTablesRules() [][]string {
 	var rules [][]string
+	comment := fmt.Sprintf("dynamo-circuit-%d", c.ID)
 
 	switch c.Type {
+
 	case CircuitRedirect:
 		args := []string{
 			"-t", "nat",
@@ -67,6 +69,8 @@ func (c RoutingCircuit) IPTablesRules() [][]string {
 		}
 
 		args = append(args,
+			"-m", "comment",
+			"--comment", comment,
 			"-j", "REDIRECT",
 			"--to-port", strconv.Itoa(*c.RedirectPort),
 		)
@@ -74,12 +78,14 @@ func (c RoutingCircuit) IPTablesRules() [][]string {
 		rules = append(rules, args)
 
 	case CircuitDNAT:
-		// PREROUTING
+		// PREROUTING (DNAT)
 		rules = append(rules, []string{
 			"-t", "nat",
 			"-A", "PREROUTING",
 			"-p", c.Protocol,
 			"--dport", strconv.Itoa(c.SrcPort),
+			"-m", "comment",
+			"--comment", comment,
 			"-j", "DNAT",
 			"--to-destination", fmt.Sprintf("%s:%d", *c.DestIP, *c.DestPort),
 		})
@@ -92,6 +98,8 @@ func (c RoutingCircuit) IPTablesRules() [][]string {
 			"--dport", strconv.Itoa(*c.DestPort),
 			"-m", "conntrack",
 			"--ctstate", "NEW,ESTABLISHED,RELATED",
+			"-m", "comment",
+			"--comment", comment,
 			"-j", "ACCEPT",
 		})
 
@@ -103,16 +111,19 @@ func (c RoutingCircuit) IPTablesRules() [][]string {
 			"--sport", strconv.Itoa(*c.DestPort),
 			"-m", "conntrack",
 			"--ctstate", "ESTABLISHED,RELATED",
+			"-m", "comment",
+			"--comment", comment,
 			"-j", "ACCEPT",
 		})
 
-		// POSTROUTING
+		// POSTROUTING (SNAT)
 		rules = append(rules, []string{
 			"-t", "nat",
 			"-A", "POSTROUTING",
 			"-p", c.Protocol,
 			"-d", *c.DestIP,
-			"--dport", strconv.Itoa(*c.DestPort),
+			"-m", "comment",
+			"--comment", comment,
 			"-j", "MASQUERADE",
 		})
 	}

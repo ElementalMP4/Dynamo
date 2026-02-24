@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -76,12 +77,57 @@ func enableCircuit(c types.RoutingCircuit) error {
 	return nil
 }
 
-func disableCircuit(c types.RoutingCircuit) {
-	for _, expanded := range expandProtocols(c) {
-		for _, rule := range expanded.IPTablesRules() {
-			_ = iptablesDelete(rule)
+func dropCircuitConntrack(c types.RoutingCircuit) error {
+	var errs []error
+
+	protos := []string{c.Protocol}
+	if c.Protocol == "both" {
+		protos = []string{"tcp", "udp"}
+	}
+
+	for _, proto := range protos {
+		cmd := exec.Command(
+			"conntrack",
+			"-D",
+			"-p", proto,
+			"--dport", strconv.Itoa(c.SrcPort),
+		)
+
+		if err := cmd.Run(); err != nil {
+			// conntrack returns exit 1 if no flows matched, so we can ignore this
+			if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 1 {
+				continue
+			}
+			errs = append(errs, err)
 		}
 	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf("conntrack errors: %v", errs)
+	}
+
+	return nil
+}
+
+func deleteCircuitRulesByComment(c types.RoutingCircuit) error {
+	comment := fmt.Sprintf("dynamo-circuit-%d", c.ID)
+	// lists all rules, removes the ones with the dynamo comment, then loads them all back in
+	deleteCommand := fmt.Sprintf("iptables-save | grep -- '%s' | sed 's/^-A /-D /' | iptables-restore", comment)
+	cmd := exec.Command("sh", "-c", deleteCommand)
+
+	return cmd.Run()
+}
+
+func disableCircuit(c types.RoutingCircuit) error {
+	if err := deleteCircuitRulesByComment(c); err != nil {
+		return fmt.Errorf("failed to remove firewall rules: %w", err)
+	}
+
+	if err := dropCircuitConntrack(c); err != nil {
+		return fmt.Errorf("rules removed but failed to drop connections: %w", err)
+	}
+
+	return nil
 }
 
 func SyncCircuits() error {
@@ -107,7 +153,9 @@ func SyncCircuits() error {
 				return fmt.Errorf("enable %s failed: %w", rc.Name, err)
 			}
 		} else {
-			disableCircuit(rc)
+			if err := disableCircuit(rc); err != nil {
+				return fmt.Errorf("disable %s failed: %w", rc.Name, err)
+			}
 		}
 	}
 
@@ -188,7 +236,12 @@ func EnableCircuit(c *gin.Context) {
 	}
 
 	if _, err := tx.Exec(`UPDATE routing_circuits SET enabled = 1 WHERE id = ?`, id); err != nil {
-		disableCircuit(rc) // rollback firewall state
+		if derr := disableCircuit(rc); derr != nil {
+			c.JSON(500, gin.H{
+				"error": "enable failed and rollback failed: " + derr.Error(),
+			})
+			return
+		}
 		tx.Rollback()
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
@@ -214,13 +267,25 @@ func DisableCircuit(c *gin.Context) {
 		return
 	}
 
+	if !rc.Enabled {
+		c.Status(204)
+		return
+	}
+
 	tx, err := db.DB().Begin()
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 
-	disableCircuit(rc)
+	if err := disableCircuit(rc); err != nil {
+		tx.Rollback()
+		c.JSON(500, gin.H{
+			"error":  "failed to disable circuit",
+			"detail": err.Error(),
+		})
+		return
+	}
 
 	if _, err := tx.Exec(`UPDATE routing_circuits SET enabled = 0 WHERE id = ?`, id); err != nil {
 		tx.Rollback()
@@ -332,14 +397,27 @@ func DeleteCircuit(c *gin.Context) {
 		return
 	}
 
-	if rc.Enabled {
-		disableCircuit(rc)
-	}
-
-	if _, err := db.DB().Exec(`DELETE FROM routing_circuits WHERE id = ?`, id); err != nil {
+	tx, err := db.DB().Begin()
+	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 
+	if err := disableCircuit(rc); err != nil {
+		tx.Rollback()
+		c.JSON(500, gin.H{
+			"error":  "failed to remove firewall state",
+			"detail": err.Error(),
+		})
+		return
+	}
+
+	if _, err := tx.Exec(`DELETE FROM routing_circuits WHERE id = ?`, id); err != nil {
+		tx.Rollback()
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	tx.Commit()
 	c.Status(204)
 }
