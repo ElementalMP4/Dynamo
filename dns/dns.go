@@ -178,7 +178,10 @@ func GetRecordByID(c *gin.Context) {
 func UpdateRecord(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
 	var update types.DNSRecord
-	c.BindJSON(&update)
+	if err := c.BindJSON(&update); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
 
 	records, _ := loadRecords()
 	for i := range records {
