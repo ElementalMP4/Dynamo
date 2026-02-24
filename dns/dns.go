@@ -183,7 +183,12 @@ func UpdateRecord(c *gin.Context) {
 		return
 	}
 
-	records, _ := loadRecords()
+	records, err := loadRecords()
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
 	for i := range records {
 		if records[i].ID == id {
 			records[i].Name = update.Name
