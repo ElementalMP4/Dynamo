@@ -2,14 +2,14 @@ package api
 
 import (
 	"Dynamo/certificate"
+	"Dynamo/circuit"
 	"Dynamo/config"
+	"Dynamo/dns"
 	"Dynamo/log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
-
-const dnsmasqFile = "/etc/dnsmasq.d/dynamo.conf"
 
 func StartAPI() {
 	err := certificate.EnsureSslDirs()
@@ -17,7 +17,7 @@ func StartAPI() {
 		panic(err)
 	}
 
-	err = ensureWritable()
+	err = dns.EnsureWritable()
 	if err != nil {
 		panic(err)
 	}
@@ -71,19 +71,20 @@ func StartAPI() {
 
 	// DNS routes
 	api := r.Group("/api/dns")
-	api.GET("", listRecords)
-	api.POST("", createRecord)
-	api.GET("/id/:id", getRecordByID)
-	api.PUT(":id", updateRecord)
-	api.DELETE(":id", deleteRecord)
+	api.GET("", dns.ListRecords)
+	api.POST("", dns.CreateRecord)
+	api.GET("/id/:id", dns.GetRecordByID)
+	api.PUT(":id", dns.UpdateRecord)
+	api.DELETE(":id", dns.DeleteRecord)
 
+	// Circuit routes
 	circuits := r.Group("/api/circuits")
-	circuits.GET("", listCircuits)
-	circuits.POST("", createCircuit)
-	circuits.PUT(":id", updateCircuit)
-	circuits.POST(":id/enable", enableCircuit)
-	circuits.POST(":id/disable", disableCircuit)
-	circuits.DELETE(":id", deleteCircuit)
+	circuits.GET("", circuit.ListCircuits)
+	circuits.POST("", circuit.CreateCircuit)
+	circuits.PUT(":id", circuit.UpdateCircuit)
+	circuits.POST(":id/enable", circuit.EnableCircuit)
+	circuits.POST(":id/disable", circuit.DisableCircuit)
+	circuits.DELETE(":id", circuit.DeleteCircuit)
 
 	log.LogInfo("Starting admin API on " + config.GetConfig().ServerAddress)
 	if err := r.Run(config.GetConfig().ServerAddress); err != nil {

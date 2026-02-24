@@ -1,4 +1,4 @@
-package api
+package dns
 
 import (
 	"Dynamo/types"
@@ -12,7 +12,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func ensureWritable() error {
+const dnsmasqFile = "/etc/dnsmasq.d/dynamo.conf"
+
+func EnsureWritable() error {
 	f, err := os.OpenFile(dnsmasqFile, os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
 		return err
@@ -131,7 +133,7 @@ func writeRecords(records []types.DNSRecord) error {
 	return reloadDnsmasq()
 }
 
-func listRecords(c *gin.Context) {
+func ListRecords(c *gin.Context) {
 	records, err := loadRecords()
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
@@ -140,7 +142,7 @@ func listRecords(c *gin.Context) {
 	c.JSON(200, records)
 }
 
-func createRecord(c *gin.Context) {
+func CreateRecord(c *gin.Context) {
 	var rec types.DNSRecord
 	if err := c.BindJSON(&rec); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
@@ -159,7 +161,7 @@ func createRecord(c *gin.Context) {
 	c.Status(201)
 }
 
-func getRecordByID(c *gin.Context) {
+func GetRecordByID(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
 	records, _ := loadRecords()
 
@@ -173,7 +175,7 @@ func getRecordByID(c *gin.Context) {
 	c.JSON(404, gin.H{"error": "not found"})
 }
 
-func updateRecord(c *gin.Context) {
+func UpdateRecord(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
 	var update types.DNSRecord
 	c.BindJSON(&update)
@@ -197,7 +199,7 @@ func updateRecord(c *gin.Context) {
 	c.JSON(404, gin.H{"error": "not found"})
 }
 
-func deleteRecord(c *gin.Context) {
+func DeleteRecord(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
 	records, _ := loadRecords()
 

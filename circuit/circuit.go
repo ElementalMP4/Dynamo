@@ -1,4 +1,4 @@
-package api
+package circuit
 
 import (
 	"Dynamo/db"
@@ -65,7 +65,7 @@ func iptablesDelete(args []string) error {
 	return cmd.Run()
 }
 
-func EnableCircuit(c types.RoutingCircuit) error {
+func enableCircuit(c types.RoutingCircuit) error {
 	for _, expanded := range expandProtocols(c) {
 		for _, rule := range expanded.IPTablesRules() {
 			if err := iptablesAdd(rule); err != nil {
@@ -76,7 +76,7 @@ func EnableCircuit(c types.RoutingCircuit) error {
 	return nil
 }
 
-func DisableCircuit(c types.RoutingCircuit) {
+func disableCircuit(c types.RoutingCircuit) {
 	for _, expanded := range expandProtocols(c) {
 		for _, rule := range expanded.IPTablesRules() {
 			_ = iptablesDelete(rule)
@@ -103,18 +103,18 @@ func SyncCircuits() error {
 		}
 
 		if rc.Enabled {
-			if err := EnableCircuit(rc); err != nil {
+			if err := enableCircuit(rc); err != nil {
 				return fmt.Errorf("enable %s failed: %w", rc.Name, err)
 			}
 		} else {
-			DisableCircuit(rc)
+			disableCircuit(rc)
 		}
 	}
 
 	return rows.Err()
 }
 
-func createCircuit(c *gin.Context) {
+func CreateCircuit(c *gin.Context) {
 	var rc types.RoutingCircuit
 	if err := c.ShouldBindJSON(&rc); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
@@ -159,7 +159,7 @@ func createCircuit(c *gin.Context) {
 	c.JSON(201, rc)
 }
 
-func enableCircuit(c *gin.Context) {
+func EnableCircuit(c *gin.Context) {
 	id := c.Param("id")
 
 	row := db.DB().QueryRow(`
@@ -181,14 +181,14 @@ func enableCircuit(c *gin.Context) {
 		return
 	}
 
-	if err := EnableCircuit(rc); err != nil {
+	if err := enableCircuit(rc); err != nil {
 		tx.Rollback()
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 
 	if _, err := tx.Exec(`UPDATE routing_circuits SET enabled = 1 WHERE id = ?`, id); err != nil {
-		DisableCircuit(rc) // rollback firewall state
+		disableCircuit(rc) // rollback firewall state
 		tx.Rollback()
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
@@ -198,7 +198,7 @@ func enableCircuit(c *gin.Context) {
 	c.Status(204)
 }
 
-func disableCircuit(c *gin.Context) {
+func DisableCircuit(c *gin.Context) {
 	id := c.Param("id")
 
 	row := db.DB().QueryRow(`
@@ -220,7 +220,7 @@ func disableCircuit(c *gin.Context) {
 		return
 	}
 
-	DisableCircuit(rc)
+	disableCircuit(rc)
 
 	if _, err := tx.Exec(`UPDATE routing_circuits SET enabled = 0 WHERE id = ?`, id); err != nil {
 		tx.Rollback()
@@ -232,7 +232,7 @@ func disableCircuit(c *gin.Context) {
 	c.Status(204)
 }
 
-func listCircuits(c *gin.Context) {
+func ListCircuits(c *gin.Context) {
 	rows, err := db.DB().Query(`
 		SELECT
 			id, name, type, enabled, in_interface,
@@ -259,7 +259,7 @@ func listCircuits(c *gin.Context) {
 	c.JSON(200, circuits)
 }
 
-func updateCircuit(c *gin.Context) {
+func UpdateCircuit(c *gin.Context) {
 	id := c.Param("id")
 
 	row := db.DB().QueryRow(`
@@ -316,7 +316,7 @@ func updateCircuit(c *gin.Context) {
 	c.Status(204)
 }
 
-func deleteCircuit(c *gin.Context) {
+func DeleteCircuit(c *gin.Context) {
 	id := c.Param("id")
 
 	row := db.DB().QueryRow(`
@@ -333,7 +333,7 @@ func deleteCircuit(c *gin.Context) {
 	}
 
 	if rc.Enabled {
-		DisableCircuit(rc)
+		disableCircuit(rc)
 	}
 
 	if _, err := db.DB().Exec(`DELETE FROM routing_circuits WHERE id = ?`, id); err != nil {

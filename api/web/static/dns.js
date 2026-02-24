@@ -41,7 +41,7 @@ function displayRecords(records) {
         'TXT': document.getElementById('txt-records'),
         'SRV': document.getElementById('srv-records')
     };
-    
+
     Object.values(containers).forEach(container => {
         if (container) container.innerHTML = '';
     });
@@ -58,7 +58,7 @@ function displayRecords(records) {
 function createRecordElement(record) {
     const div = document.createElement('div');
     div.className = 'record-card';
-    
+
     let content = '';
     switch (record.type) {
         case 'A':
@@ -121,11 +121,11 @@ function updateFormFields() {
     recordTypeFields[type].forEach(field => {
         const div = document.createElement('div');
         div.className = 'form-group';
-        
+
         const label = document.createElement('label');
         label.htmlFor = field.id;
         label.textContent = field.label;
-        
+
         const input = document.createElement(field.type === 'textarea' ? 'textarea' : 'input');
         input.id = field.id;
         if (field.type !== 'textarea') {
@@ -142,7 +142,7 @@ function updateFormFields() {
 function setupFormHandlers() {
     document.getElementById('add-record-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        
+
         const type = document.getElementById('recordType').value;
         const record = {
             name: document.getElementById('name').value,
@@ -186,12 +186,23 @@ function setupFormHandlers() {
 
     document.getElementById('edit-record-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        
+
         const id = document.getElementById('edit-record-id').value;
         const record = {
             name: document.getElementById('edit-name').value,
-            ttl: parseInt(document.getElementById('edit-ttl').value)
+            ttl: parseInt(document.getElementById('edit-ttl').value),
         };
+
+        recordTypeFields[type].forEach(field => {
+            const value = document.getElementById('edit-' + field.id).value;
+            if (field.type === 'number') {
+                record[field.id] = parseInt(value);
+            } else if (field.id === 'txt') {
+                record[field.id] = [value];
+            } else {
+                record[field.id] = value;
+            }
+        });
 
         try {
             const response = await fetch(`/api/dns/${id}`, {
@@ -220,22 +231,24 @@ async function editRecord(id) {
     try {
         const response = await fetch(`/api/dns/id/${id}`);
         const record = await response.json();
-        
+
         document.getElementById('edit-record-id').value = record.id;
+        document.getElementById('edit-record-type').value = record.type;
+
         document.getElementById('edit-name').value = record.name;
         document.getElementById('edit-ttl').value = record.ttl;
-        
+
         const container = document.getElementById('edit-dynamic-fields');
         container.innerHTML = '';
-        
+
         recordTypeFields[record.type].forEach(field => {
             const div = document.createElement('div');
             div.className = 'form-group';
-            
+
             const label = document.createElement('label');
             label.htmlFor = 'edit-' + field.id;
             label.textContent = field.label;
-            
+
             const input = document.createElement(field.type === 'textarea' ? 'textarea' : 'input');
             input.id = 'edit-' + field.id;
             if (field.type !== 'textarea') {
