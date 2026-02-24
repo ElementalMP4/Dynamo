@@ -112,7 +112,7 @@ func dropCircuitConntrack(c types.RoutingCircuit) error {
 func deleteCircuitRulesByComment(c types.RoutingCircuit) error {
 	comment := fmt.Sprintf("dynamo-circuit-%d", c.ID)
 	// lists all rules, removes the ones with the dynamo comment, then loads them all back in
-	deleteCommand := fmt.Sprintf("iptables-save | grep -- '%s' | sed 's/^-A /-D /' | iptables-restore", comment)
+	deleteCommand := fmt.Sprintf("iptables-save | grep -v '%s' | iptables-restore", comment)
 	cmd := exec.Command("sh", "-c", deleteCommand)
 
 	return cmd.Run()
