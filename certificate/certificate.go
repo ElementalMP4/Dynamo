@@ -8,6 +8,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"log"
 	"math/big"
 	"net/http"
 	"os"
@@ -15,7 +16,6 @@ import (
 	"time"
 
 	"Dynamo/config"
-	"Dynamo/log"
 
 	"github.com/gin-gonic/gin"
 	pkcs12 "software.sslmate.com/src/go-pkcs12"
@@ -198,10 +198,7 @@ func CreateServerCert(c *gin.Context) {
 		return
 	}
 
-	log.LogInfo(fmt.Sprintf(
-		"Created server cert: %s, %s, nginx mTLS: %s nginx redirect: %s",
-		crtPath, keyPath, nginxMtlsPath, nginxRedirectPath,
-	))
+	log.Printf("Created server cert for %s", req.Domain)
 
 	c.JSON(http.StatusCreated, gin.H{
 		"cert":          crtPath,
@@ -277,7 +274,7 @@ func CreateRootCA(c *gin.Context) {
 		return
 	}
 
-	log.LogInfo(fmt.Sprintf("Created root CA: %s and %s", crtPath, keyPath))
+	log.Printf("Created root CA %s", req.Name)
 	c.JSON(http.StatusCreated, gin.H{"cert": crtPath, "key": keyPath})
 }
 
@@ -415,6 +412,7 @@ func CreateClientCert(c *gin.Context) {
 	// to the Modern encoder. If both succeed, write the legacy .p12 to the
 	// canonical filename and the modern one alongside with a .modern.p12 suffix.
 	var written bool
+
 	// attempt legacy encode (provides wider compatibility with older importers)
 	p12Data, err := pkcs12.Legacy.Encode(priv, clientCert, []*x509.Certificate{caCert}, p12pwd)
 	if err == nil {
@@ -424,7 +422,7 @@ func CreateClientCert(c *gin.Context) {
 		}
 		written = true
 	} else {
-		log.LogInfo(fmt.Sprintf("legacy pkcs12 encode failed: %v", err))
+		log.Printf("legacy pkcs12 encode failed: %v", err)
 	}
 
 	// try modern encoder as a fallback and also to provide a stronger bundle
@@ -443,16 +441,16 @@ func CreateClientCert(c *gin.Context) {
 			written = true
 		}
 	} else {
-		log.LogInfo(fmt.Sprintf("modern pkcs12 encode failed: %v", merr))
+		log.Printf("modern pkcs12 encode failed: %v", merr)
 	}
 
 	if !written {
-		log.LogInfo("pkcs12 encode failed (both legacy and modern)")
+		log.Println("pkcs12 encode failed (both legacy and modern)")
 		c.JSON(http.StatusCreated, gin.H{"cert": crtPath, "key": keyPath, "p12": nil, "warning": "pkcs12 encode failed; .p12 not created"})
 		return
 	}
 
-	log.LogInfo(fmt.Sprintf("Created client cert: %s, %s, %s", crtPath, keyPath, p12Path))
+	log.Printf("Created client cert %s", req.Name)
 	c.JSON(http.StatusCreated, gin.H{"cert": crtPath, "key": keyPath, "p12": p12Path})
 }
 
@@ -470,7 +468,9 @@ func ListCerts(c *gin.Context) {
 		entries, err := os.ReadDir(dir)
 
 		if err != nil {
-			panic(err) //TODO
+			log.Printf("An error occurred whilst listing certificates: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to list certs: %v", err)})
+			return
 		}
 
 		var kindCerts []CertDir
@@ -478,7 +478,9 @@ func ListCerts(c *gin.Context) {
 			subDir := filepath.Join(base, k, entry.Name())
 			certFiles, err := os.ReadDir(subDir)
 			if err != nil {
-				panic(err) //TODO
+				log.Printf("An error occurred whilst listing certificates: %v", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to list certs: %v", err)})
+				return
 			}
 
 			var files []string
@@ -512,11 +514,15 @@ func DownloadCert(c *gin.Context) {
 	path, err := filepath.Abs(filepath.Join(certsBase, kind, base, filepath.Clean(name)))
 
 	if err != nil {
-		panic(err) //TODO
+		log.Printf("An error occurred whilst listing certificates: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to list certs: %v", err)})
+		return
 	}
 
 	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
-		panic(err) //TODO
+		log.Printf("Certificate file not found: %v", err)
+		c.JSON(http.StatusNotFound, gin.H{"error": fmt.Sprintf("Cert file not found: %v", err)})
+		return
 	}
 
 	c.FileAttachment(path, filepath.Base(path))
@@ -538,7 +544,7 @@ func DeleteCertGroup(c *gin.Context) {
 		panic(err)
 	}
 
-	log.LogInfo(fmt.Sprintf("Deleted %s/%s", kind, base))
+	log.Printf("Deleted %s/%s", kind, base)
 	c.Status(http.StatusNoContent)
 }
 

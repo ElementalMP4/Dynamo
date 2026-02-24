@@ -4,6 +4,7 @@ import (
 	"embed"
 	"html/template"
 	"io/fs"
+	"log"
 	"net/http"
 )
 
@@ -14,7 +15,7 @@ var webContent embed.FS
 func getFileSystem() http.FileSystem {
 	fsys, err := fs.Sub(webContent, "web/static")
 	if err != nil {
-		panic(err)
+		log.Fatalf("embedded fs error: %v", err)
 	}
 	return http.FS(fsys)
 }

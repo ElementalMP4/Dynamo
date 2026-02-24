@@ -2,28 +2,28 @@ package main
 
 import (
 	"Dynamo/api"
+	"Dynamo/banner"
 	"Dynamo/circuit"
 	"Dynamo/config"
 	"Dynamo/db"
-	"Dynamo/log"
-	"fmt"
+	"log"
 )
 
 func main() {
-	log.ShowTheBanner()
+	banner.ShowTheBanner()
 	err := db.InitDB()
 	if err != nil {
-		log.LogFatal(err.Error())
+		log.Fatalf("An error occurred whilst starting the db: %v", err.Error())
 	}
 
 	err = config.LoadConfig()
 	if err != nil {
-		log.LogFatal(err.Error())
+		log.Fatalf("An error occurred whilst loading the config: %v", err.Error())
 	}
 
 	err = circuit.SyncCircuits()
 	if err != nil {
-		log.LogWarn(fmt.Sprintf("An error occurred whilst syncing circuits: %v", err))
+		log.Fatalf("An error occurred whilst syncing circuits: %v", err)
 	}
 
 	api.StartAPI()

@@ -5,7 +5,7 @@ import (
 	"Dynamo/circuit"
 	"Dynamo/config"
 	"Dynamo/dns"
-	"Dynamo/log"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -14,12 +14,12 @@ import (
 func StartAPI() {
 	err := certificate.EnsureSslDirs()
 	if err != nil {
-		panic(err)
+		log.Fatalf("Failed to check SSL dirs: %v", err)
 	}
 
 	err = dns.EnsureWritable()
 	if err != nil {
-		panic(err)
+		log.Fatal("DNS config file is not writable: %v", err)
 	}
 
 	gin.SetMode(gin.ReleaseMode)
@@ -28,7 +28,7 @@ func StartAPI() {
 	// Load embedded HTML templates
 	templ, err := loadEmbeddedTemplates()
 	if err != nil {
-		log.LogFatal("Failed to load templates: " + err.Error())
+		log.Fatalf("Failed to load templates: %v", err.Error())
 	}
 	r.SetHTMLTemplate(templ)
 
@@ -86,8 +86,8 @@ func StartAPI() {
 	circuits.POST(":id/disable", circuit.DisableCircuit)
 	circuits.DELETE(":id", circuit.DeleteCircuit)
 
-	log.LogInfo("Starting admin API on " + config.GetConfig().ServerAddress)
+	log.Println("Starting admin API on " + config.GetConfig().ServerAddress)
 	if err := r.Run(config.GetConfig().ServerAddress); err != nil {
-		log.LogError("admin API failed: " + err.Error())
+		log.Fatalf("admin API failed: %v", err.Error())
 	}
 }
