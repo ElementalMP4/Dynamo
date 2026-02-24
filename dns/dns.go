@@ -191,8 +191,7 @@ func UpdateRecord(c *gin.Context) {
 
 	for i := range records {
 		if records[i].ID == id {
-			records[i].Name = update.Name
-			records[i].TTL = update.TTL
+			records[i] = update
 
 			if err := writeRecords(records); err != nil {
 				c.JSON(500, gin.H{"error": err.Error()})
