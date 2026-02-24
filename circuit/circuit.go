@@ -5,6 +5,7 @@ import (
 	"Dynamo/types"
 	"context"
 	"fmt"
+	"log"
 	"os/exec"
 	"strconv"
 	"time"
@@ -67,6 +68,7 @@ func iptablesDelete(args []string) error {
 }
 
 func enableCircuit(c types.RoutingCircuit) error {
+	log.Printf("Enabling circuit %s", c.Name)
 	for _, expanded := range expandProtocols(c) {
 		for _, rule := range expanded.IPTablesRules() {
 			if err := iptablesAdd(rule); err != nil {
@@ -74,6 +76,7 @@ func enableCircuit(c types.RoutingCircuit) error {
 			}
 		}
 	}
+	log.Printf("Enabled circuit %s successfully", c.Name)
 	return nil
 }
 
@@ -119,6 +122,7 @@ func deleteCircuitRulesByComment(c types.RoutingCircuit) error {
 }
 
 func disableCircuit(c types.RoutingCircuit) error {
+	log.Printf("Disabling circuit %s", c.Name)
 	if err := deleteCircuitRulesByComment(c); err != nil {
 		return fmt.Errorf("failed to remove firewall rules: %w", err)
 	}
@@ -127,10 +131,12 @@ func disableCircuit(c types.RoutingCircuit) error {
 		return fmt.Errorf("rules removed but failed to drop connections: %w", err)
 	}
 
+	log.Printf("Disabled circuit %s successfully", c.Name)
 	return nil
 }
 
 func SyncCircuits() error {
+	log.Println("Syncing circuits")
 	rows, err := db.DB().Query(`
 		SELECT
 			id, name, type, enabled, in_interface,
@@ -148,6 +154,7 @@ func SyncCircuits() error {
 			return err
 		}
 
+		log.Printf("Syncing circuit %s", rc.Name)
 		if rc.Enabled {
 			if err := enableCircuit(rc); err != nil {
 				return fmt.Errorf("enable %s failed: %w", rc.Name, err)
@@ -157,9 +164,14 @@ func SyncCircuits() error {
 				return fmt.Errorf("disable %s failed: %w", rc.Name, err)
 			}
 		}
+		log.Printf("Sync circuit %s completed successfully", rc.Name)
 	}
 
-	return rows.Err()
+	if rows.Err() != nil {
+		return rows.Err()
+	}
+
+	return nil
 }
 
 func CreateCircuit(c *gin.Context) {
@@ -205,6 +217,7 @@ func CreateCircuit(c *gin.Context) {
 	rc.ID = id
 	rc.Enabled = false
 	c.JSON(201, rc)
+	log.Printf("Created circuit %s", rc.Name)
 }
 
 func EnableCircuit(c *gin.Context) {
@@ -379,6 +392,7 @@ func UpdateCircuit(c *gin.Context) {
 	}
 
 	c.Status(204)
+	log.Printf("Modified circuit %s", updated.Name)
 }
 
 func DeleteCircuit(c *gin.Context) {

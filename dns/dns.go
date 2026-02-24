@@ -4,6 +4,7 @@ import (
 	"Dynamo/types"
 	"bufio"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"strconv"
@@ -159,6 +160,7 @@ func CreateRecord(c *gin.Context) {
 	}
 
 	c.Status(201)
+	log.Printf("Created %s record %s", rec.Type, rec.Name)
 }
 
 func GetRecordByID(c *gin.Context) {
@@ -231,6 +233,8 @@ func UpdateRecord(c *gin.Context) {
 			}
 
 			c.Status(200)
+			log.Printf("Modified %s record %s", update.Type, update.Name)
+
 			return
 		}
 	}
@@ -243,9 +247,12 @@ func DeleteRecord(c *gin.Context) {
 	records, _ := loadRecords()
 
 	var filtered []types.DNSRecord
+	var toBeDeleted types.DNSRecord
 	for _, r := range records {
 		if r.ID != id {
 			filtered = append(filtered, r)
+		} else {
+			toBeDeleted = r
 		}
 	}
 
@@ -255,4 +262,5 @@ func DeleteRecord(c *gin.Context) {
 	}
 
 	c.Status(204)
+	log.Printf("Deleted %s record %s", toBeDeleted.Type, toBeDeleted.Name)
 }
