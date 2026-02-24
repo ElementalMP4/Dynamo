@@ -15,5 +15,4 @@ CREATE TABLE IF NOT EXISTS routing_circuits (
     dest_port INTEGER
 );
 
-
 COMMIT;
