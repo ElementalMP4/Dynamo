@@ -84,13 +84,36 @@ func (c RoutingCircuit) IPTablesRules() [][]string {
 			"--to-destination", fmt.Sprintf("%s:%d", *c.DestIP, *c.DestPort),
 		})
 
-		// FORWARD
+		// FORWARD (new + established)
 		rules = append(rules, []string{
 			"-A", "FORWARD",
 			"-p", c.Protocol,
 			"-d", *c.DestIP,
 			"--dport", strconv.Itoa(*c.DestPort),
+			"-m", "conntrack",
+			"--ctstate", "NEW,ESTABLISHED,RELATED",
 			"-j", "ACCEPT",
+		})
+
+		// RETURN traffic
+		rules = append(rules, []string{
+			"-A", "FORWARD",
+			"-p", c.Protocol,
+			"-s", *c.DestIP,
+			"--sport", strconv.Itoa(*c.DestPort),
+			"-m", "conntrack",
+			"--ctstate", "ESTABLISHED,RELATED",
+			"-j", "ACCEPT",
+		})
+
+		// POSTROUTING
+		rules = append(rules, []string{
+			"-t", "nat",
+			"-A", "POSTROUTING",
+			"-p", c.Protocol,
+			"-d", *c.DestIP,
+			"--dport", strconv.Itoa(*c.DestPort),
+			"-j", "MASQUERADE",
 		})
 	}
 
