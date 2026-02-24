@@ -188,6 +188,7 @@ function setupFormHandlers() {
         e.preventDefault();
 
         const id = document.getElementById('edit-record-id').value;
+        const type = document.getElementById('edit-record-type').value;
         const record = {
             name: document.getElementById('edit-name').value,
             ttl: parseInt(document.getElementById('edit-ttl').value),
