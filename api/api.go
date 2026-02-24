@@ -19,7 +19,7 @@ func StartAPI() {
 
 	err = dns.EnsureWritable()
 	if err != nil {
-		log.Fatal("DNS config file is not writable: %v", err)
+		log.Fatalf("DNS config file is not writable: %v", err)
 	}
 
 	gin.SetMode(gin.ReleaseMode)

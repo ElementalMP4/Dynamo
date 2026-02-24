@@ -1,12 +1,12 @@
 package db
 
 import (
-	"Dynamo/log"
 	"Dynamo/types"
 	"database/sql"
 	"embed"
 	"fmt"
 	"io/fs"
+	"log"
 	"sort"
 	"strings"
 
@@ -90,14 +90,16 @@ func runMigrations() error {
 			return err
 		}
 
-		msg := "Apply migration " + file
-		log.LogDuration(func() (string, error) {
-			_, err := db.Exec(string(content))
-			if err != nil {
-				return msg, err
-			}
-			return msg, recordMigration(file)
-		})
+		log.Printf("Applying migration %s", file)
+		_, err = db.Exec(string(content))
+		if err != nil {
+			return fmt.Errorf("Failed to apply migration %s - %v", file, err)
+		}
+		err = recordMigration(file)
+		if err != nil {
+			return fmt.Errorf("Failed to record migration %s - %v", file, err)
+		}
+
 	}
 
 	return nil
