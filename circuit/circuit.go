@@ -423,8 +423,7 @@ func UpdateCircuit(c *gin.Context) {
 			src_port = ?,
 			redirect_port = ?,
 			dest_ip = ?,
-			dest_port = ?,
-			updated_at = CURRENT_TIMESTAMP
+			dest_port = ?
 		WHERE id = ?
 	`,
 		updated.Name,

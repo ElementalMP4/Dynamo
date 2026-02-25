@@ -7,6 +7,7 @@ Network Management Platform
 - NGINX
 - dnsmasq
 - GoPack
+- Conntrack
 
 ## Features
 
