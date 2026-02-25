@@ -508,7 +508,7 @@ func GetByID(c *gin.Context) {
 	circuit, err := getCircuitByID(id)
 
 	if errors.Is(err, sql.ErrNoRows) {
-		c.JSON(404, gin.H{"error": "not found"})
+		c.JSON(404, gin.H{"error": "Circuit not found"})
 		return
 	}
 

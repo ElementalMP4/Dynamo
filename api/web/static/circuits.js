@@ -37,7 +37,7 @@ function renderCircuits(circuits) {
             : `<button class="button sm success"   onclick="toggleCircuit(${rc.id}, true)">Enable</button>`
         }
           <button class="button sm secondary" onclick="showEditModal(${rc.id})" ${rc.enabled ? 'disabled title="Disable circuit before editing"' : ''}>Edit</button>
-          <button class="button sm danger"    onclick="showDeleteModal(${rc.id}, '${escAttr(rc.name)}')">Delete</button>
+          <button class="button sm danger" onclick="showDeleteModal(${rc.id}, this.dataset.name)" data-name="${escHtml(rc.name)}">Delete</button>
         </div>
       </div>
     `).join('');
@@ -156,18 +156,27 @@ document.getElementById('circuit-form').addEventListener('submit', async (e) => 
 function showCreateModal() {
     document.getElementById('modal-title').textContent = 'Create Circuit';
     document.getElementById('modal-submit-btn').textContent = 'Create';
-    document.getElementById('circuit-form').reset();
+
+    const form = document.getElementById('circuit-form');
+    form.reset();
+
     document.getElementById('circuit-id').value = '';
+    document.getElementById('circuit-type').value = 'DNAT';
+    document.getElementById('circuit-protocol').value = 'tcp';
+
     onTypeChange();
     document.getElementById('circuit-modal').style.display = 'flex';
 }
 
 async function showEditModal(id) {
     try {
-        const res = await fetch('/api/circuits');
-        const list = await res.json();
-        const rc = list.find(r => r.id === id);
-        if (!rc) { alert('Circuit not found'); return; }
+        const res = await fetch(`/api/circuits/${id}`);
+        if (!res.ok) {
+            alert('Failed to load circuit');
+            return;
+        }
+
+        const rc = await res.json();
 
         document.getElementById('modal-title').textContent = 'Edit Circuit';
         document.getElementById('modal-submit-btn').textContent = 'Save';
