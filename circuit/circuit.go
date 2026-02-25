@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os/exec"
 	"strconv"
@@ -513,4 +514,28 @@ func GetByID(c *gin.Context) {
 	}
 
 	c.JSON(200, circuit)
+}
+
+func listInterfaces() ([]string, error) {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list interfaces: %v", err.Error())
+	}
+
+	interfaces := []string{}
+	for _, i := range ifaces {
+		interfaces = append(interfaces, i.Name)
+	}
+
+	return interfaces, nil
+}
+
+func ListNetworkInterfaces(c *gin.Context) {
+	ifaces, err := listInterfaces()
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, gin.H{"interfaces": ifaces})
 }

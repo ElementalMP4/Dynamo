@@ -82,6 +82,7 @@ func StartAPI() {
 	circuits := r.Group("/api/circuits")
 	circuits.GET("", circuit.ListCircuits)
 	circuits.GET(":id", circuit.GetByID)
+	circuits.GET("/interfaces", circuit.ListNetworkInterfaces)
 	circuits.POST("", circuit.CreateCircuit)
 	circuits.PUT(":id", circuit.UpdateCircuit)
 	circuits.POST(":id/enable", circuit.EnableCircuit)
