@@ -72,7 +72,6 @@ main {
 
 .hero p {
     color: var(--text-secondary);
-    margin-bottom: 2rem;
 }
 
 .button {
