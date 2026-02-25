@@ -153,21 +153,6 @@ document.getElementById('circuit-form').addEventListener('submit', async (e) => 
     }
 });
 
-function showCreateModal() {
-    document.getElementById('modal-title').textContent = 'Create Circuit';
-    document.getElementById('modal-submit-btn').textContent = 'Create';
-
-    const form = document.getElementById('circuit-form');
-    form.reset();
-
-    document.getElementById('circuit-id').value = '';
-    document.getElementById('circuit-type').value = 'DNAT';
-    document.getElementById('circuit-protocol').value = 'tcp';
-
-    onTypeChange();
-    document.getElementById('circuit-modal').style.display = 'flex';
-}
-
 async function loadInterfacesIntoEditor() {
     const interfaces = await fetch(`/api/circuits/interfaces`);
     if (!interfaces.ok) {
@@ -177,13 +162,30 @@ async function loadInterfacesIntoEditor() {
 
     const interfacesJson = await interfaces.json();
     const select = document.getElementById('circuit-interface');
-    
+
     interfacesJson.interfaces.forEach(iface => {
         const option = document.createElement('option');
         option.value = iface;
         option.textContent = iface;
         select.appendChild(option);
     });
+}
+
+async function showCreateModal() {
+    document.getElementById('modal-title').textContent = 'Create Circuit';
+    document.getElementById('modal-submit-btn').textContent = 'Create';
+
+    const form = document.getElementById('circuit-form');
+    form.reset();
+
+    await loadInterfacesIntoEditor();
+
+    document.getElementById('circuit-id').value = '';
+    document.getElementById('circuit-type').value = 'DNAT';
+    document.getElementById('circuit-protocol').value = 'tcp';
+
+    onTypeChange();
+    document.getElementById('circuit-modal').style.display = 'flex';
 }
 
 async function showEditModal(id) {
