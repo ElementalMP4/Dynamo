@@ -358,21 +358,28 @@ func CountCircuits() (map[string]map[string]int, error) {
 		return nil, err
 	}
 
-	out := make(map[string]map[string]int)
+	out := map[string]map[string]int{
+		"DNAT": {
+			"on":  0,
+			"off": 0,
+		},
+		"REDIRECT": {
+			"on":  0,
+			"off": 0,
+		},
+	}
 
 	for _, c := range circuits {
-		if _, ok := out[string(c.Type)]; !ok {
-			out[string(c.Type)] = map[string]int{
-				"on":  0,
-				"off": 0,
-			}
+		state := "off"
+		if c.Enabled {
+			state = "on"
 		}
 
-		if c.Enabled {
-			out[string(c.Type)]["on"]++
-		} else {
-			out[string(c.Type)]["off"]++
+		if _, ok := out[string(c.Type)]; !ok {
+			continue // Unrecognised circuit type
 		}
+
+		out[string(c.Type)][state]++
 	}
 
 	return out, nil

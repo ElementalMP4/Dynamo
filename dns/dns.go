@@ -271,7 +271,13 @@ func CountDNSRecords() (map[string]int, error) {
 		return nil, err
 	}
 
-	counts := make(map[string]int)
+	counts := map[string]int{
+		"A":     0,
+		"CNAME": 0,
+		"TXT":   0,
+		"SRV":   0,
+	}
+
 	for _, record := range records {
 		counts[record.Type]++
 	}

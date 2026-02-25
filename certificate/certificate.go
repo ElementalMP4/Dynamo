@@ -516,11 +516,7 @@ func CountCerts() (map[string]int, error) {
 
 	out := make(map[string]int)
 	for kind, dirs := range certs {
-		count := 0
-		for _, dir := range dirs {
-			count += len(dir.Files)
-		}
-		out[kind] = count
+		out[kind] = len(dirs)
 	}
 
 	return out, nil
