@@ -1,6 +1,7 @@
 :root {
     --bg-primary: #1a1a1a;
     --bg-secondary: #252525;
+    --bg-disabled: #444444;
     --text-primary: #ffffff;
     --text-secondary: #b3b3b3;
     --accent: #fd9037;
@@ -100,6 +101,11 @@ main {
 
 .button.danger:hover {
     background-color: var(--danger-hover);
+}
+
+.button :disabled {
+    color: var(--text-secondary);
+    background-color: var(--bg-disabled);
 }
 
 .dns-manager {
