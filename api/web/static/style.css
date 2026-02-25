@@ -104,8 +104,8 @@ main {
 }
 
 .button :disabled {
-    color: var(--text-secondary);
-    background-color: var(--bg-disabled);
+    color: var(--text-secondary) !important;
+    background-color: var(--bg-disabled) !important;
 }
 
 .dns-manager {
