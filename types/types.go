@@ -25,6 +25,7 @@ type DNSRecord struct {
 type Config struct {
 	ServerAddress string `json:"serverBind"`
 	CertsDir      string `json:"certsDir"`
+	DnsmasqFile   string `json:"dnsmasqConfigFile"`
 }
 
 type CircuitType string

@@ -1,6 +1,7 @@
 package dns
 
 import (
+	"Dynamo/config"
 	"Dynamo/types"
 	"bufio"
 	"fmt"
@@ -13,10 +14,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const dnsmasqFile = "/etc/dnsmasq.d/dynamo.conf"
-
 func EnsureWritable() error {
-	f, err := os.OpenFile(dnsmasqFile, os.O_RDWR|os.O_CREATE, 0644)
+	f, err := os.OpenFile(config.GetConfig().DnsmasqFile, os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
 		return err
 	}
@@ -31,7 +30,7 @@ func reloadDnsmasq() error {
 }
 
 func loadRecords() ([]types.DNSRecord, error) {
-	file, err := os.Open(dnsmasqFile)
+	file, err := os.Open(config.GetConfig().DnsmasqFile)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +126,7 @@ func writeRecords(records []types.DNSRecord) error {
 		out.WriteString("\n")
 	}
 
-	if err := os.WriteFile(dnsmasqFile, []byte(out.String()), 0644); err != nil {
+	if err := os.WriteFile(config.GetConfig().DnsmasqFile, []byte(out.String()), 0644); err != nil {
 		return err
 	}
 
