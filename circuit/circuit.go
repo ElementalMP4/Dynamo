@@ -4,6 +4,8 @@ import (
 	"Dynamo/db"
 	"Dynamo/types"
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -311,7 +313,7 @@ func DisableCircuit(c *gin.Context) {
 	c.Status(204)
 }
 
-func ListAllCircuits() ([]types.RoutingCircuit, error) {
+func listAllCircuits() ([]types.RoutingCircuit, error) {
 	rows, err := db.DB().Query(`
 		SELECT
 			id, name, type, enabled, in_interface,
@@ -341,7 +343,7 @@ func ListAllCircuits() ([]types.RoutingCircuit, error) {
 }
 
 func ListCircuits(c *gin.Context) {
-	circuits, err := ListAllCircuits()
+	circuits, err := listAllCircuits()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
@@ -353,7 +355,7 @@ func ListCircuits(c *gin.Context) {
 }
 
 func CountCircuits() (map[string]map[string]int, error) {
-	circuits, err := ListAllCircuits()
+	circuits, err := listAllCircuits()
 	if err != nil {
 		return nil, err
 	}
@@ -482,4 +484,33 @@ func DeleteCircuit(c *gin.Context) {
 
 	tx.Commit()
 	c.Status(204)
+}
+
+func getCircuitByID(id int) (*types.RoutingCircuit, error) {
+	row := db.DB().QueryRow(`
+		SELECT
+			id, name, type, enabled, in_interface,
+			protocol, src_port, redirect_port, dest_ip, dest_port
+		FROM routing_circuits
+		WHERE id = ?
+	`, id)
+
+	rc, err := db.ScanCircuitRow(row)
+	if err != nil {
+		return nil, err
+	}
+
+	return &rc, nil
+}
+
+func GetByID(c *gin.Context) {
+	id, _ := strconv.Atoi(c.Param("id"))
+	circuit, err := getCircuitByID(id)
+
+	if errors.Is(err, sql.ErrNoRows) {
+		c.JSON(404, gin.H{"error": "not found"})
+		return
+	}
+
+	c.JSON(200, circuit)
 }
