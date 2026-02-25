@@ -347,3 +347,26 @@ main {
     padding: 3rem;
     color: var(--text-secondary);
 }
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    margin-top: 3rem;
+}
+
+.stat-card {
+    padding: 1.5rem;
+    border-radius: 8px;
+    background: var(--card-bg, #111);
+}
+
+.stat-card h2 {
+    margin-bottom: 0.5rem;
+}
+
+.stat-count {
+    font-size: 2rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+}

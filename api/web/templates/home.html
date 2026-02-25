@@ -1,6 +1,89 @@
 {{define "home"}}
 <div class="hero">
     <h1>Welcome to Dynamo</h1>
-    <p>Manage your local DNS and Certificates with ease!</p>
+    <p>Manage your local DNS, Certificates, and Circuits with ease!</p>
 </div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <h2>DNS Records</h2>
+        <div class="stat-count" id="dns-total">–</div>
+        <canvas id="dns-chart"></canvas>
+    </div>
+
+    <div class="stat-card">
+        <h2>Certificates</h2>
+        <div class="stat-count" id="certs-total">–</div>
+        <canvas id="certs-chart"></canvas>
+    </div>
+
+    <div class="stat-card">
+        <h2>Circuits</h2>
+        <div class="stat-count" id="circuits-total">–</div>
+        <canvas id="circuits-chart"></canvas>
+    </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    async function loadCounts() {
+        const res = await fetch("/counts");
+        const data = await res.json();
+
+        // ---- DNS ----
+        const dnsValues = Object.values(data.dns);
+        const dnsTotal = dnsValues.reduce((a, b) => a + b, 0);
+        document.getElementById("dns-total").textContent = dnsTotal;
+
+        new Chart(document.getElementById("dns-chart"), {
+            type: "pie",
+            data: {
+                labels: Object.keys(data.dns),
+                datasets: [{
+                    data: dnsValues
+                }]
+            }
+        });
+
+        // ---- CERTS ----
+        const certValues = Object.values(data.certs);
+        const certTotal = certValues.reduce((a, b) => a + b, 0);
+        document.getElementById("certs-total").textContent = certTotal;
+
+        new Chart(document.getElementById("certs-chart"), {
+            type: "pie",
+            data: {
+                labels: Object.keys(data.certs),
+                datasets: [{
+                    data: certValues
+                }]
+            }
+        });
+
+        // ---- CIRCUITS ----
+        const circuitData = {
+            "DNAT - ON": data.circuits.DNAT.on,
+            "DNAT - OFF": data.circuits.DNAT.off,
+            "REDIRECT - ON": data.circuits.REDIRECT.on,
+            "REDIRECT - OFF": data.circuits.REDIRECT.off
+        };
+
+        const circuitValues = Object.values(circuitData);
+        const circuitTotal = circuitValues.reduce((a, b) => a + b, 0);
+        document.getElementById("circuits-total").textContent = circuitTotal;
+
+        new Chart(document.getElementById("circuits-chart"), {
+            type: "pie",
+            data: {
+                labels: Object.keys(circuitData),
+                datasets: [{
+                    data: circuitValues
+                }]
+            }
+        });
+    }
+
+    loadCounts();
+</script>
 {{end}}

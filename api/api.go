@@ -5,6 +5,7 @@ import (
 	"Dynamo/circuit"
 	"Dynamo/config"
 	"Dynamo/dns"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -86,8 +87,33 @@ func StartAPI() {
 	circuits.POST(":id/disable", circuit.DisableCircuit)
 	circuits.DELETE(":id", circuit.DeleteCircuit)
 
+	r.GET("/counts", getCounts)
+
 	log.Println("Starting admin API on " + config.GetConfig().ServerAddress)
 	if err := r.Run(config.GetConfig().ServerAddress); err != nil {
 		log.Fatalf("admin API failed: %v", err.Error())
 	}
+}
+
+func getCounts(c *gin.Context) {
+	dnsCounts, err := dns.CountDNSRecords()
+
+	if err != nil {
+		c.JSON(500, gin.H{"error": fmt.Errorf("failed to count DNS records: %v", err.Error())})
+		return
+	}
+
+	certCounts, err := certificate.CountCerts()
+	if err != nil {
+		c.JSON(500, gin.H{"error": fmt.Errorf("failed to count certs: %v", err.Error())})
+		return
+	}
+
+	circuitCounts, err := circuit.CountCircuits()
+	if err != nil {
+		c.JSON(500, gin.H{"error": fmt.Errorf("failed to count circuits: %v", err.Error())})
+		return
+	}
+
+	c.JSON(200, gin.H{"dns": dnsCounts, "certs": certCounts, "circuits": circuitCounts})
 }

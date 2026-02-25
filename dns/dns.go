@@ -264,3 +264,17 @@ func DeleteRecord(c *gin.Context) {
 	c.Status(204)
 	log.Printf("Deleted %s record %s", toBeDeleted.Type, toBeDeleted.Name)
 }
+
+func CountDNSRecords() (map[string]int, error) {
+	records, err := loadRecords()
+	if err != nil {
+		return nil, err
+	}
+
+	counts := make(map[string]int)
+	for _, record := range records {
+		counts[record.Type]++
+	}
+
+	return counts, nil
+}

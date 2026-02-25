@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"os/exec"
 	"strconv"
 	"time"
@@ -310,7 +311,7 @@ func DisableCircuit(c *gin.Context) {
 	c.Status(204)
 }
 
-func ListCircuits(c *gin.Context) {
+func ListAllCircuits() ([]types.RoutingCircuit, error) {
 	rows, err := db.DB().Query(`
 		SELECT
 			id, name, type, enabled, in_interface,
@@ -319,8 +320,7 @@ func ListCircuits(c *gin.Context) {
 		ORDER BY id
 	`)
 	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
-		return
+		return nil, err
 	}
 	defer rows.Close()
 
@@ -328,13 +328,54 @@ func ListCircuits(c *gin.Context) {
 	for rows.Next() {
 		rc, err := db.ScanCircuitRows(rows)
 		if err != nil {
-			c.JSON(500, gin.H{"error": err.Error()})
-			return
+			return nil, err
 		}
 		circuits = append(circuits, rc)
 	}
 
-	c.JSON(200, circuits)
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return circuits, nil
+}
+
+func ListCircuits(c *gin.Context) {
+	circuits, err := ListAllCircuits()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, circuits)
+}
+
+func CountCircuits() (map[string]map[string]int, error) {
+	circuits, err := ListAllCircuits()
+	if err != nil {
+		return nil, err
+	}
+
+	out := make(map[string]map[string]int)
+
+	for _, c := range circuits {
+		if _, ok := out[string(c.Type)]; !ok {
+			out[string(c.Type)] = map[string]int{
+				"on":  0,
+				"off": 0,
+			}
+		}
+
+		if c.Enabled {
+			out[string(c.Type)]["on"]++
+		} else {
+			out[string(c.Type)]["off"]++
+		}
+	}
+
+	return out, nil
 }
 
 func UpdateCircuit(c *gin.Context) {

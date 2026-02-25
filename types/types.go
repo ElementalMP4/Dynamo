@@ -130,3 +130,10 @@ func (c RoutingCircuit) IPTablesRules() [][]string {
 
 	return rules
 }
+
+type CertDir struct {
+	Name  string   `json:"name,omitempty"`
+	Files []string `json:"files"`
+}
+
+type CertListing map[string][]CertDir

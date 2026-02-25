@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"Dynamo/config"
+	"Dynamo/types"
 
 	"github.com/gin-gonic/gin"
 	pkcs12 "software.sslmate.com/src/go-pkcs12"
@@ -455,51 +456,74 @@ func CreateClientCert(c *gin.Context) {
 }
 
 func ListCerts(c *gin.Context) {
+	certs, err := ListAllCerts()
+	if err != nil {
+		log.Printf("An error occurred whilst listing certificates: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, certs)
+}
+
+func ListAllCerts() (types.CertListing, error) {
 	base := certsBaseDir()
 	kinds := []string{"root", "server", "client"}
-	type CertDir struct {
-		Name  string   `json:"name,omitempty"`
-		Files []string `json:"files"`
-	}
 
-	out := map[string][]CertDir{}
-	for _, k := range kinds {
-		dir := filepath.Join(base, k)
+	out := make(types.CertListing)
+
+	for _, kind := range kinds {
+		dir := filepath.Join(base, kind)
+
 		entries, err := os.ReadDir(dir)
-
 		if err != nil {
-			log.Printf("An error occurred whilst listing certificates: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to list certs: %v", err)})
-			return
+			return nil, fmt.Errorf("listing %s certs: %w", kind, err)
 		}
 
-		var kindCerts []CertDir
+		var kindCerts []types.CertDir
 		for _, entry := range entries {
-			subDir := filepath.Join(base, k, entry.Name())
+			subDir := filepath.Join(dir, entry.Name())
+
 			certFiles, err := os.ReadDir(subDir)
 			if err != nil {
-				log.Printf("An error occurred whilst listing certificates: %v", err)
-				c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to list certs: %v", err)})
-				return
+				return nil, fmt.Errorf("listing cert dir %s/%s: %w", kind, entry.Name(), err)
 			}
 
-			var files []string
-			for _, certFile := range certFiles {
-				files = append(files, certFile.Name())
+			files := make([]string, 0, len(certFiles))
+			for _, f := range certFiles {
+				files = append(files, f.Name())
 			}
 
-			found := CertDir{
+			kindCerts = append(kindCerts, types.CertDir{
 				Name:  entry.Name(),
 				Files: files,
-			}
-
-			kindCerts = append(kindCerts, found)
+			})
 		}
 
-		out[k] = kindCerts
-
+		out[kind] = kindCerts
 	}
-	c.JSON(http.StatusOK, out)
+
+	return out, nil
+}
+
+func CountCerts() (map[string]int, error) {
+	certs, err := ListAllCerts()
+	if err != nil {
+		return nil, err
+	}
+
+	out := make(map[string]int)
+	for kind, dirs := range certs {
+		count := 0
+		for _, dir := range dirs {
+			count += len(dir.Files)
+		}
+		out[kind] = count
+	}
+
+	return out, nil
 }
 
 func DownloadCert(c *gin.Context) {
