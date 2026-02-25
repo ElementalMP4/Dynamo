@@ -168,19 +168,38 @@ function showCreateModal() {
     document.getElementById('circuit-modal').style.display = 'flex';
 }
 
+async function loadInterfacesIntoEditor() {
+    const interfaces = await fetch(`/api/circuits/interfaces`);
+    if (!interfaces.ok) {
+        alert('Failed to load interfaces');
+        return;
+    }
+
+    const interfacesJson = await interfaces.json();
+    const select = document.getElementById('circuit-interface');
+    
+    interfacesJson.interfaces.forEach(iface => {
+        const option = document.createElement('option');
+        option.value = iface;
+        option.textContent = iface;
+        select.appendChild(option);
+    });
+}
+
 async function showEditModal(id) {
     try {
-        const res = await fetch(`/api/circuits/${id}`);
-        if (!res.ok) {
+        const circuit = await fetch(`/api/circuits/${id}`);
+        if (!circuit.ok) {
             alert('Failed to load circuit');
             return;
         }
 
-        const rc = await res.json();
+        const circuitJson = await circuit.json();
 
+        await loadInterfacesIntoEditor();
         document.getElementById('modal-title').textContent = 'Edit Circuit';
         document.getElementById('modal-submit-btn').textContent = 'Save';
-        populateForm(rc);
+        populateForm(circuitJson);
         document.getElementById('circuit-modal').style.display = 'flex';
     } catch (e) {
         alert(`Error: ${e.message}`);
