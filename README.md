@@ -25,10 +25,10 @@ Network Management Platform
 ## Example NGINX config
 
 ```nginx
-include /opt/Dynamo/ssl/server/<sevrice name>/nginx-redirect.conf;
+include /opt/Dynamo/ssl/server/<service name>/nginx-redirect.conf;
 
 server {
-    include /opt/Dynamo/ssl/server/<sevrice name>/nginx-mtls.conf;
+    include /opt/Dynamo/ssl/server/<service name>/nginx-mtls.conf;
     location / {
         proxy_pass http://127.0.0.1:8080;
     }
@@ -78,4 +78,14 @@ resolv-file=/etc/resolv.conf
 # Your custom domain
 domain=elementalmp4.private
 local=/elementalmp4.private/
+```
+
+## Dynamo Config File
+
+```jsonc
+{
+    "serverBind": "127.0.0.1:6789", // Bind address and port are mandatory
+    "certsDir": "./ssl", // Where to store SSL certs
+    "dnsmasqConfigFile": "/etc/dnsmasq.d/dynamo.conf" // Absolute path to dnsmasq config file (NOT the main config file!)
+}
 ```
