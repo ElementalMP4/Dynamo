@@ -297,10 +297,9 @@ func DisableCircuit(c *gin.Context) {
 
 	if err := disableCircuit(rc); err != nil {
 		tx.Rollback()
-		c.JSON(500, gin.H{
-			"error":  "failed to disable circuit",
-			"detail": err.Error(),
-		})
+		errMsg := fmt.Errorf("Failed to disable circuit: %v", err)
+		log.Println(errMsg)
+		c.JSON(500, gin.H{"error": errMsg})
 		return
 	}
 
@@ -470,10 +469,9 @@ func DeleteCircuit(c *gin.Context) {
 
 	if err := disableCircuit(rc); err != nil {
 		tx.Rollback()
-		c.JSON(500, gin.H{
-			"error":  "failed to remove firewall state",
-			"detail": err.Error(),
-		})
+		errMsg := fmt.Errorf("failed to remove firewall state: %v", err)
+		log.Println(errMsg)
+		c.JSON(500, gin.H{"error": errMsg})
 		return
 	}
 
