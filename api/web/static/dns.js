@@ -230,7 +230,7 @@ function setupFormHandlers() {
 
 async function editRecord(id) {
     try {
-        const response = await fetch(`/api/dns/id/${id}`);
+        const response = await fetch(`/api/dns/${id}`);
         const record = await response.json();
 
         document.getElementById('edit-record-id').value = record.id;

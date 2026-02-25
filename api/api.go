@@ -74,14 +74,14 @@ func StartAPI() {
 	api := r.Group("/api/dns")
 	api.GET("", dns.ListRecords)
 	api.POST("", dns.CreateRecord)
-	api.GET("/id/:id", dns.GetRecordByID)
+	api.GET(":id", dns.GetRecordByID)
 	api.PUT(":id", dns.UpdateRecord)
 	api.DELETE(":id", dns.DeleteRecord)
 
 	// Circuit routes
 	circuits := r.Group("/api/circuits")
 	circuits.GET("", circuit.ListCircuits)
-	circuits.GET("/id/:id", circuit.GetByID)
+	circuits.GET(":id", circuit.GetByID)
 	circuits.POST("", circuit.CreateCircuit)
 	circuits.PUT(":id", circuit.UpdateCircuit)
 	circuits.POST(":id/enable", circuit.EnableCircuit)
