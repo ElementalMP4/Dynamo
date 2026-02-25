@@ -103,7 +103,7 @@ main {
     background-color: var(--danger-hover);
 }
 
-.button disabled {
+.button:disabled {
     color: var(--text-secondary) !important;
     background-color: var(--bg-disabled) !important;
 }
