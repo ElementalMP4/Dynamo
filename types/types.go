@@ -158,6 +158,17 @@ func (c *RoutingCircuit) expandProtocols() []RoutingCircuit {
 
 func (c *RoutingCircuit) EnableCircuit() error {
 	log.Printf("Enabling circuit %s", c.Name)
+
+	enabled, err := c.CircuitIsEnabled()
+	if err != nil {
+		return fmt.Errorf("failed to list firewall rules: %w", err)
+	}
+
+	if enabled {
+		log.Printf("Circuit %s is already enabled", c.Name)
+		return nil
+	}
+
 	for _, expanded := range c.expandProtocols() { // Loop over TCP & UDP
 		for _, rule := range expanded.IPTablesRules() { // Loop over individual iptables commands
 
@@ -276,6 +287,17 @@ func (c *RoutingCircuit) deleteCircuitRulesByComment() error {
 
 func (c *RoutingCircuit) DisableCircuit() error {
 	log.Printf("Disabling circuit %s", c.Name)
+
+	enabled, err := c.CircuitIsEnabled()
+	if err != nil {
+		return fmt.Errorf("failed to list firewall rules: %w", err)
+	}
+
+	if !enabled {
+		log.Printf("Circuit %s is already disabled", c.Name)
+		return nil
+	}
+
 	if err := c.deleteCircuitRulesByComment(); err != nil {
 		return fmt.Errorf("failed to remove firewall rules: %w", err)
 	}

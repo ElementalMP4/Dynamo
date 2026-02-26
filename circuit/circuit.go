@@ -34,28 +34,12 @@ func SyncCircuits() error {
 		}
 
 		log.Printf("Syncing circuit %s", rc.Name)
-		enabled, err := rc.CircuitIsEnabled()
-		if err != nil {
-			return err
-		}
 
 		if rc.Enabled {
-			// Skip already-enabled rules
-			if enabled {
-				log.Printf("Circuit %s is already enabled", rc.Name)
-				continue
-			}
-
 			if err := rc.EnableCircuit(); err != nil {
 				return fmt.Errorf("enable %s failed: %w", rc.Name, err)
 			}
 		} else {
-			// Skip already-disabled rules
-			if !enabled {
-				log.Printf("Circuit %s is already disabled", rc.Name)
-				continue
-			}
-
 			if err := rc.DisableCircuit(); err != nil {
 				return fmt.Errorf("disable %s failed: %w", rc.Name, err)
 			}
