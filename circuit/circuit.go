@@ -3,141 +3,16 @@ package circuit
 import (
 	"Dynamo/db"
 	"Dynamo/types"
-	"context"
 	"database/sql"
 	"errors"
 	"fmt"
 	"log"
 	"net"
 	"net/http"
-	"os/exec"
 	"strconv"
-	"time"
 
 	"github.com/gin-gonic/gin"
 )
-
-const iptablesTimeout = 10 * time.Second
-
-func expandProtocols(c types.RoutingCircuit) []types.RoutingCircuit {
-	if c.Protocol != "both" {
-		return []types.RoutingCircuit{c}
-	}
-
-	tcp := c
-	tcp.Protocol = "tcp"
-
-	udp := c
-	udp.Protocol = "udp"
-
-	return []types.RoutingCircuit{tcp, udp}
-}
-
-func iptablesExists(args []string) bool {
-	if len(args) < 2 {
-		return false
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), iptablesTimeout)
-	defer cancel()
-
-	checkArgs := append([]string{"-C"}, args[1:]...)
-	cmd := exec.CommandContext(ctx, "iptables", checkArgs...)
-	return cmd.Run() == nil
-}
-
-func iptablesAdd(args []string) error {
-	if iptablesExists(args) {
-		return nil
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), iptablesTimeout)
-	defer cancel()
-
-	cmd := exec.CommandContext(ctx, "iptables", args...)
-	return cmd.Run()
-}
-
-func iptablesDelete(args []string) error {
-	if len(args) < 2 {
-		return nil
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), iptablesTimeout)
-	defer cancel()
-
-	delArgs := append([]string{"-D"}, args[1:]...)
-	cmd := exec.CommandContext(ctx, "iptables", delArgs...)
-	return cmd.Run()
-}
-
-func enableCircuit(c types.RoutingCircuit) error {
-	log.Printf("Enabling circuit %s", c.Name)
-	for _, expanded := range expandProtocols(c) {
-		for _, rule := range expanded.IPTablesRules() {
-			if err := iptablesAdd(rule); err != nil {
-				return err
-			}
-		}
-	}
-	log.Printf("Enabled circuit %s successfully", c.Name)
-	return nil
-}
-
-func dropCircuitConntrack(c types.RoutingCircuit) error {
-	var errs []error
-
-	protos := []string{c.Protocol}
-	if c.Protocol == "both" {
-		protos = []string{"tcp", "udp"}
-	}
-
-	for _, proto := range protos {
-		cmd := exec.Command(
-			"conntrack",
-			"-D",
-			"-p", proto,
-			"--dport", strconv.Itoa(c.SrcPort),
-		)
-
-		if err := cmd.Run(); err != nil {
-			// conntrack returns exit 1 if no flows matched, so we can ignore this
-			if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 1 {
-				continue
-			}
-			errs = append(errs, err)
-		}
-	}
-
-	if len(errs) > 0 {
-		return fmt.Errorf("conntrack errors: %v", errs)
-	}
-
-	return nil
-}
-
-func deleteCircuitRulesByComment(c types.RoutingCircuit) error {
-	comment := fmt.Sprintf("dynamo-circuit-%d", c.ID)
-	// lists all rules, removes the ones with the dynamo comment, then loads them all back in
-	deleteCommand := fmt.Sprintf("iptables-save | grep -v '%s' | iptables-restore", comment)
-	cmd := exec.Command("sh", "-c", deleteCommand)
-
-	return cmd.Run()
-}
-
-func disableCircuit(c types.RoutingCircuit) error {
-	log.Printf("Disabling circuit %s", c.Name)
-	if err := deleteCircuitRulesByComment(c); err != nil {
-		return fmt.Errorf("failed to remove firewall rules: %w", err)
-	}
-
-	if err := dropCircuitConntrack(c); err != nil {
-		return fmt.Errorf("rules removed but failed to drop connections: %w", err)
-	}
-
-	log.Printf("Disabled circuit %s successfully", c.Name)
-	return nil
-}
 
 func SyncCircuits() error {
 	log.Println("Syncing circuits")
@@ -159,12 +34,29 @@ func SyncCircuits() error {
 		}
 
 		log.Printf("Syncing circuit %s", rc.Name)
+		enabled, err := rc.CircuitIsEnabled()
+		if err != nil {
+			return err
+		}
+
 		if rc.Enabled {
-			if err := enableCircuit(rc); err != nil {
+			// Skip already-enabled rules
+			if enabled {
+				log.Printf("Circuit %s is already enabled", rc.Name)
+				continue
+			}
+
+			if err := rc.EnableCircuit(); err != nil {
 				return fmt.Errorf("enable %s failed: %w", rc.Name, err)
 			}
 		} else {
-			if err := disableCircuit(rc); err != nil {
+			// Skip already-disabled rules
+			if !enabled {
+				log.Printf("Circuit %s is already disabled", rc.Name)
+				continue
+			}
+
+			if err := rc.DisableCircuit(); err != nil {
 				return fmt.Errorf("disable %s failed: %w", rc.Name, err)
 			}
 		}
@@ -246,14 +138,14 @@ func EnableCircuit(c *gin.Context) {
 		return
 	}
 
-	if err := enableCircuit(rc); err != nil {
+	if err := rc.EnableCircuit(); err != nil {
 		tx.Rollback()
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 
 	if _, err := tx.Exec(`UPDATE routing_circuits SET enabled = 1 WHERE id = ?`, id); err != nil {
-		if derr := disableCircuit(rc); derr != nil {
+		if derr := rc.DisableCircuit(); derr != nil {
 			c.JSON(500, gin.H{
 				"error": "enable failed and rollback failed: " + derr.Error(),
 			})
@@ -295,7 +187,7 @@ func DisableCircuit(c *gin.Context) {
 		return
 	}
 
-	if err := disableCircuit(rc); err != nil {
+	if err := rc.DisableCircuit(); err != nil {
 		tx.Rollback()
 		errMsg := fmt.Sprintf("Failed to disable circuit: %v", err)
 		log.Println(errMsg)
@@ -466,7 +358,7 @@ func DeleteCircuit(c *gin.Context) {
 		return
 	}
 
-	if err := disableCircuit(rc); err != nil {
+	if err := rc.DisableCircuit(); err != nil {
 		tx.Rollback()
 		errMsg := fmt.Sprintf("failed to remove firewall state: %v", err)
 		log.Println(errMsg)

@@ -1,9 +1,19 @@
 package types
 
 import (
+	"bufio"
+	"bytes"
+	"context"
 	"fmt"
+	"log"
+	"os"
+	"os/exec"
 	"strconv"
+	"strings"
+	"time"
 )
+
+const iptablesTimeout = 10 * time.Second
 
 type DNSRecord struct {
 	ID    int    `json:"id"`
@@ -130,6 +140,152 @@ func (c RoutingCircuit) IPTablesRules() [][]string {
 	}
 
 	return rules
+}
+
+func (c *RoutingCircuit) expandProtocols() []RoutingCircuit {
+	if c.Protocol != "both" {
+		return []RoutingCircuit{*c}
+	}
+
+	tcp := c
+	tcp.Protocol = "tcp"
+
+	udp := c
+	udp.Protocol = "udp"
+
+	return []RoutingCircuit{*tcp, *udp}
+}
+
+func (c *RoutingCircuit) EnableCircuit() error {
+	log.Printf("Enabling circuit %s", c.Name)
+	for _, expanded := range c.expandProtocols() { // Loop over TCP & UDP
+		for _, rule := range expanded.IPTablesRules() { // Loop over individual iptables commands
+
+			ctx, cancel := context.WithTimeout(context.Background(), iptablesTimeout)
+			defer cancel()
+			cmd := exec.CommandContext(ctx, "iptables", rule...)
+
+			if err := cmd.Run(); err != nil {
+				return fmt.Errorf("error whilst calling iptables: %v", err)
+			}
+		}
+	}
+	log.Printf("Enabled circuit %s successfully", c.Name)
+	return nil
+}
+
+func (c *RoutingCircuit) dropCircuitConntrack() error {
+	var errs []error
+
+	protos := []string{c.Protocol}
+	if c.Protocol == "both" {
+		protos = []string{"tcp", "udp"}
+	}
+
+	for _, proto := range protos {
+		cmd := exec.Command(
+			"conntrack",
+			"-D",
+			"-p", proto,
+			"--dport", strconv.Itoa(c.SrcPort),
+		)
+
+		if err := cmd.Run(); err != nil {
+			// conntrack returns exit 1 if nothing matched, so we can ignore this
+			if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 1 {
+				continue
+			}
+			errs = append(errs, err)
+		}
+	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf("conntrack errors: %v", errs)
+	}
+
+	return nil
+}
+
+func (c *RoutingCircuit) CircuitIsEnabled() (bool, error) {
+	comment := fmt.Sprintf("dynamo-circuit-%d", c.ID)
+
+	match1 := fmt.Sprintf("--comment %s ", comment)  // Space after %s is required
+	match2 := fmt.Sprintf(`--comment "%s"`, comment) // Also look for quoted comments
+
+	saveCmd := exec.Command("iptables-save")
+	saveOut, err := saveCmd.Output()
+	if err != nil {
+		return false, fmt.Errorf("iptables-save failed: %w", err)
+	}
+
+	scanner := bufio.NewScanner(bytes.NewReader(saveOut))
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		if strings.Contains(line, match1) || strings.Contains(line, match2) {
+			return true, nil
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return false, fmt.Errorf("failed reading iptables-save output: %w", err)
+	}
+
+	return false, nil
+}
+
+func (c *RoutingCircuit) deleteCircuitRulesByComment() error {
+	comment := fmt.Sprintf("dynamo-circuit-%d", c.ID)
+
+	match1 := fmt.Sprintf("--comment %s ", comment)  // Space after %s is required
+	match2 := fmt.Sprintf(`--comment "%s"`, comment) // Also look for quoted comments
+
+	saveCmd := exec.Command("iptables-save")
+	saveOut, err := saveCmd.Output()
+	if err != nil {
+		return fmt.Errorf("iptables-save failed: %w", err)
+	}
+
+	var filtered bytes.Buffer
+	scanner := bufio.NewScanner(bytes.NewReader(saveOut))
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		// If we found the comment, don't add the rule to the filtered output
+		if strings.Contains(line, match1) || strings.Contains(line, match2) {
+			continue
+		}
+
+		filtered.WriteString(line)
+		filtered.WriteByte('\n')
+	}
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("failed reading iptables-save output: %w", err)
+	}
+
+	restoreCmd := exec.Command("iptables-restore")
+	restoreCmd.Stdin = &filtered
+	restoreCmd.Stdout = os.Stdout
+	restoreCmd.Stderr = os.Stderr
+
+	if err := restoreCmd.Run(); err != nil {
+		return fmt.Errorf("iptables-restore failed: %w", err)
+	}
+
+	return nil
+}
+
+func (c *RoutingCircuit) DisableCircuit() error {
+	log.Printf("Disabling circuit %s", c.Name)
+	if err := c.deleteCircuitRulesByComment(); err != nil {
+		return fmt.Errorf("failed to remove firewall rules: %w", err)
+	}
+
+	if err := c.dropCircuitConntrack(); err != nil {
+		return fmt.Errorf("rules removed but failed to drop connections: %w", err)
+	}
+
+	log.Printf("Disabled circuit %s successfully", c.Name)
+	return nil
 }
 
 type CertDir struct {
