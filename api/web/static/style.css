@@ -348,13 +348,6 @@ main {
     color: var(--text-secondary);
 }
 
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 2rem;
-    margin-top: 3rem;
-}
-
 .stat-card {
     padding: 1.5rem;
     border-radius: 8px;
@@ -369,4 +362,50 @@ main {
     font-size: 2rem;
     font-weight: bold;
     margin-bottom: 1rem;
+}
+
+.dashboard {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 2rem;
+    margin-top: 3rem;
+}
+
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+#net-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.network-area .stat-card canvas {
+    height: 160px !important;
+}
+
+.net-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.net-stats {
+    font-size: 0.9rem;
+    display: flex;
+    gap: 1rem;
+}
+
+.net-stats .rx {
+    color: #22c55e;
+    font-weight: bold;
+}
+
+.net-stats .tx {
+    color: #ef4444;
+    font-weight: bold;
 }

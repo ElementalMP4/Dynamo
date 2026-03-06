@@ -2,20 +2,51 @@ const netCharts = {};
 const lastSamples = {};
 const lastTimes = {};
 
+const HISTORY_SECONDS = 60;
+
+function formatRate(bytesPerSec) {
+
+    const units = ["B/s", "KB/s", "MB/s", "GB/s"];
+    let value = bytesPerSec;
+    let i = 0;
+
+    while (value > 1024 && i < units.length - 1) {
+        value /= 1024;
+        i++;
+    }
+
+    return value.toFixed(1) + " " + units[i];
+}
+
 function createInterfaceCard(iface) {
+
     const grid = document.getElementById("net-grid");
 
     const card = document.createElement("div");
     card.className = "stat-card";
 
+    const header = document.createElement("div");
+    header.className = "net-header";
+
     const title = document.createElement("h2");
     title.textContent = iface;
+
+    const stats = document.createElement("div");
+    stats.className = "net-stats";
+    stats.innerHTML = `
+        <span class="rx" id="rx-${iface}">0</span>
+        <span class="tx" id="tx-${iface}">0</span>
+    `;
 
     const canvas = document.createElement("canvas");
     canvas.id = "chart-" + iface;
 
-    card.appendChild(title);
+    header.appendChild(title);
+    header.appendChild(stats);
+
+    card.appendChild(header);
     card.appendChild(canvas);
+
     grid.appendChild(card);
 
     netCharts[iface] = new Chart(canvas, {
@@ -24,23 +55,38 @@ function createInterfaceCard(iface) {
             labels: [],
             datasets: [
                 {
-                    label: "RX KB/s",
+                    label: "RX",
+                    borderColor: "#22c55e",
+                    backgroundColor: "rgba(34,197,94,0.2)",
                     data: [],
-                    tension: 0.25
+                    tension: 0.35,
+                    pointRadius: 0
                 },
                 {
-                    label: "TX KB/s",
+                    label: "TX",
+                    borderColor: "#ef4444",
+                    backgroundColor: "rgba(239,68,68,0.2)",
                     data: [],
-                    tension: 0.25
+                    tension: 0.35,
+                    pointRadius: 0
                 }
             ]
         },
         options: {
             animation: false,
             responsive: true,
+            maintainAspectRatio: false,
             scales: {
+                x: {
+                    display: false
+                },
                 y: {
                     beginAtZero: true
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
                 }
             }
         }
@@ -49,14 +95,12 @@ function createInterfaceCard(iface) {
 
 async function pollNetwork() {
 
-    const res = await fetch("/stats/network");
+    const res = await fetch("/netstats");
     const data = await res.json();
 
     const now = Date.now();
 
     for (const iface in data) {
-        if (iface.startsWith("veth")) continue;
-        if (iface.startsWith("docker")) continue;
 
         const rx = data[iface].rx;
         const tx = data[iface].tx;
@@ -69,26 +113,30 @@ async function pollNetwork() {
 
             const seconds = (now - lastTimes[iface]) / 1000;
 
-            const rxRate = (rx - lastSamples[iface].rx) / seconds / 1024;
-            const txRate = (tx - lastSamples[iface].tx) / seconds / 1024;
+            const rxRate = (rx - lastSamples[iface].rx) / seconds;
+            const txRate = (tx - lastSamples[iface].tx) / seconds;
 
             const chart = netCharts[iface];
 
-            const label = new Date().toLocaleTimeString();
-
-            chart.data.labels.push(label);
+            chart.data.labels.push("");
             chart.data.datasets[0].data.push(rxRate);
             chart.data.datasets[1].data.push(txRate);
 
-            if (chart.data.labels.length > 60) {
+            if (chart.data.labels.length > HISTORY_SECONDS) {
                 chart.data.labels.shift();
                 chart.data.datasets.forEach(d => d.data.shift());
             }
 
-            chart.update();
+            chart.update("none");
+
+            document.getElementById("rx-" + iface).textContent =
+                "RX " + formatRate(rxRate);
+
+            document.getElementById("tx-" + iface).textContent =
+                "TX " + formatRate(txRate);
         }
 
-        lastSamples[iface] = { rx, tx };
+        lastSamples[iface] = {rx, tx};
         lastTimes[iface] = now;
     }
 }
