@@ -43,6 +43,7 @@ type CircuitType string
 const (
 	CircuitRedirect CircuitType = "REDIRECT"
 	CircuitDNAT     CircuitType = "DNAT"
+	CircuitLocal    CircuitType = "LOCAL"
 )
 
 type RoutingCircuit struct {
@@ -137,6 +138,22 @@ func (c RoutingCircuit) IPTablesRules() [][]string {
 			"--comment", comment,
 			"-j", "MASQUERADE",
 		})
+
+	case CircuitLocal:
+		// LOCAL traffic (only to/from loopback)
+		args := []string{
+			"-t", "nat",
+			"-A", "OUTPUT",
+			"-o", "lo",
+			"-p", c.Protocol,
+			"-m", c.Protocol,
+			"--dport", strconv.Itoa(c.SrcPort),
+			"-m", "comment",
+			"--comment", comment,
+			"-j", "REDIRECT",
+			"--to-ports", strconv.Itoa(*c.RedirectPort),
+		}
+		rules = append(rules, args)
 	}
 
 	return rules
