@@ -49,7 +49,7 @@ function createInterfaceCard(iface) {
 
 async function pollNetwork() {
 
-    const res = await fetch("/netstats");
+    const res = await fetch("/stats/network");
     const data = await res.json();
 
     const now = Date.now();
@@ -96,7 +96,7 @@ async function pollNetwork() {
 setInterval(pollNetwork, 1000);
 
 async function loadCounts() {
-    const res = await fetch("/counts");
+    const res = await fetch("/stats/dynamo");
     const data = await res.json();
 
     const dnsValues = Object.values(data.dns);
