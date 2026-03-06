@@ -388,10 +388,6 @@ main {
     height: 160px !important;
 }
 
-.sidebar .stat-card canvas {
-    height: 200px !important;
-}
-
 .net-header {
     display: flex;
     justify-content: space-between;
