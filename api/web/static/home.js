@@ -7,17 +7,16 @@ const labels = new Array(HISTORY_SECONDS).fill("");
 const emptyData = new Array(HISTORY_SECONDS).fill(0);
 
 function formatRate(bytesPerSec) {
-
-    const units = ["B/s", "KB/s", "MB/s", "GB/s"];
-    let value = bytesPerSec;
+    let bitsPerSec = bytesPerSec * 8;
+    const units = ["bps", "Kbps", "Mbps", "Gbps"];
     let i = 0;
 
-    while (value > 1024 && i < units.length - 1) {
-        value /= 1024;
+    while (bitsPerSec > 1000 && i < units.length - 1) {
+        bitsPerSec /= 1000;
         i++;
     }
 
-    return value.toFixed(1) + " " + units[i];
+    return bitsPerSec.toFixed(1) + " " + units[i];
 }
 
 function updateYAxis(chart) {
@@ -137,8 +136,8 @@ async function pollNetwork() {
 
             const seconds = (now - lastTimes[iface]) / 1000;
 
-            const rxRate = (rx - lastSamples[iface].rx) / seconds;
-            const txRate = (tx - lastSamples[iface].tx) / seconds;
+            const rxRate = (rx - lastSamples[iface].rx) / seconds * 8;
+            const txRate = (tx - lastSamples[iface].tx) / seconds * 8;
 
             const chart = netCharts[iface];
 
