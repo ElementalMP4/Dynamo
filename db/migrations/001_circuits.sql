@@ -3,7 +3,7 @@ BEGIN;
 CREATE TABLE IF NOT EXISTS routing_circuits (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
-    type TEXT NOT NULL CHECK (type IN ('REDIRECT', 'DNAT')),
+    type TEXT NOT NULL CHECK (type IN ('REDIRECT', 'DNAT', 'LOCAL')),
     enabled BOOLEAN NOT NULL DEFAULT 0,
 
     in_interface TEXT,
