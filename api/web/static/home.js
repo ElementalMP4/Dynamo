@@ -95,7 +95,7 @@ function createInterfaceCard(iface) {
 
 async function pollNetwork() {
 
-    const res = await fetch("/netstats");
+    const res = await fetch("/stats/network");
     const data = await res.json();
 
     const now = Date.now();
