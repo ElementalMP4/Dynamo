@@ -5,9 +5,14 @@ import (
 	"Dynamo/circuit"
 	"Dynamo/config"
 	"Dynamo/dns"
+	"Dynamo/types"
+	"bufio"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -63,10 +68,10 @@ func StartAPI() {
 
 	// Cert management routes
 	certs := r.Group("/api/certs")
+	certs.DELETE("", certificate.DeleteCertGroup)
 	certs.POST("/root", certificate.CreateRootCA)
 	certs.POST("/server", certificate.CreateServerCert)
 	certs.POST("/client", certificate.CreateClientCert)
-	certs.DELETE("", certificate.DeleteCertGroup)
 	certs.GET("/list", certificate.ListCerts)
 	certs.GET("/download", certificate.DownloadCert)
 
@@ -81,15 +86,16 @@ func StartAPI() {
 	// Circuit routes
 	circuits := r.Group("/api/circuits")
 	circuits.GET("", circuit.ListCircuits)
-	circuits.GET(":id", circuit.GetByID)
-	circuits.GET("/interfaces", circuit.ListNetworkInterfaces)
 	circuits.POST("", circuit.CreateCircuit)
+	circuits.GET(":id", circuit.GetByID)
 	circuits.PUT(":id", circuit.UpdateCircuit)
+	circuits.DELETE(":id", circuit.DeleteCircuit)
 	circuits.POST(":id/enable", circuit.EnableCircuit)
 	circuits.POST(":id/disable", circuit.DisableCircuit)
-	circuits.DELETE(":id", circuit.DeleteCircuit)
+	circuits.GET("/interfaces", circuit.ListNetworkInterfaces)
 
-	r.GET("/counts", getCounts)
+	r.GET("/stats/dynamo", getCountsHandler)
+	r.GET("/stats/network", getNetStatsHandler)
 
 	log.Println("Starting admin API on " + config.GetConfig().ServerAddress)
 	if err := r.Run(config.GetConfig().ServerAddress); err != nil {
@@ -97,7 +103,7 @@ func StartAPI() {
 	}
 }
 
-func getCounts(c *gin.Context) {
+func getCountsHandler(c *gin.Context) {
 	dnsCounts, err := dns.CountDNSRecords()
 
 	if err != nil {
@@ -118,4 +124,51 @@ func getCounts(c *gin.Context) {
 	}
 
 	c.JSON(200, gin.H{"dns": dnsCounts, "certs": certCounts, "circuits": circuitCounts})
+}
+
+func getNetStatsHandler(c *gin.Context) {
+	stats, err := getNetStats()
+	if err != nil {
+		c.JSON(500, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(200, stats)
+}
+
+func getNetStats() (map[string]types.InterfaceStats, error) {
+	file, err := os.Open("/proc/net/dev")
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	stats := map[string]types.InterfaceStats{}
+
+	scanner := bufio.NewScanner(file)
+
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+
+		if !strings.Contains(line, ":") {
+			continue
+		}
+
+		parts := strings.Split(line, ":")
+
+		iface := strings.TrimSpace(parts[0])
+		fields := strings.Fields(parts[1])
+
+		rx, _ := strconv.ParseUint(fields[0], 10, 64)
+		tx, _ := strconv.ParseUint(fields[8], 10, 64)
+
+		stats[iface] = types.InterfaceStats{
+			RX: rx,
+			TX: tx,
+		}
+	}
+
+	return stats, nil
 }

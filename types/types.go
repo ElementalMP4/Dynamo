@@ -333,3 +333,8 @@ type CertDir struct {
 }
 
 type CertListing map[string][]CertDir
+
+type InterfaceStats struct {
+	RX uint64 `json:"rx"`
+	TX uint64 `json:"tx"`
+}
