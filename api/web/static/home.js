@@ -3,6 +3,8 @@ const lastSamples = {};
 const lastTimes = {};
 
 const HISTORY_SECONDS = 60;
+const labels = new Array(HISTORY_SECONDS).fill("");
+const emptyData = new Array(HISTORY_SECONDS).fill(0);
 
 function formatRate(bytesPerSec) {
 
@@ -65,13 +67,13 @@ function createInterfaceCard(iface) {
     netCharts[iface] = new Chart(canvas, {
         type: "line",
         data: {
-            labels: [],
+            labels: labels,
             datasets: [
                 {
                     label: "RX",
                     borderColor: "#22c55e",
                     backgroundColor: "rgba(34,197,94,0.2)",
-                    data: [],
+                    data: [...emptyData],
                     tension: 0.35,
                     pointRadius: 0
                 },
@@ -79,7 +81,7 @@ function createInterfaceCard(iface) {
                     label: "TX",
                     borderColor: "#ef4444",
                     backgroundColor: "rgba(239,68,68,0.2)",
-                    data: [],
+                    data: [...emptyData],
                     tension: 0.35,
                     pointRadius: 0
                 }
@@ -94,7 +96,12 @@ function createInterfaceCard(iface) {
                     display: false
                 },
                 y: {
-                    beginAtZero: true
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function (value) {
+                            return formatRate(value);
+                        }
+                    }
                 }
             },
             plugins: {
@@ -150,7 +157,7 @@ async function pollNetwork() {
                 "TX " + formatRate(txRate);
         }
 
-        lastSamples[iface] = {rx, tx};
+        lastSamples[iface] = { rx, tx };
         lastTimes[iface] = now;
     }
 }
