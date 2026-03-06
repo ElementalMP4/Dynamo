@@ -2,13 +2,20 @@ let pendingDeleteId = null;
 
 function buildMeta(rc) {
     const parts = [];
-    if (rc.in_interface) parts.push(`in: ${rc.in_interface}`);
-    if (rc.protocol) parts.push(rc.protocol.toUpperCase());
-    if (rc.src_port) parts.push(`:${rc.src_port}`);
-    if (rc.type === 'DNAT' && rc.dest_ip && rc.dest_port) {
-        parts.push(`-> ${rc.dest_ip}:${rc.dest_port}`);
-    } else if (rc.type === 'REDIRECT' && rc.redirect_port) {
-        parts.push(`-> :${rc.redirect_port}`);
+    if (rc.type === 'LOCAL') {
+        if (rc.protocol) parts.push(rc.protocol.toUpperCase());
+        if (rc.src_port) parts.push(`:${rc.src_port}`);
+        if (rc.redirect_port) parts.push(`-> :${rc.redirect_port}`);
+        parts.push('(loopback)');
+    } else {
+        if (rc.in_interface) parts.push(`in: ${rc.in_interface}`);
+        if (rc.protocol) parts.push(rc.protocol.toUpperCase());
+        if (rc.src_port) parts.push(`:${rc.src_port}`);
+        if (rc.type === 'DNAT' && rc.dest_ip && rc.dest_port) {
+            parts.push(`-> ${rc.dest_ip}:${rc.dest_port}`);
+        } else if (rc.type === 'REDIRECT' && rc.redirect_port) {
+            parts.push(`-> :${rc.redirect_port}`);
+        }
     }
     return parts.join('  ·  ');
 }
@@ -96,9 +103,11 @@ function onTypeChange() {
     const type = document.getElementById('circuit-type').value;
     const isDNAT = type === 'DNAT';
     const isRedirect = type === 'REDIRECT';
-    document.getElementById('redirect-port-group').style.display = isRedirect ? '' : 'none';
+    const isLocal = type === 'LOCAL';
+    document.getElementById('redirect-port-group').style.display = (isRedirect || isLocal) ? '' : 'none';
     document.getElementById('dest-ip-group').style.display = isDNAT ? '' : 'none';
     document.getElementById('dest-port-group').style.display = isDNAT ? '' : 'none';
+    document.getElementById('circuit-interface').closest('.form-group').style.display = isLocal ? 'none' : '';
 }
 
 function formToPayload() {

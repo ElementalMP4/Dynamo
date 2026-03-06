@@ -25,8 +25,9 @@
       <div class="form-group">
         <label>Type</label>
         <select id="circuit-type" onchange="onTypeChange()">
-          <option value="DNAT">DNAT (port forward)</option>
-          <option value="REDIRECT">REDIRECT (local redirect)</option>
+          <option value="DNAT">Port forwarding</option>
+          <option value="REDIRECT">Inbound circuit breaker</option>
+          <option value="LOCAL">Local circuit breaker</option>
         </select>
       </div>
 
