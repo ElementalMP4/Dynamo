@@ -33,7 +33,6 @@ function updateYAxis(chart) {
 }
 
 function createInterfaceCard(iface) {
-
     const grid = document.getElementById("net-grid");
 
     const card = document.createElement("div");
@@ -117,13 +116,14 @@ function createInterfaceCard(iface) {
 }
 
 async function pollNetwork() {
-
     const res = await fetch("/stats/network");
     const data = await res.json();
 
     const now = Date.now();
 
     for (const iface in data) {
+        if (iface.startsWith("veth")) continue;
+        if (iface.startsWith("docker")) continue;
 
         const rx = data[iface].rx;
         const tx = data[iface].tx;
