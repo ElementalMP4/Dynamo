@@ -124,6 +124,7 @@ async function pollNetwork() {
     for (const iface in data) {
         if (iface.startsWith("veth")) continue;
         if (iface.startsWith("docker")) continue;
+        if (iface.startsWith("br-")) continue;
 
         const rx = data[iface].rx;
         const tx = data[iface].tx;
