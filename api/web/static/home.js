@@ -34,7 +34,9 @@ async function loadCounts() {
         "DNAT - ON": data.circuits.DNAT.on,
         "DNAT - OFF": data.circuits.DNAT.off,
         "REDIRECT - ON": data.circuits.REDIRECT.on,
-        "REDIRECT - OFF": data.circuits.REDIRECT.off
+        "REDIRECT - OFF": data.circuits.REDIRECT.off,
+        "LOCAL - ON": data.circuits.LOCAL.on,
+        "LOCAL - OFF": data.circuits.LOCAL.off
     };
 
     const circuitValues = Object.values(circuitData);

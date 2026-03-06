@@ -245,6 +245,10 @@ func CountCircuits() (map[string]map[string]int, error) {
 			"on":  0,
 			"off": 0,
 		},
+		"LOCAL": {
+			"on":  0,
+			"off": 0,
+		},
 	}
 
 	for _, c := range circuits {
