@@ -56,7 +56,7 @@ nav {
 }
 
 main {
-    max-width: 1200px;
+    max-width: 95%;
     margin: 0 auto;
     padding: 2rem;
 }
@@ -366,15 +366,16 @@ main {
 
 .dashboard {
     display: grid;
-    grid-template-columns: 320px 1fr;
+    grid-template-columns: 420px 1fr;
     gap: 2rem;
     margin-top: 3rem;
+    width: 100%;
 }
 
 .sidebar {
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
 }
 
 #net-grid {
@@ -385,6 +386,10 @@ main {
 
 .network-area .stat-card canvas {
     height: 160px !important;
+}
+
+.sidebar .stat-card canvas {
+    height: 200px !important;
 }
 
 .net-header {

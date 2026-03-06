@@ -18,6 +18,19 @@ function formatRate(bytesPerSec) {
     return value.toFixed(1) + " " + units[i];
 }
 
+function updateYAxis(chart) {
+
+    const rxData = chart.data.datasets[0].data;
+    const txData = chart.data.datasets[1].data;
+
+    const maxRX = Math.max(...rxData, 0);
+    const maxTX = Math.max(...txData, 0);
+
+    const maxValue = Math.max(maxRX, maxTX);
+
+    chart.options.scales.y.suggestedMax = maxValue * 1.3;
+}
+
 function createInterfaceCard(iface) {
 
     const grid = document.getElementById("net-grid");
@@ -127,6 +140,7 @@ async function pollNetwork() {
                 chart.data.datasets.forEach(d => d.data.shift());
             }
 
+            updateYAxis(chart);
             chart.update("none");
 
             document.getElementById("rx-" + iface).textContent =
