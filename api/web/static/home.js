@@ -75,7 +75,9 @@ function createInterfaceCard(iface) {
                     backgroundColor: "rgba(34,197,94,0.2)",
                     data: [...emptyData],
                     tension: 0.35,
-                    pointRadius: 0
+                    pointRadius: 0,
+                    spanGaps: true
+
                 },
                 {
                     label: "TX",
@@ -83,7 +85,9 @@ function createInterfaceCard(iface) {
                     backgroundColor: "rgba(239,68,68,0.2)",
                     data: [...emptyData],
                     tension: 0.35,
-                    pointRadius: 0
+                    pointRadius: 0,
+                    spanGaps: true
+
                 }
             ]
         },
@@ -139,8 +143,8 @@ async function pollNetwork() {
             const chart = netCharts[iface];
 
             chart.data.labels.push("");
-            chart.data.datasets[0].data.push(rxRate);
-            chart.data.datasets[1].data.push(txRate);
+            chart.data.datasets[0].data.push(rxRate || 0);
+            chart.data.datasets[1].data.push(txRate || 0);
 
             if (chart.data.labels.length > HISTORY_SECONDS) {
                 chart.data.labels.shift();
