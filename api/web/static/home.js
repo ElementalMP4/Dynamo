@@ -68,7 +68,7 @@ function createInterfaceCard(iface) {
             labels: labels,
             datasets: [
                 {
-                    label: "RX",
+                    label: "Download",
                     borderColor: "#22c55e",
                     backgroundColor: "rgba(34,197,94,0.2)",
                     data: [...emptyData],
@@ -78,7 +78,7 @@ function createInterfaceCard(iface) {
 
                 },
                 {
-                    label: "TX",
+                    label: "Upload",
                     borderColor: "#ef4444",
                     backgroundColor: "rgba(239,68,68,0.2)",
                     data: [...emptyData],
@@ -155,10 +155,10 @@ async function pollNetwork() {
             chart.update("none");
 
             document.getElementById("rx-" + iface).textContent =
-                "RX " + formatRate(rxRate);
+                "Download " + formatRate(rxRate);
 
             document.getElementById("tx-" + iface).textContent =
-                "TX " + formatRate(txRate);
+                "Upload " + formatRate(txRate);
         }
 
         lastSamples[iface] = { rx, tx };
