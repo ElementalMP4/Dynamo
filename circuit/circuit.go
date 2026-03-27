@@ -6,16 +6,16 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 	"strconv"
 
+	"github.com/ElementalMP4/loggerino/log"
 	"github.com/gin-gonic/gin"
 )
 
 func SyncCircuits() error {
-	log.Println("Syncing circuits")
+	log.Info("circuit-sync", "Syncing circuits")
 	rows, err := db.DB().Query(`
 		SELECT
 			id, name, type, enabled, in_interface,
@@ -33,7 +33,7 @@ func SyncCircuits() error {
 			return err
 		}
 
-		log.Printf("Syncing circuit %s", rc.Name)
+		log.Infof("circuit-sync", "Syncing circuit %s", rc.Name)
 
 		if rc.Enabled {
 			if err := rc.EnableCircuit(); err != nil {
@@ -44,7 +44,7 @@ func SyncCircuits() error {
 				return fmt.Errorf("disable %s failed: %w", rc.Name, err)
 			}
 		}
-		log.Printf("Sync circuit %s completed successfully", rc.Name)
+		log.Okf("circuit-sync", "Sync circuit %s completed successfully", rc.Name)
 	}
 
 	if rows.Err() != nil {
@@ -97,7 +97,7 @@ func CreateCircuit(c *gin.Context) {
 	rc.ID = id
 	rc.Enabled = false
 	c.JSON(201, rc)
-	log.Printf("Created circuit %s", rc.Name)
+	log.Okf("circuit-router", "Created circuit %s", rc.Name)
 }
 
 func EnableCircuit(c *gin.Context) {
@@ -174,7 +174,7 @@ func DisableCircuit(c *gin.Context) {
 	if err := rc.DisableCircuit(); err != nil {
 		tx.Rollback()
 		errMsg := fmt.Sprintf("Failed to disable circuit: %v", err)
-		log.Println(errMsg)
+		log.Error("circuit-router", errMsg)
 		c.JSON(500, gin.H{"error": errMsg})
 		return
 	}
@@ -321,7 +321,7 @@ func UpdateCircuit(c *gin.Context) {
 	}
 
 	c.Status(204)
-	log.Printf("Modified circuit %s", updated.Name)
+	log.Okf("circuit-router", "Modified circuit %s", updated.Name)
 }
 
 func DeleteCircuit(c *gin.Context) {
@@ -349,7 +349,7 @@ func DeleteCircuit(c *gin.Context) {
 	if err := rc.DisableCircuit(); err != nil {
 		tx.Rollback()
 		errMsg := fmt.Sprintf("failed to remove firewall state: %v", err)
-		log.Println(errMsg)
+		log.Error("circuit-router", errMsg)
 		c.JSON(500, gin.H{"error": errMsg})
 		return
 	}

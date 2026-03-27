@@ -8,7 +8,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"log"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -17,6 +16,7 @@ import (
 	"Dynamo/config"
 	"Dynamo/types"
 
+	"github.com/ElementalMP4/loggerino/log"
 	"software.sslmate.com/src/go-pkcs12"
 )
 
@@ -157,7 +157,7 @@ func deleteCertGroup(kind, base string) error {
 		return err
 	}
 
-	log.Printf("Deleted %s/%s", kind, base)
+	log.Okf("certificates", "Deleted %s/%s", kind, base)
 	return nil
 }
 
@@ -268,7 +268,7 @@ func createClientCert(name, identity, caBase string, days int, p12Pwd string) (c
 		}
 		written = true
 	} else {
-		log.Printf("legacy pkcs12 encode failed: %v", err)
+		log.Errorf("certificates", "legacy pkcs12 encode failed: %v", err)
 	}
 
 	// try modern encoder as a fallback and also to provide a stronger bundle
@@ -286,11 +286,11 @@ func createClientCert(name, identity, caBase string, days int, p12Pwd string) (c
 			written = true
 		}
 	} else {
-		log.Printf("modern pkcs12 encode failed: %v", merr)
+		log.Errorf("certificates", "modern pkcs12 encode failed: %v", merr)
 	}
 
 	if !written {
-		log.Println("pkcs12 encode failed (both legacy and modern)")
+		log.Errorf("certificates", "pkcs12 encode failed (both legacy and modern)")
 		warning = "pkcs12 encode failed; .p12 not created"
 		p12Path = ""
 	}

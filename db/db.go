@@ -6,10 +6,10 @@ import (
 	"embed"
 	"fmt"
 	"io/fs"
-	"log"
 	"sort"
 	"strings"
 
+	"github.com/ElementalMP4/loggerino/log"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -90,7 +90,7 @@ func runMigrations() error {
 			return err
 		}
 
-		log.Printf("Applying migration %s", file)
+		log.Infof("db-migration", "Applying migration %s", file)
 		_, err = db.Exec(string(content))
 		if err != nil {
 			return fmt.Errorf("Failed to apply migration %s - %v", file, err)
@@ -99,6 +99,7 @@ func runMigrations() error {
 		if err != nil {
 			return fmt.Errorf("Failed to record migration %s - %v", file, err)
 		}
+		log.Okf("db-migration", "Applied migration %s", file)
 
 	}
 

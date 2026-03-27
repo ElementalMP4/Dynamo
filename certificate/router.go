@@ -3,11 +3,11 @@ package certificate
 import (
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 
+	"github.com/ElementalMP4/loggerino/log"
 	"github.com/gin-gonic/gin"
 )
 
@@ -38,7 +38,7 @@ func CreateServerCert(c *gin.Context) {
 		return
 	}
 
-	log.Printf("Created server cert for %s", req.Domain)
+	log.Okf("cert-router", "Created server cert for %s", req.Domain)
 
 	c.JSON(http.StatusCreated, gin.H{
 		"cert":          crtPath,
@@ -71,7 +71,7 @@ func CreateRootCA(c *gin.Context) {
 		return
 	}
 
-	log.Printf("Created root CA %s", req.Name)
+	log.Okf("cert-router", "Created root CA %s", req.Name)
 	c.JSON(http.StatusCreated, gin.H{"cert": crtPath, "key": keyPath})
 }
 
@@ -114,14 +114,14 @@ func CreateClientCert(c *gin.Context) {
 		response["warning"] = warning
 	}
 
-	log.Printf("Created client cert %s", req.Name)
+	log.Okf("cert-router", "Created client cert %s", req.Name)
 	c.JSON(http.StatusCreated, response)
 }
 
 func ListCerts(c *gin.Context) {
 	certs, err := listAllCerts()
 	if err != nil {
-		log.Printf("An error occurred whilst listing certificates: %v", err)
+		log.Errorf("cert-router", "An error occurred whilst listing certificates: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
 		})
@@ -143,13 +143,13 @@ func DownloadCert(c *gin.Context) {
 	path, err := filepath.Abs(filepath.Join(certsBase, kind, base, filepath.Clean(name)))
 
 	if err != nil {
-		log.Printf("An error occurred whilst listing certificates: %v", err)
+		log.Errorf("cert-router", "An error occurred whilst listing certificates: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to list certs: %v", err)})
 		return
 	}
 
 	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
-		log.Printf("Certificate file not found: %v", err)
+		log.Errorf("cert-router", "Certificate file not found: %v", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": fmt.Sprintf("Cert file not found: %v", err)})
 		return
 	}
@@ -167,7 +167,7 @@ func DeleteCertGroup(c *gin.Context) {
 
 	err := deleteCertGroup(kind, base)
 	if err != nil {
-		log.Printf("Error deleting cert group: %v\n", err)
+		log.Errorf("cert-router", "Error deleting cert group: %v\n", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": fmt.Sprintf("Error deleting cert group: %v", err)})
 		return
 	}

@@ -5,12 +5,12 @@ import (
 	"Dynamo/types"
 	"bufio"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
 
+	"github.com/ElementalMP4/loggerino/log"
 	"github.com/gin-gonic/gin"
 )
 
@@ -159,7 +159,7 @@ func CreateRecord(c *gin.Context) {
 	}
 
 	c.Status(201)
-	log.Printf("Created %s record %s", rec.Type, rec.Name)
+	log.Okf("dns-router", "Created %s record %s", rec.Type, rec.Name)
 }
 
 func GetRecordByID(c *gin.Context) {
@@ -232,7 +232,7 @@ func UpdateRecord(c *gin.Context) {
 			}
 
 			c.Status(200)
-			log.Printf("Modified %s record %s", update.Type, update.Name)
+			log.Okf("dns-router", "Modified %s record %s", update.Type, update.Name)
 
 			return
 		}
@@ -261,7 +261,7 @@ func DeleteRecord(c *gin.Context) {
 	}
 
 	c.Status(204)
-	log.Printf("Deleted %s record %s", toBeDeleted.Type, toBeDeleted.Name)
+	log.Okf("dns-router", "Deleted %s record %s", toBeDeleted.Type, toBeDeleted.Name)
 }
 
 func CountDNSRecords() (map[string]int, error) {

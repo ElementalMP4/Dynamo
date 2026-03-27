@@ -8,24 +8,24 @@ import (
 	"Dynamo/types"
 	"bufio"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
 
+	"github.com/ElementalMP4/loggerino/log"
 	"github.com/gin-gonic/gin"
 )
 
 func StartAPI() {
 	err := certificate.EnsureSslDirs()
 	if err != nil {
-		log.Fatalf("Failed to check SSL dirs: %v", err)
+		log.Fatalf("api", "Failed to check SSL dirs: %v", err)
 	}
 
 	err = dns.EnsureWritable()
 	if err != nil {
-		log.Fatalf("DNS config file is not writable: %v", err)
+		log.Fatalf("api", "DNS config file is not writable: %v", err)
 	}
 
 	gin.SetMode(gin.ReleaseMode)
@@ -34,7 +34,7 @@ func StartAPI() {
 	// Load embedded HTML templates
 	templ, err := loadEmbeddedTemplates()
 	if err != nil {
-		log.Fatalf("Failed to load templates: %v", err.Error())
+		log.Fatalf("api", "Failed to load templates: %v", err.Error())
 	}
 	r.SetHTMLTemplate(templ)
 
@@ -97,9 +97,9 @@ func StartAPI() {
 	r.GET("/stats/dynamo", getCountsHandler)
 	r.GET("/stats/network", getNetStatsHandler)
 
-	log.Println("Starting admin API on " + config.GetConfig().ServerAddress)
+	log.Info("api", "Starting admin API on "+config.GetConfig().ServerAddress)
 	if err := r.Run(config.GetConfig().ServerAddress); err != nil {
-		log.Fatalf("admin API failed: %v", err.Error())
+		log.Fatalf("api", "admin API failed: %v", err)
 	}
 }
 

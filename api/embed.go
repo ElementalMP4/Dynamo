@@ -4,8 +4,9 @@ import (
 	"embed"
 	"html/template"
 	"io/fs"
-	"log"
 	"net/http"
+
+	"github.com/ElementalMP4/loggerino/log"
 )
 
 //go:embed web/templates/* web/static/*
@@ -15,7 +16,7 @@ var webContent embed.FS
 func getFileSystem() http.FileSystem {
 	fsys, err := fs.Sub(webContent, "web/static")
 	if err != nil {
-		log.Fatalf("embedded fs error: %v", err)
+		log.Fatalf("embed", "embedded fs error: %v", err)
 	}
 	return http.FS(fsys)
 }

@@ -5,12 +5,13 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/ElementalMP4/loggerino/log"
 )
 
 const iptablesTimeout = 10 * time.Second
@@ -174,7 +175,7 @@ func (c *RoutingCircuit) expandProtocols() []RoutingCircuit {
 }
 
 func (c *RoutingCircuit) EnableCircuit() error {
-	log.Printf("Enabling circuit %s", c.Name)
+	log.Infof("circuits", "Enabling circuit %s", c.Name)
 
 	enabled, err := c.CircuitIsEnabled()
 	if err != nil {
@@ -182,7 +183,7 @@ func (c *RoutingCircuit) EnableCircuit() error {
 	}
 
 	if enabled {
-		log.Printf("Circuit %s is already enabled", c.Name)
+		log.Okf("circuits", "Circuit %s is already enabled", c.Name)
 		return nil
 	}
 
@@ -198,7 +199,7 @@ func (c *RoutingCircuit) EnableCircuit() error {
 			}
 		}
 	}
-	log.Printf("Enabled circuit %s successfully", c.Name)
+	log.Okf("circuits", "Enabled circuit %s successfully", c.Name)
 	return nil
 }
 
@@ -303,7 +304,7 @@ func (c *RoutingCircuit) deleteCircuitRulesByComment() error {
 }
 
 func (c *RoutingCircuit) DisableCircuit() error {
-	log.Printf("Disabling circuit %s", c.Name)
+	log.Infof("circuits", "Disabling circuit %s", c.Name)
 
 	enabled, err := c.CircuitIsEnabled()
 	if err != nil {
@@ -311,7 +312,7 @@ func (c *RoutingCircuit) DisableCircuit() error {
 	}
 
 	if !enabled {
-		log.Printf("Circuit %s is already disabled", c.Name)
+		log.Okf("circuits", "Circuit %s is already disabled", c.Name)
 		return nil
 	}
 
@@ -323,7 +324,7 @@ func (c *RoutingCircuit) DisableCircuit() error {
 		return fmt.Errorf("rules removed but failed to drop connections: %w", err)
 	}
 
-	log.Printf("Disabled circuit %s successfully", c.Name)
+	log.Okf("circuits", "Disabled circuit %s successfully", c.Name)
 	return nil
 }
 

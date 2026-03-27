@@ -6,24 +6,25 @@ import (
 	"Dynamo/circuit"
 	"Dynamo/config"
 	"Dynamo/db"
-	"log"
+
+	"github.com/ElementalMP4/loggerino/log"
 )
 
 func main() {
 	banner.ShowTheBanner()
 	err := db.InitDB()
 	if err != nil {
-		log.Fatalf("An error occurred whilst starting the db: %v", err.Error())
+		log.Fatalf("db-start", "An error occurred whilst starting the db: %v", err)
 	}
 
 	err = config.LoadConfig()
 	if err != nil {
-		log.Fatalf("An error occurred whilst loading the config: %v", err.Error())
+		log.Fatalf("config-load", "An error occurred whilst loading the config: %v", err)
 	}
 
 	err = circuit.SyncCircuits()
 	if err != nil {
-		log.Fatalf("An error occurred whilst syncing circuits: %v", err)
+		log.Fatalf("circuit-sync", "An error occurred whilst syncing circuits: %v", err)
 	}
 
 	api.StartAPI()
