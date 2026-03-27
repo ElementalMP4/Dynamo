@@ -2,6 +2,8 @@ github.com/ElementalMP4/loggerino v1.0.1 h1:3J3+8IX+MdmBFDxKDFUstvpcLAJWNl46N0ZL
 github.com/ElementalMP4/loggerino v1.0.1/go.mod h1:8FyINYQM2dJyntMnsCd/df1aJosDUGz0Xq9Sk8jbhsQ=
 github.com/ElementalMP4/loggerino v1.0.2 h1:3xUZvNtIhzCwwAC5Jp0QRAMZEyXT7i/TXmZLjVrEHSo=
 github.com/ElementalMP4/loggerino v1.0.2/go.mod h1:8FyINYQM2dJyntMnsCd/df1aJosDUGz0Xq9Sk8jbhsQ=
+github.com/ElementalMP4/loggerino v1.0.3 h1:qpo875wV8HC9ERArJu0yf708HyqL/ARLwvrdUxFEMOQ=
+github.com/ElementalMP4/loggerino v1.0.3/go.mod h1:8FyINYQM2dJyntMnsCd/df1aJosDUGz0Xq9Sk8jbhsQ=
 github.com/bytedance/gopkg v0.1.4 h1:oZnQwnX82KAIWb7033bEwtxvTqXcYMxDBaQxo5JJHWM=
 github.com/bytedance/gopkg v0.1.4/go.mod h1:v1zWfPm21Fb+OsyXN2VAHdL6TBb2L88anLQgdyje6R4=
 github.com/bytedance/sonic v1.15.0 h1:/PXeWFaR5ElNcVE84U0dOHjiMHQOwNIx3K4ymzh/uSE=

@@ -12,10 +12,26 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ElementalMP4/loggerino/log"
 	"github.com/gin-gonic/gin"
 )
+
+func logger() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+		c.Next()
+		info := log.RequestInfo{
+			Method:  c.Request.Method,
+			Path:    c.Request.URL.RequestURI(),
+			Status:  c.Writer.Status(),
+			IP:      c.ClientIP(),
+			Latency: time.Since(start),
+		}
+		log.LoggingMiddleware(info)
+	}
+}
 
 func StartAPI() {
 	err := certificate.EnsureSslDirs()
@@ -29,12 +45,9 @@ func StartAPI() {
 	}
 
 	gin.SetMode(gin.ReleaseMode)
-	r := gin.Default()
-	r.Use(func(c *gin.Context) {
-		log.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			c.Next()
-		})).ServeHTTP(c.Writer, c.Request)
-	})
+	r := gin.New()
+	r.Use(logger())
+	r.Use(gin.Recovery())
 
 	// Load embedded HTML templates
 	templ, err := loadEmbeddedTemplates()
