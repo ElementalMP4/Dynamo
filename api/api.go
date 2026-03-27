@@ -30,6 +30,11 @@ func StartAPI() {
 
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
+	r.Use(func(c *gin.Context) {
+		log.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			c.Next()
+		})).ServeHTTP(c.Writer, c.Request)
+	})
 
 	// Load embedded HTML templates
 	templ, err := loadEmbeddedTemplates()
