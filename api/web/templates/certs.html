@@ -5,33 +5,54 @@
   </div>
 
   <div class="cert-section">
-    <h2>Root CA</h2>
-    <button class="button" onclick="showRootModal()">Create Root CA</button>
-    <ul id="root-list"></ul>
+    <div class="dns-header">
+      <h2>Root CA</h2>
+      <button class="button" onclick="showRootModal()">Create Root CA</button>
+    </div>
+    <div class="cert-grid" id="root-list"></div>
   </div>
 
   <div class="cert-section">
-    <h2>Server Certificates</h2>
-    <button class="button" onclick="showServerModal()">Create Server Cert</button>
-    <ul id="server-list"></ul>
+    <div class="dns-header">
+      <h2>Server Certificates</h2>
+      <button class="button" onclick="showServerModal()">Create Server Cert</button>
+    </div>
+    <div class="cert-grid" id="server-list"></div>
   </div>
 
   <div class="cert-section">
-    <h2>Client Certificates</h2>
-    <button class="button" onclick="showClientModal()">Create Client Cert</button>
-    <ul id="client-list"></ul>
+    <div class="dns-header">
+      <h2>Client Certificates</h2>
+      <button class="button" onclick="showClientModal()">Create Client Cert</button>
+    </div>
+    <div class="cert-grid" id="client-list"></div>
   </div>
 </div>
 
-<!-- Modals -->
+<!-- Cert detail modal -->
+<div id="cert-detail-modal" class="modal">
+  <div class="modal-content">
+    <h2 id="cert-detail-title"></h2>
+    <p class="cert-meta" id="cert-detail-kind" style="margin-bottom: 1.25rem;"></p>
+    <div class="cert-detail-files" id="cert-detail-files"></div>
+    <div class="form-actions">
+      <button type="button" class="button danger" id="cert-detail-delete">Delete</button>
+      <button type="button" class="button secondary" onclick="hideCertDetail()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Create modals -->
 <div id="root-modal" class="modal">
   <div class="modal-content">
     <h2>Create Root CA</h2>
     <form id="root-form">
       <div class="form-group"><label>Name</label><input id="root-name" required></div>
       <div class="form-group"><label>Days</label><input id="root-days" type="number" value="3650"></div>
-      <div class="form-actions"><button type="button" class="button secondary"
-          onclick="hideRootModal()">Cancel</button><button class="button" type="submit">Create</button></div>
+      <div class="form-actions">
+        <button type="button" class="button secondary" onclick="hideRootModal()">Cancel</button>
+        <button class="button" type="submit">Create</button>
+      </div>
     </form>
   </div>
 </div>
@@ -40,14 +61,17 @@
   <div class="modal-content">
     <h2>Create Server Cert</h2>
     <form id="server-form">
-      <div class="form-group"><label>Domain</label>
+      <div class="form-group">
+        <label>Domain</label>
         <select id="server-domain" required>
           <option value="">-- loading domains --</option>
         </select>
       </div>
       <div class="form-group"><label>Root CA</label><select id="server-cabase"></select></div>
-      <div class="form-actions"><button type="button" class="button secondary"
-          onclick="hideServerModal()">Cancel</button><button class="button" type="submit">Create</button></div>
+      <div class="form-actions">
+        <button type="button" class="button secondary" onclick="hideServerModal()">Cancel</button>
+        <button class="button" type="submit">Create</button>
+      </div>
     </form>
   </div>
 </div>
@@ -60,8 +84,10 @@
       <div class="form-group"><label>Root CA</label><select id="client-cabase"></select></div>
       <div class="form-group"><label>Client Identity (Usually an email address)</label><input id="client-identity"></div>
       <div class="form-group"><label>P12 Password</label><input id="client-pass" type="password"></div>
-      <div class="form-actions"><button type="button" class="button secondary"
-          onclick="hideClientModal()">Cancel</button><button class="button" type="submit">Create</button></div>
+      <div class="form-actions">
+        <button type="button" class="button secondary" onclick="hideClientModal()">Cancel</button>
+        <button class="button" type="submit">Create</button>
+      </div>
     </form>
   </div>
 </div>

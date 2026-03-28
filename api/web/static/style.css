@@ -260,6 +260,56 @@ main {
     font-size: 0.95rem;
 }
 
+.cert-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.cert-bubble {
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border);
+    padding: 1rem;
+    border-radius: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    cursor: pointer;
+    transition: border-color 0.2s, background-color 0.2s;
+    user-select: none;
+}
+
+.cert-bubble:hover {
+    border-color: var(--accent);
+    background-color: var(--bg-secondary);
+}
+
+.cert-title {
+    font-weight: 700;
+    font-size: 0.95rem;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.cert-meta {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+}
+
+.cert-detail-files {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.cert-detail-files .button {
+    width: 100%;
+    text-align: center;
+}
+
 .circuit-card {
     background-color: var(--bg-primary);
     border: 1px solid var(--border);
