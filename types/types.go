@@ -55,8 +55,8 @@ type RoutingCircuit struct {
 	Enabled     bool        `json:"enabled"`
 	InInterface *string     `json:"in_interface,omitempty"`
 
-	Protocol string `json:"protocol"`
-	SrcPort  int    `json:"src_port"`
+	Protocol string `json:"protocol,omitempty"`
+	SrcPort  int    `json:"src_port,omitempty"`
 
 	RedirectPort *int `json:"redirect_port,omitempty"`
 
