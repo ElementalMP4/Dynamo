@@ -13,7 +13,7 @@ import (
 	"Dynamo/store"
 )
 
-var circuitStore = store.NewJSONStore[[]types.RoutingCircuit]("circuits.json")
+var circuitStore *store.JSONStore[[]types.RoutingCircuit]
 
 func nextID(circuits []types.RoutingCircuit) int64 {
 	var max int64
@@ -35,6 +35,7 @@ func findCircuitByID(circuits []types.RoutingCircuit, id int64) (*types.RoutingC
 }
 
 func SyncCircuits() error {
+	circuitStore = store.NewJSONStore[[]types.RoutingCircuit]("circuits.json")
 	log.Info("circuit-sync", "Syncing circuits")
 
 	circuits, err := circuitStore.Load()
