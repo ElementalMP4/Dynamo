@@ -149,10 +149,16 @@ main {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 0.5rem;
+    min-width: 0;
+    gap: 0.5rem;
 }
 
 .record-name {
     font-weight: bold;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    min-width: 0;
 }
 
 .record-actions {
