@@ -1,8 +1,10 @@
 package store
 
 import (
+	"Dynamo/config"
 	"encoding/json"
 	"os"
+	"path/filepath"
 	"sync"
 	"syscall"
 )
@@ -14,7 +16,8 @@ type JSONStore[T any] struct {
 }
 
 func NewJSONStore[T any](file string) *JSONStore[T] {
-	return &JSONStore[T]{file: file}
+	filePath := filepath.Join(config.GetConfig().DataDirectory, file)
+	return &JSONStore[T]{file: filePath}
 }
 
 func (s *JSONStore[T]) lockFile() (*os.File, error) {

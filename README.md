@@ -6,21 +6,20 @@ Network Management Platform
 
 - NGINX
 - dnsmasq
-- GoPack
 - Conntrack
+- iptables
+- iptables-save
 
 ## Features
 
-- Creates DNS records in dnsmasq
+- Manages DNS records in dnsmasq
 - Creates Root CAs, Service Certificates & Client Certificates
 - Creates NGINX mTLS-ready configurations
+- Manages iptables routing rules for a variety of cases 
 
 ## Potential Future Features
 
 - WireGuard client management (create/enable/disable/delete clients)
-- Internal/External route toggles (toggles for traffic to local & VPN services)
-- iptables config for VPN services
-- Stats
 - Better dnsmasq auto config
 
 ## Example NGINX config
@@ -71,10 +70,6 @@ conf-dir=/etc/dnsmasq.d
 # Upstream DNS servers for public domains
 server=1.1.1.1
 server=1.0.0.1
-server=8.8.8.8
-
-# Local DNS (might not need?)
-resolv-file=/etc/resolv.conf
 
 # Your custom domain
 domain=elementalmp4.private

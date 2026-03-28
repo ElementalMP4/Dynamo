@@ -37,6 +37,7 @@ type Config struct {
 	ServerAddress string `json:"serverBind"`
 	CertsDir      string `json:"certsDir"`
 	DnsmasqFile   string `json:"dnsmasqConfigFile"`
+	DataDirectory string `json:"dataDirectory"`
 }
 
 type CircuitType string
