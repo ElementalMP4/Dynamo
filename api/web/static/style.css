@@ -410,3 +410,153 @@ main {
     color: #ef4444;
     font-weight: bold;
 }
+
+.nav-toggle {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.25rem;
+}
+
+.nav-toggle span {
+    display: block;
+    width: 24px;
+    height: 2px;
+    background-color: var(--text-primary);
+    border-radius: 2px;
+    transition: transform 0.2s, opacity 0.2s;
+}
+
+@media (max-width: 768px) {
+    nav {
+        flex-wrap: wrap;
+        padding: 1rem;
+        position: relative;
+    }
+
+    .nav-toggle {
+        display: flex;
+    }
+
+    .nav-items {
+        display: none;
+        flex-direction: column;
+        gap: 0;
+        width: 100%;
+        margin-top: 0.75rem;
+        border-top: 1px solid var(--border);
+        padding-top: 0.75rem;
+    }
+
+    .nav-items.open {
+        display: flex;
+    }
+
+    .nav-item {
+        padding: 0.6rem 0;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .nav-item:last-child {
+        border-bottom: none;
+    }
+
+    main {
+        padding: 1rem;
+    }
+
+    .hero h1 {
+        font-size: 2rem;
+    }
+
+    .dashboard {
+        grid-template-columns: 1fr;
+        margin-top: 1.5rem;
+        gap: 1.5rem;
+    }
+
+    .dns-manager {
+        padding: 1rem;
+    }
+
+    .dns-header {
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .dns-header h1 {
+        font-size: 1.5rem;
+    }
+
+    .record-header {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .record-actions {
+        flex-wrap: wrap;
+    }
+
+    .circuit-card {
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .circuit-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .circuit-meta {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: unset;
+    }
+
+    .modal {
+        align-items: flex-end;
+        padding: 0;
+    }
+
+    .modal-content {
+        max-width: 100%;
+        width: 100%;
+        border-radius: 0.75rem 0.75rem 0 0;
+        padding: 1.5rem 1rem;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .form-actions {
+        flex-direction: column-reverse;
+        gap: 0.75rem;
+    }
+
+    .form-actions .button {
+        width: 100%;
+        text-align: center;
+    }
+
+    .cert-section .button {
+        width: 100%;
+        text-align: center;
+        margin-top: 0.5rem;
+    }
+
+    .stat-card {
+        padding: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero h1 {
+        font-size: 1.6rem;
+    }
+
+    .nav-brand {
+        font-size: 1.25rem;
+    }
+}

@@ -9,7 +9,12 @@
 <body>
     <nav>
         <div class="nav-brand">Dynamo</div>
-        <div class="nav-items">
+        <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <div class="nav-items" id="nav-items">
             <a href="/" class="nav-item">Home</a>
             <a href="/dns" class="nav-item">DNS Records</a>
             <a href="/certs" class="nav-item">Certificates</a>
@@ -29,5 +34,17 @@
             {{template "home" .}}
         {{end}}
     </main>
+
+    <script>
+        const toggle = document.getElementById('nav-toggle');
+        const navItems = document.getElementById('nav-items');
+        toggle.addEventListener('click', () => {
+            navItems.classList.toggle('open');
+        });
+        // Close nav when a link is tapped
+        navItems.querySelectorAll('.nav-item').forEach(link => {
+            link.addEventListener('click', () => navItems.classList.remove('open'));
+        });
+    </script>
 </body>
 </html>
