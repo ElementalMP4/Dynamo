@@ -37,7 +37,6 @@ require (
 require (
 	github.com/ElementalMP4/loggerino v1.0.4
 	github.com/gin-gonic/gin v1.12.0
-	github.com/mattn/go-sqlite3 v1.14.37
 	golang.org/x/net v0.52.0 // indirect
 	golang.org/x/sys v0.42.0 // indirect
 )

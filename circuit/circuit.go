@@ -1,38 +1,48 @@
 package circuit
 
 import (
-	"Dynamo/db"
 	"Dynamo/types"
-	"database/sql"
 	"errors"
 	"fmt"
 	"net"
-	"net/http"
 	"strconv"
 
 	"github.com/ElementalMP4/loggerino/log"
 	"github.com/gin-gonic/gin"
+
+	"Dynamo/store"
 )
+
+var circuitStore = store.NewJSONStore[[]types.RoutingCircuit]("circuits.json")
+
+func nextID(circuits []types.RoutingCircuit) int64 {
+	var max int64
+	for _, c := range circuits {
+		if c.ID > max {
+			max = c.ID
+		}
+	}
+	return max + 1
+}
+
+func findCircuitByID(circuits []types.RoutingCircuit, id int64) (*types.RoutingCircuit, int) {
+	for i, c := range circuits {
+		if c.ID == id {
+			return &c, i
+		}
+	}
+	return nil, -1
+}
 
 func SyncCircuits() error {
 	log.Info("circuit-sync", "Syncing circuits")
-	rows, err := db.DB().Query(`
-		SELECT
-			id, name, type, enabled, in_interface,
-			protocol, src_port, redirect_port, dest_ip, dest_port
-		FROM routing_circuits
-	`)
+
+	circuits, err := circuitStore.Load()
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
 
-	for rows.Next() {
-		rc, err := db.ScanCircuitRows(rows)
-		if err != nil {
-			return err
-		}
-
+	for _, rc := range circuits {
 		log.Infof("circuit-sync", "Syncing circuit %s", rc.Name)
 
 		if rc.Enabled {
@@ -44,11 +54,8 @@ func SyncCircuits() error {
 				return fmt.Errorf("disable %s failed: %w", rc.Name, err)
 			}
 		}
-		log.Okf("circuit-sync", "Sync circuit %s completed successfully", rc.Name)
-	}
 
-	if rows.Err() != nil {
-		return rows.Err()
+		log.Okf("circuit-sync", "Sync circuit %s completed successfully", rc.Name)
 	}
 
 	return nil
@@ -61,101 +68,95 @@ func CreateCircuit(c *gin.Context) {
 		return
 	}
 
-	result, err := db.DB().Exec(`
-		INSERT INTO routing_circuits (
-			name,
-			type,
-			enabled,
-			in_interface,
-			protocol,
-			src_port,
-			redirect_port,
-			dest_ip,
-			dest_port
-		) VALUES (?, ?, 0, ?, ?, ?, ?, ?, ?)
-	`,
-		rc.Name,
-		rc.Type,
-		rc.InInterface,
-		rc.Protocol,
-		rc.SrcPort,
-		rc.RedirectPort,
-		rc.DestIP,
-		rc.DestPort,
-	)
+	err := circuitStore.Update(func(circuits *[]types.RoutingCircuit) error {
+		rc.ID = nextID(*circuits)
+		rc.Enabled = false
+		*circuits = append(*circuits, rc)
+		return nil
+	})
+
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 
-	id, err := result.LastInsertId()
-	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
-		return
-	}
-
-	rc.ID = id
-	rc.Enabled = false
-	c.JSON(201, rc)
 	log.Okf("circuit-router", "Created circuit %s", rc.Name)
+	c.JSON(201, rc)
+}
+
+func ListCircuits(c *gin.Context) {
+	circuits, err := circuitStore.Load()
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, circuits)
+}
+
+func GetByID(c *gin.Context) {
+	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+
+	circuits, err := circuitStore.Load()
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	rc, _ := findCircuitByID(circuits, id)
+	if rc == nil {
+		c.JSON(404, gin.H{"error": "Circuit not found"})
+		return
+	}
+
+	c.JSON(200, rc)
 }
 
 func EnableCircuit(c *gin.Context) {
-	id := c.Param("id")
+	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 
-	row := db.DB().QueryRow(`
-		SELECT
-			id, name, type, enabled, in_interface,
-			protocol, src_port, redirect_port, dest_ip, dest_port
-		FROM routing_circuits WHERE id = ?
-	`, id)
-
-	rc, err := db.ScanCircuitRow(row)
+	circuits, err := circuitStore.Load()
 	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	rc, idx := findCircuitByID(circuits, id)
+	if rc == nil {
 		c.JSON(404, gin.H{"error": "not found"})
 		return
 	}
 
-	tx, err := db.DB().Begin()
-	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
-		return
-	}
-
 	if err := rc.EnableCircuit(); err != nil {
-		tx.Rollback()
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 
-	if _, err := tx.Exec(`UPDATE routing_circuits SET enabled = 1 WHERE id = ?`, id); err != nil {
-		if derr := rc.DisableCircuit(); derr != nil {
-			c.JSON(500, gin.H{
-				"error": "enable failed and rollback failed: " + derr.Error(),
-			})
-			return
-		}
-		tx.Rollback()
+	err = circuitStore.Update(func(circuits *[]types.RoutingCircuit) error {
+		(*circuits)[idx].Enabled = true
+		return nil
+	})
+
+	if err != nil {
+		_ = rc.DisableCircuit()
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 
-	tx.Commit()
 	c.Status(204)
 }
 
 func DisableCircuit(c *gin.Context) {
-	id := c.Param("id")
+	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 
-	row := db.DB().QueryRow(`
-		SELECT
-			id, name, type, enabled, in_interface,
-			protocol, src_port, redirect_port, dest_ip, dest_port
-		FROM routing_circuits WHERE id = ?
-	`, id)
-
-	rc, err := db.ScanCircuitRow(row)
+	circuits, err := circuitStore.Load()
 	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	rc, idx := findCircuitByID(circuits, id)
+	if rc == nil {
 		c.JSON(404, gin.H{"error": "not found"})
 		return
 	}
@@ -165,90 +166,118 @@ func DisableCircuit(c *gin.Context) {
 		return
 	}
 
-	tx, err := db.DB().Begin()
-	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
-		return
-	}
-
 	if err := rc.DisableCircuit(); err != nil {
-		tx.Rollback()
 		errMsg := fmt.Sprintf("Failed to disable circuit: %v", err)
 		log.Error("circuit-router", errMsg)
 		c.JSON(500, gin.H{"error": errMsg})
 		return
 	}
 
-	if _, err := tx.Exec(`UPDATE routing_circuits SET enabled = 0 WHERE id = ?`, id); err != nil {
-		tx.Rollback()
+	err = circuitStore.Update(func(circuits *[]types.RoutingCircuit) error {
+		(*circuits)[idx].Enabled = false
+		return nil
+	})
+
+	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 
-	tx.Commit()
 	c.Status(204)
 }
 
-func listAllCircuits() ([]types.RoutingCircuit, error) {
-	rows, err := db.DB().Query(`
-		SELECT
-			id, name, type, enabled, in_interface,
-			protocol, src_port, redirect_port, dest_ip, dest_port
-		FROM routing_circuits
-		ORDER BY id
-	`)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
+func UpdateCircuit(c *gin.Context) {
+	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 
-	var circuits []types.RoutingCircuit
-	for rows.Next() {
-		rc, err := db.ScanCircuitRows(rows)
-		if err != nil {
-			return nil, err
-		}
-		circuits = append(circuits, rc)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return circuits, nil
-}
-
-func ListCircuits(c *gin.Context) {
-	circuits, err := listAllCircuits()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+	var updated types.RoutingCircuit
+	if err := c.ShouldBindJSON(&updated); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, circuits)
+	err := circuitStore.Update(func(circuits *[]types.RoutingCircuit) error {
+		for i, existing := range *circuits {
+			if existing.ID == id {
+
+				if existing.Enabled {
+					return errors.New("disable circuit before editing")
+				}
+
+				updated.ID = id
+				updated.Enabled = existing.Enabled
+				(*circuits)[i] = updated
+				return nil
+			}
+		}
+		return errors.New("not found")
+	})
+
+	if err != nil {
+		switch err.Error() {
+		case "not found":
+			c.JSON(404, gin.H{"error": "not found"})
+		case "disable circuit before editing":
+			c.JSON(409, gin.H{"error": err.Error()})
+		default:
+			c.JSON(500, gin.H{"error": err.Error()})
+		}
+		return
+	}
+
+	log.Okf("circuit-router", "Modified circuit %s", updated.Name)
+	c.Status(204)
+}
+
+func DeleteCircuit(c *gin.Context) {
+	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+
+	circuits, err := circuitStore.Load()
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	rc, _ := findCircuitByID(circuits, id)
+	if rc == nil {
+		c.JSON(404, gin.H{"error": "not found"})
+		return
+	}
+
+	if err := rc.DisableCircuit(); err != nil {
+		errMsg := fmt.Sprintf("failed to remove firewall state: %v", err)
+		log.Error("circuit-router", errMsg)
+		c.JSON(500, gin.H{"error": errMsg})
+		return
+	}
+
+	err = circuitStore.Update(func(circuits *[]types.RoutingCircuit) error {
+		for i, c := range *circuits {
+			if c.ID == id {
+				*circuits = append((*circuits)[:i], (*circuits)[i+1:]...)
+				return nil
+			}
+		}
+		return errors.New("not found")
+	})
+
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.Status(204)
 }
 
 func CountCircuits() (map[string]map[string]int, error) {
-	circuits, err := listAllCircuits()
+	circuits, err := circuitStore.Load()
 	if err != nil {
 		return nil, err
 	}
 
 	out := map[string]map[string]int{
-		"DNAT": {
-			"on":  0,
-			"off": 0,
-		},
-		"REDIRECT": {
-			"on":  0,
-			"off": 0,
-		},
-		"LOCAL": {
-			"on":  0,
-			"off": 0,
-		},
+		"DNAT":     {"on": 0, "off": 0},
+		"REDIRECT": {"on": 0, "off": 0},
+		"LOCAL":    {"on": 0, "off": 0},
 	}
 
 	for _, c := range circuits {
@@ -257,154 +286,26 @@ func CountCircuits() (map[string]map[string]int, error) {
 			state = "on"
 		}
 
-		if _, ok := out[string(c.Type)]; !ok {
-			continue // Unrecognised circuit type
+		if _, ok := out[string(c.Type)]; ok {
+			out[string(c.Type)][state]++
 		}
-
-		out[string(c.Type)][state]++
 	}
 
 	return out, nil
 }
 
-func UpdateCircuit(c *gin.Context) {
-	id := c.Param("id")
-
-	row := db.DB().QueryRow(`
-		SELECT
-			id, name, type, enabled, in_interface,
-			protocol, src_port, redirect_port, dest_ip, dest_port
-		FROM routing_circuits WHERE id = ?
-	`, id)
-
-	existing, err := db.ScanCircuitRow(row)
-	if err != nil {
-		c.JSON(404, gin.H{"error": "not found"})
-		return
-	}
-
-	if existing.Enabled {
-		c.JSON(409, gin.H{"error": "disable circuit before editing"})
-		return
-	}
-
-	var updated types.RoutingCircuit
-	if err := c.ShouldBindJSON(&updated); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
-		return
-	}
-
-	if _, err := db.DB().Exec(`
-		UPDATE routing_circuits SET
-			name = ?,
-			type = ?,
-			in_interface = ?,
-			protocol = ?,
-			src_port = ?,
-			redirect_port = ?,
-			dest_ip = ?,
-			dest_port = ?
-		WHERE id = ?
-	`,
-		updated.Name,
-		updated.Type,
-		updated.InInterface,
-		updated.Protocol,
-		updated.SrcPort,
-		updated.RedirectPort,
-		updated.DestIP,
-		updated.DestPort,
-		id,
-	); err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.Status(204)
-	log.Okf("circuit-router", "Modified circuit %s", updated.Name)
-}
-
-func DeleteCircuit(c *gin.Context) {
-	id := c.Param("id")
-
-	row := db.DB().QueryRow(`
-		SELECT
-			id, name, type, enabled, in_interface,
-			protocol, src_port, redirect_port, dest_ip, dest_port
-		FROM routing_circuits WHERE id = ?
-	`, id)
-
-	rc, err := db.ScanCircuitRow(row)
-	if err != nil {
-		c.JSON(404, gin.H{"error": "not found"})
-		return
-	}
-
-	tx, err := db.DB().Begin()
-	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
-		return
-	}
-
-	if err := rc.DisableCircuit(); err != nil {
-		tx.Rollback()
-		errMsg := fmt.Sprintf("failed to remove firewall state: %v", err)
-		log.Error("circuit-router", errMsg)
-		c.JSON(500, gin.H{"error": errMsg})
-		return
-	}
-
-	if _, err := tx.Exec(`DELETE FROM routing_circuits WHERE id = ?`, id); err != nil {
-		tx.Rollback()
-		c.JSON(500, gin.H{"error": err.Error()})
-		return
-	}
-
-	tx.Commit()
-	c.Status(204)
-}
-
-func getCircuitByID(id int) (*types.RoutingCircuit, error) {
-	row := db.DB().QueryRow(`
-		SELECT
-			id, name, type, enabled, in_interface,
-			protocol, src_port, redirect_port, dest_ip, dest_port
-		FROM routing_circuits
-		WHERE id = ?
-	`, id)
-
-	rc, err := db.ScanCircuitRow(row)
-	if err != nil {
-		return nil, err
-	}
-
-	return &rc, nil
-}
-
-func GetByID(c *gin.Context) {
-	id, _ := strconv.Atoi(c.Param("id"))
-	circuit, err := getCircuitByID(id)
-
-	if errors.Is(err, sql.ErrNoRows) {
-		c.JSON(404, gin.H{"error": "Circuit not found"})
-		return
-	}
-
-	c.JSON(200, circuit)
-}
-
 func listInterfaces() ([]string, error) {
 	ifaces, err := net.Interfaces()
 	if err != nil {
-		return nil, fmt.Errorf("failed to list interfaces: %v", err.Error())
+		return nil, fmt.Errorf("failed to list interfaces: %v", err)
 	}
 
-	interfaces := []string{}
+	var out []string
 	for _, i := range ifaces {
-		interfaces = append(interfaces, i.Name)
+		out = append(out, i.Name)
 	}
 
-	return interfaces, nil
+	return out, nil
 }
 
 func ListNetworkInterfaces(c *gin.Context) {

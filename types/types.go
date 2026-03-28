@@ -48,19 +48,19 @@ const (
 )
 
 type RoutingCircuit struct {
-	ID          int64       `db:"id" json:"id"`
-	Name        string      `db:"name" json:"name"`
-	Type        CircuitType `db:"type" json:"type"`
-	Enabled     bool        `db:"enabled" json:"enabled"`
-	InInterface *string     `db:"in_interface" json:"in_interface,omitempty"`
+	ID          int64       `json:"id"`
+	Name        string      `json:"name"`
+	Type        CircuitType `json:"type"`
+	Enabled     bool        `json:"enabled"`
+	InInterface *string     `json:"in_interface,omitempty"`
 
-	Protocol string `db:"protocol" json:"protocol"`
-	SrcPort  int    `db:"src_port" json:"src_port"`
+	Protocol string `json:"protocol"`
+	SrcPort  int    `json:"src_port"`
 
-	RedirectPort *int `db:"redirect_port" json:"redirect_port,omitempty"`
+	RedirectPort *int `json:"redirect_port,omitempty"`
 
-	DestIP   *string `db:"dest_ip" json:"dest_ip,omitempty"`
-	DestPort *int    `db:"dest_port" json:"dest_port,omitempty"`
+	DestIP   *string `json:"dest_ip,omitempty"`
+	DestPort *int    `json:"dest_port,omitempty"`
 }
 
 func (c RoutingCircuit) IPTablesRules() [][]string {
