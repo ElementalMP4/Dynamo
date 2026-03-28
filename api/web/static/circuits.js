@@ -171,6 +171,7 @@ async function loadInterfacesIntoEditor() {
 
     const interfacesJson = await interfaces.json();
     const select = document.getElementById('circuit-interface');
+    select.innerHTML = "";
 
     interfacesJson.interfaces.forEach(iface => {
         const option = document.createElement('option');
