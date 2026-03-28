@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-	"syscall"
 )
 
 type JSONStore[T any] struct {
@@ -18,25 +17,6 @@ type JSONStore[T any] struct {
 func NewJSONStore[T any](file string) *JSONStore[T] {
 	filePath := filepath.Join(config.GetConfig().DataDirectory, file)
 	return &JSONStore[T]{file: filePath}
-}
-
-func (s *JSONStore[T]) lockFile() (*os.File, error) {
-	f, err := os.OpenFile(s.file+".lock", os.O_CREATE|os.O_RDWR, 0644)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX); err != nil {
-		f.Close()
-		return nil, err
-	}
-
-	return f, nil
-}
-
-func (s *JSONStore[T]) unlockFile(f *os.File) {
-	syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
-	f.Close()
 }
 
 func (s *JSONStore[T]) Load() (T, error) {
@@ -77,12 +57,6 @@ func (s *JSONStore[T]) Save(data T) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	lockFile, err := s.lockFile()
-	if err != nil {
-		return err
-	}
-	defer s.unlockFile(lockFile)
-
 	bytes, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
 		return err
@@ -105,12 +79,6 @@ func (s *JSONStore[T]) Save(data T) error {
 func (s *JSONStore[T]) Update(fn func(*T) error) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-
-	lockFile, err := s.lockFile()
-	if err != nil {
-		return err
-	}
-	defer s.unlockFile(lockFile)
 
 	var data T
 
