@@ -82,6 +82,7 @@ local=/elementalmp4.private/
 {
     "serverBind": "127.0.0.1:6789", // Bind address and port are mandatory
     "certsDir": "./ssl", // Where to store SSL certs
-    "dnsmasqConfigFile": "/etc/dnsmasq.d/dynamo.conf" // Absolute path to dnsmasq config file (NOT the main config file!)
+    "dnsmasqConfigFile": "/etc/dnsmasq.d/dynamo.conf", // Absolute path to dnsmasq config file (NOT the main config file!)
+    "dataDirectory": "./data" // Where to store other data files
 }
 ```

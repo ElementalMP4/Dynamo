@@ -6,8 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-
-	"github.com/ElementalMP4/loggerino/log"
 )
 
 type JSONStore[T any] struct {
@@ -18,7 +16,6 @@ type JSONStore[T any] struct {
 
 func NewJSONStore[T any](file string) *JSONStore[T] {
 	filePath := filepath.Join(config.GetConfig().DataDirectory, file)
-	log.Infof("datastore", "Using datastore at %s", filePath)
 	return &JSONStore[T]{file: filePath}
 }
 
