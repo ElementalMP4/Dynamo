@@ -133,6 +133,8 @@ ssl_protocols TLSv1.2 TLSv1.3;
 ssl_prefer_server_ciphers on;
 `, serverName, serverCrt, serverKey, caCrt, caCrl)
 
+	fmt.Println(conf)
+
 	return os.WriteFile(outPath, []byte(conf), 0o644)
 }
 
