@@ -116,7 +116,6 @@ func writeNginxMTLSConfig(
 	caCrl string,
 	outPath string,
 ) error {
-
 	conf := fmt.Sprintf(`
 listen 443 ssl;
 server_name %s;
@@ -132,9 +131,6 @@ ssl_crl %s;
 ssl_protocols TLSv1.2 TLSv1.3;
 ssl_prefer_server_ciphers on;
 `, serverName, serverCrt, serverKey, caCrt, caCrl)
-
-	fmt.Println(conf)
-
 	return os.WriteFile(outPath, []byte(conf), 0o644)
 }
 
@@ -473,8 +469,8 @@ func createServerCert(domain, caBase string, days int) (crtPath, keyPath, nginxM
 		crtAbs,
 		keyAbs,
 		caAbs,
-		nginxMtls,
 		caCrlPath,
+		nginxMtls,
 	); err != nil {
 		return "", "", "", "", fmt.Errorf("failed to write nginx mTLS config: %w", err)
 	}
