@@ -457,6 +457,7 @@ func createServerCert(domain, caBase string, days int) (crtPath, keyPath, nginxM
 	crtAbs, _ := filepath.Abs(crtPath)
 	keyAbs, _ := filepath.Abs(keyPath)
 	caAbs, _ := filepath.Abs(caCrtPath)
+	crlAbs, _ := filepath.Abs(caCrlPath)
 
 	nginxMtlsPath := filepath.Join(serverDir, fileBase, "nginx-mtls.conf")
 	nginxMtls, _ = filepath.Abs(nginxMtlsPath)
@@ -469,7 +470,7 @@ func createServerCert(domain, caBase string, days int) (crtPath, keyPath, nginxM
 		crtAbs,
 		keyAbs,
 		caAbs,
-		caCrlPath,
+		crlAbs,
 		nginxMtls,
 	); err != nil {
 		return "", "", "", "", fmt.Errorf("failed to write nginx mTLS config: %w", err)
