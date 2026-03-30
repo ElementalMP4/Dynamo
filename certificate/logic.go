@@ -580,7 +580,7 @@ func generateCRL(caBase string, serials []string) error {
 		})
 	}
 
-	crlBytes, err := caCert.CreateCRL(rand.Reader, caKey, revoked, now, now.AddDate(1, 0, 0))
+	crlBytes, err := caCert.CreateCRL(rand.Reader, caKey, revoked, now, now.AddDate(10, 0, 0))
 
 	if err != nil {
 		return err
