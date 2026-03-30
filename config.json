@@ -1,5 +1,6 @@
 {
     "serverBind": "127.0.0.1:6789",
     "certsDir": "./ssl",
-    "dnsmasqConfigFile": "/etc/dnsmasq.d/dynamo.conf"
+    "dnsmasqConfigFile": "/etc/dnsmasq.d/dynamo.conf",
+    "dataDirectory": "./data"
 }
