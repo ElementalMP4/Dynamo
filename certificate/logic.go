@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -112,6 +113,7 @@ func writeNginxMTLSConfig(
 	serverCrt string,
 	serverKey string,
 	caCrt string,
+	caCrl string,
 	outPath string,
 ) error {
 
@@ -125,9 +127,11 @@ ssl_certificate_key %s;
 ssl_client_certificate %s;
 ssl_verify_client on;
 
+ssl_crl %s;
+
 ssl_protocols TLSv1.2 TLSv1.3;
 ssl_prefer_server_ciphers on;
-`, serverName, serverCrt, serverKey, caCrt)
+`, serverName, serverCrt, serverKey, caCrt, caCrl)
 
 	return os.WriteFile(outPath, []byte(conf), 0o644)
 }
@@ -150,10 +154,34 @@ server {
 
 func deleteCertGroup(kind, base string) error {
 	root := certsBaseDir()
+	if kind == "root" {
+		for _, k := range []string{"client", "server"} {
+			dir := filepath.Join(root, k)
+			entries, _ := os.ReadDir(dir)
+
+			for _, e := range entries {
+				meta, err := readMetadata(k, e.Name())
+				if err != nil {
+					continue
+				}
+
+				if meta.CaBase == base {
+					_ = os.RemoveAll(filepath.Join(dir, e.Name()))
+				}
+			}
+		}
+	}
+
+	if kind == "client" || kind == "server" {
+		meta, err := readMetadata(kind, base)
+		if err == nil {
+			_ = revokeCert(meta.CaBase, meta.SerialNumber)
+		}
+	}
+
 	dirToDelete := filepath.Join(root, kind, base)
 
-	err := os.RemoveAll(dirToDelete)
-	if err != nil {
+	if err := os.RemoveAll(dirToDelete); err != nil {
 		return err
 	}
 
@@ -247,6 +275,16 @@ func createClientCert(name, identity, caBase string, days int, p12Pwd string) (c
 	if err := os.WriteFile(keyPath, pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(priv)}), 0o600); err != nil {
 		return "", "", "", "", err
 	}
+
+	meta := types.CertMetadata{
+		CaBase:       caBase,
+		SerialNumber: serial.String(),
+		Type:         "client",
+	}
+
+	metaPath := filepath.Join(clientDir, fileBase, "metadata.json")
+	metaBytes, _ := json.MarshalIndent(meta, "", "  ")
+	_ = os.WriteFile(metaPath, metaBytes, 0o644)
 
 	// create p12 bundle using pkcs12 encoder
 	clientCert, err := x509.ParseCertificate(derBytes)
@@ -353,6 +391,7 @@ func createServerCert(domain, caBase string, days int) (crtPath, keyPath, nginxM
 	base := certsBaseDir()
 	caKeyPath := filepath.Join(base, "root", caBase, caBase+".key")
 	caCrtPath := filepath.Join(base, "root", caBase, caBase+".crt")
+	caCrlPath := filepath.Join(base, "root", caBase, caBase+".crl")
 
 	// load CA
 	caCertPEM, err := os.ReadFile(caCrtPath)
@@ -433,6 +472,7 @@ func createServerCert(domain, caBase string, days int) (crtPath, keyPath, nginxM
 		keyAbs,
 		caAbs,
 		nginxMtls,
+		caCrlPath,
 	); err != nil {
 		return "", "", "", "", fmt.Errorf("failed to write nginx mTLS config: %w", err)
 	}
@@ -451,5 +491,121 @@ func createServerCert(domain, caBase string, days int) (crtPath, keyPath, nginxM
 		return "", "", "", "", err
 	}
 
+	meta := types.CertMetadata{
+		CaBase:       caBase,
+		SerialNumber: serial.String(),
+		Type:         "server",
+	}
+
+	metaPath := filepath.Join(serverDir, fileBase, "metadata.json")
+	metaBytes, _ := json.MarshalIndent(meta, "", "  ")
+	_ = os.WriteFile(metaPath, metaBytes, 0o644)
+
 	return crtAbs, keyAbs, nginxMtls, nginxRedirect, nil
+}
+
+func loadCA(caBase string) (*x509.Certificate, *rsa.PrivateKey, error) {
+	base := certsBaseDir()
+
+	caCrtPath := filepath.Join(base, "root", caBase, caBase+".crt")
+	caKeyPath := filepath.Join(base, "root", caBase, caBase+".key")
+
+	certPEM, err := os.ReadFile(caCrtPath)
+	if err != nil {
+		return nil, nil, err
+	}
+	keyPEM, err := os.ReadFile(caKeyPath)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	certBlock, _ := pem.Decode(certPEM)
+	keyBlock, _ := pem.Decode(keyPEM)
+
+	cert, err := x509.ParseCertificate(certBlock.Bytes)
+	if err != nil {
+		return nil, nil, err
+	}
+	key, err := x509.ParsePKCS1PrivateKey(keyBlock.Bytes)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return cert, key, nil
+}
+
+func revokeCert(caBase string, serialStr string) error {
+	base := certsBaseDir()
+	revokedPath := filepath.Join(base, "root", caBase, "revoked.json")
+
+	var serials []string
+
+	if data, err := os.ReadFile(revokedPath); err == nil {
+		_ = json.Unmarshal(data, &serials)
+	}
+
+	// prevent duplicates
+	for _, s := range serials {
+		if s == serialStr {
+			return nil
+		}
+	}
+
+	serials = append(serials, serialStr)
+
+	data, _ := json.MarshalIndent(serials, "", "  ")
+	if err := os.WriteFile(revokedPath, data, 0o644); err != nil {
+		return err
+	}
+
+	return generateCRL(caBase, serials)
+}
+
+func generateCRL(caBase string, serials []string) error {
+	caCert, caKey, err := loadCA(caBase)
+	if err != nil {
+		return err
+	}
+
+	var revoked []pkix.RevokedCertificate
+	now := time.Now()
+
+	for _, s := range serials {
+		bi := new(big.Int)
+		bi.SetString(s, 10)
+
+		revoked = append(revoked, pkix.RevokedCertificate{
+			SerialNumber:   bi,
+			RevocationTime: now,
+		})
+	}
+
+	crlBytes, err := caCert.CreateCRL(rand.Reader, caKey, revoked, now, now.AddDate(1, 0, 0))
+
+	if err != nil {
+		return err
+	}
+
+	crlPath := filepath.Join(certsBaseDir(), "root", caBase, caBase+".crl")
+
+	return os.WriteFile(crlPath, pem.EncodeToMemory(&pem.Block{
+		Type:  "X509 CRL",
+		Bytes: crlBytes,
+	}), 0o644)
+}
+
+func readMetadata(kind, base string) (*types.CertMetadata, error) {
+	path := filepath.Join(certsBaseDir(), kind, base, "metadata.json")
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	var meta types.CertMetadata
+	if err := json.Unmarshal(data, &meta); err != nil {
+		return nil, err
+	}
+
+	return &meta, nil
 }

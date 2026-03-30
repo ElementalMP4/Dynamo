@@ -340,3 +340,9 @@ type InterfaceStats struct {
 	RX uint64 `json:"rx"`
 	TX uint64 `json:"tx"`
 }
+
+type CertMetadata struct {
+	CaBase       string `json:"caBase"`
+	SerialNumber string `json:"serialNumber"`
+	Type         string `json:"type"`
+}
