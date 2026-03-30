@@ -160,7 +160,7 @@ func deleteCertGroup(kind, base string) error {
 			for _, e := range entries {
 				meta, err := readMetadata(k, e.Name())
 				if err != nil {
-					continue
+					log.Warnf("cert-revoke", "Metadata not found for %s", base)
 				}
 
 				if meta.CaBase == base {
@@ -172,9 +172,11 @@ func deleteCertGroup(kind, base string) error {
 
 	if kind == "client" || kind == "server" {
 		meta, err := readMetadata(kind, base)
-		if err == nil {
-			_ = revokeCert(meta.CaBase, meta.SerialNumber)
+		if err != nil {
+			log.Warnf("cert-revoke", "Metadata not found for %s", base)
+
 		}
+		_ = revokeCert(meta.CaBase, meta.SerialNumber)
 	}
 
 	dirToDelete := filepath.Join(root, kind, base)
