@@ -98,7 +98,7 @@ func CreateClientCert(c *gin.Context) {
 		req.Days = 3650
 	}
 
-	crtPath, keyPath, p12Path, warning, err := createClientCert(req.Name, req.Identity, req.CaBase, req.Days, req.P12Pwd)
+	crtPath, keyPath, p12Path, err := createClientCert(req.Name, req.Identity, req.CaBase, req.Days, req.P12Pwd)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -109,9 +109,6 @@ func CreateClientCert(c *gin.Context) {
 		response["p12"] = p12Path
 	} else {
 		response["p12"] = nil
-	}
-	if warning != "" {
-		response["warning"] = warning
 	}
 
 	log.Okf("cert-router", "Created client cert %s", req.Name)

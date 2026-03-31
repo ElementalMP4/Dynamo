@@ -176,7 +176,10 @@ func deleteCertGroup(kind, base string) error {
 			log.Warnf("cert-revoke", "Metadata not found for %s", base)
 
 		}
-		_ = revokeCert(meta.CaBase, meta.SerialNumber)
+		err = revokeCert(meta.CaBase, meta.SerialNumber)
+		if err != nil {
+			log.Warnf("cert-revoke", "Certificate revokation failed for %s", base)
+		}
 	}
 
 	dirToDelete := filepath.Join(root, kind, base)
@@ -189,9 +192,9 @@ func deleteCertGroup(kind, base string) error {
 	return nil
 }
 
-func createClientCert(name, identity, caBase string, days int, p12Pwd string) (crtPath, keyPath, p12Path, warning string, err error) {
+func createClientCert(name, identity, caBase string, days int, p12Pwd string) (crtPath, keyPath, p12Path string, err error) {
 	if err := ensureCertDirs("client", name); err != nil {
-		return "", "", "", "", err
+		return "", "", "", err
 	}
 
 	base := certsBaseDir()
@@ -200,40 +203,40 @@ func createClientCert(name, identity, caBase string, days int, p12Pwd string) (c
 
 	caCertPEM, err := os.ReadFile(caCrtPath)
 	if err != nil {
-		return "", "", "", "", fmt.Errorf("failed to read CA cert: %w", err)
+		return "", "", "", fmt.Errorf("failed to read CA cert: %w", err)
 	}
 	caKeyPEM, err := os.ReadFile(caKeyPath)
 	if err != nil {
-		return "", "", "", "", fmt.Errorf("failed to read CA key: %w", err)
+		return "", "", "", fmt.Errorf("failed to read CA key: %w", err)
 	}
 
 	caCertBlock, _ := pem.Decode(caCertPEM)
 	if caCertBlock == nil {
-		return "", "", "", "", errors.New("invalid CA cert PEM")
+		return "", "", "", errors.New("invalid CA cert PEM")
 	}
 	caCert, err := x509.ParseCertificate(caCertBlock.Bytes)
 	if err != nil {
-		return "", "", "", "", err
+		return "", "", "", err
 	}
 
 	caKeyBlock, _ := pem.Decode(caKeyPEM)
 	if caKeyBlock == nil {
-		return "", "", "", "", errors.New("invalid CA key PEM")
+		return "", "", "", errors.New("invalid CA key PEM")
 	}
 	caKey, err := x509.ParsePKCS1PrivateKey(caKeyBlock.Bytes)
 	if err != nil {
-		return "", "", "", "", err
+		return "", "", "", err
 	}
 
 	// generate client key
 	priv, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		return "", "", "", "", err
+		return "", "", "", err
 	}
 
 	serial, err := rand.Int(rand.Reader, big.NewInt(1<<62))
 	if err != nil {
-		return "", "", "", "", err
+		return "", "", "", err
 	}
 
 	now := time.Now()
@@ -260,7 +263,7 @@ func createClientCert(name, identity, caBase string, days int, p12Pwd string) (c
 
 	derBytes, err := x509.CreateCertificate(rand.Reader, &tmpl, caCert, &priv.PublicKey, caKey)
 	if err != nil {
-		return "", "", "", "", err
+		return "", "", "", err
 	}
 
 	clientDir := filepath.Join(base, "client")
@@ -270,10 +273,10 @@ func createClientCert(name, identity, caBase string, days int, p12Pwd string) (c
 	p12Path = filepath.Join(clientDir, fileBase, fileBase+".p12")
 
 	if err := os.WriteFile(crtPath, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: derBytes}), 0o644); err != nil {
-		return "", "", "", "", err
+		return "", "", "", err
 	}
 	if err := os.WriteFile(keyPath, pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(priv)}), 0o600); err != nil {
-		return "", "", "", "", err
+		return "", "", "", err
 	}
 
 	meta := types.CertMetadata{
@@ -289,7 +292,7 @@ func createClientCert(name, identity, caBase string, days int, p12Pwd string) (c
 	// create p12 bundle using pkcs12 encoder
 	clientCert, err := x509.ParseCertificate(derBytes)
 	if err != nil {
-		return "", "", "", "", fmt.Errorf("failed to parse client cert: %w", err)
+		return "", "", "", fmt.Errorf("failed to parse client cert: %w", err)
 	}
 
 	// Try the legacy encoder first for maximum compatibility (macOS Keychain
@@ -302,7 +305,7 @@ func createClientCert(name, identity, caBase string, days int, p12Pwd string) (c
 	p12Data, err := pkcs12.Legacy.Encode(priv, clientCert, []*x509.Certificate{caCert}, p12Pwd)
 	if err == nil {
 		if err := os.WriteFile(p12Path, p12Data, 0o600); err != nil {
-			return "", "", "", "", err
+			return "", "", "", err
 		}
 		written = true
 	} else {
@@ -319,7 +322,7 @@ func createClientCert(name, identity, caBase string, days int, p12Pwd string) (c
 		} else {
 			// write modern to the canonical path if legacy failed
 			if err := os.WriteFile(p12Path, modernData, 0o600); err != nil {
-				return "", "", "", "", err
+				return "", "", "", err
 			}
 			written = true
 		}
@@ -329,11 +332,9 @@ func createClientCert(name, identity, caBase string, days int, p12Pwd string) (c
 
 	if !written {
 		log.Errorf("certificates", "pkcs12 encode failed (both legacy and modern)")
-		warning = "pkcs12 encode failed; .p12 not created"
-		p12Path = ""
 	}
 
-	return crtPath, keyPath, p12Path, warning, nil
+	return crtPath, keyPath, p12Path, nil
 }
 
 func createRootCA(name string, days int) (crtPath, keyPath string, err error) {
