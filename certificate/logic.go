@@ -381,6 +381,10 @@ func createRootCA(name string, days int) (crtPath, keyPath string, err error) {
 		return "", "", err
 	}
 
+	if err := generateCRL(name, []string{}); err != nil {
+		return "", "", err
+	}
+
 	return crtPath, keyPath, nil
 }
 
