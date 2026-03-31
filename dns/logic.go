@@ -9,10 +9,9 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
-
-	"github.com/ElementalMP4/loggerino/log"
-	"github.com/gin-gonic/gin"
 )
+
+const loggingSource string = "dns-router"
 
 func EnsureWritable() error {
 	f, err := os.OpenFile(config.GetConfig().DnsmasqFile, os.O_RDWR|os.O_CREATE, 0644)
@@ -131,137 +130,6 @@ func writeRecords(records []types.DNSRecord) error {
 	}
 
 	return reloadDnsmasq()
-}
-
-func ListRecords(c *gin.Context) {
-	records, err := loadRecords()
-	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(200, records)
-}
-
-func CreateRecord(c *gin.Context) {
-	var rec types.DNSRecord
-	if err := c.BindJSON(&rec); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
-		return
-	}
-
-	records, _ := loadRecords()
-	rec.ID = len(records) + 1
-	records = append(records, rec)
-
-	if err := writeRecords(records); err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.Status(201)
-	log.Okf("dns-router", "Created %s record %s", rec.Type, rec.Name)
-}
-
-func GetRecordByID(c *gin.Context) {
-	id, _ := strconv.Atoi(c.Param("id"))
-	records, _ := loadRecords()
-
-	for _, r := range records {
-		if r.ID == id {
-			c.JSON(200, r)
-			return
-		}
-	}
-
-	c.JSON(404, gin.H{"error": "not found"})
-}
-
-func UpdateRecord(c *gin.Context) {
-	id, _ := strconv.Atoi(c.Param("id"))
-	var update types.DNSRecord
-	if err := c.BindJSON(&update); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
-		return
-	}
-
-	records, err := loadRecords()
-	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
-		return
-	}
-
-	for i := range records {
-		if records[i].ID == id {
-			if update.Name != "" && update.Name != records[i].Name {
-				records[i].Name = update.Name
-			}
-			if update.Type != "" && update.Type != records[i].Type {
-				records[i].Type = update.Type
-			}
-			if update.TTL != records[i].TTL {
-				records[i].TTL = update.TTL
-			}
-			if update.Class != "" && update.Class != records[i].Class {
-				records[i].Class = update.Class
-			}
-			if update.IPv4 != "" && update.IPv4 != records[i].IPv4 {
-				records[i].IPv4 = update.IPv4
-			}
-			if update.CNAME != "" && update.CNAME != records[i].CNAME {
-				records[i].CNAME = update.CNAME
-			}
-			if len(update.TXT) > 0 {
-				records[i].TXT = update.TXT
-			}
-			if update.Target != "" && update.Target != records[i].Target {
-				records[i].Target = update.Target
-			}
-			if update.Port != records[i].Port && update.Port != 0 {
-				records[i].Port = update.Port
-			}
-			if update.Priority != records[i].Priority && update.Priority != 0 {
-				records[i].Priority = update.Priority
-			}
-			if update.Weight != records[i].Weight && update.Weight != 0 {
-				records[i].Weight = update.Weight
-			}
-
-			if err := writeRecords(records); err != nil {
-				c.JSON(500, gin.H{"error": err.Error()})
-				return
-			}
-
-			c.Status(200)
-			log.Okf("dns-router", "Modified %s record %s", update.Type, update.Name)
-
-			return
-		}
-	}
-
-	c.JSON(404, gin.H{"error": "not found"})
-}
-
-func DeleteRecord(c *gin.Context) {
-	id, _ := strconv.Atoi(c.Param("id"))
-	records, _ := loadRecords()
-
-	var filtered []types.DNSRecord
-	var toBeDeleted types.DNSRecord
-	for _, r := range records {
-		if r.ID != id {
-			filtered = append(filtered, r)
-		} else {
-			toBeDeleted = r
-		}
-	}
-
-	if err := writeRecords(filtered); err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.Status(204)
-	log.Okf("dns-router", "Deleted %s record %s", toBeDeleted.Type, toBeDeleted.Name)
 }
 
 func CountDNSRecords() (map[string]int, error) {
