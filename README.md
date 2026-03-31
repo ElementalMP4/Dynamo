@@ -14,13 +14,8 @@ Network Management Platform
 
 - Manages DNS records in dnsmasq
 - Creates Root CAs, Service Certificates & Client Certificates
-- Creates NGINX mTLS-ready configurations
-- Manages iptables routing rules for a variety of cases 
-
-## Potential Future Features
-
-- WireGuard client management (create/enable/disable/delete clients)
-- Better dnsmasq auto config
+- Creates NGINX mTLS-ready configurations with http -> https redirects & CRLs
+- Manages iptables routing rules for a variety of redirects
 
 ## Example NGINX config
 
@@ -53,36 +48,28 @@ ssl_prefer_server_ciphers on;
 
 ## dnsmasq
 
-`/etc/dnsmasq.conf` should look something like this:
+`/etc/dnsmasq.conf` must contain a bare minimum of the following:
 ```ini
 # Port 54 doesn't conflict with systemd-resolved
 port=54
 
-# Accept all traffic
-listen-address=0.0.0.0
-
-# Do not listen on wg0 or loopback (optional)
-interface=eno1
-
-# MANDATORY
-conf-dir=/etc/dnsmasq.d
-
-# Upstream DNS servers for public domains
+# Upstream DNS servers for public domains (you can also use your server's existing DNS resolver, or AdGuard for example)
 server=1.1.1.1
 server=1.0.0.1
 
-# Your custom domain
-domain=elementalmp4.private
-local=/elementalmp4.private/
+# Adds the directory that contains Dynamo's DNS config file
+conf-dir=/etc/dnsmasq.d
 ```
+
+**Hint:** don't use port 53 as this will conflict with your server's built-in DNS. Use a different port, then use a Dynamo circuit to redirect inbound traffic from port 53 to your chosen dnsmasq port.
 
 ## Dynamo Config File
 
 ```jsonc
 {
-    "serverBind": "127.0.0.1:6789", // Bind address and port are mandatory
-    "certsDir": "./ssl", // Where to store SSL certs
+    "serverBind": "127.0.0.1:6789", // Bind address and port are mandatory. If using Dynamo 
+    "certsDir": "/etc/Dynamo/ssl", // Where to store SSL certs
     "dnsmasqConfigFile": "/etc/dnsmasq.d/dynamo.conf", // Absolute path to dnsmasq config file (NOT the main config file!)
-    "dataDirectory": "./data" // Where to store other data files
+    "dataDirectory": "/etc/Dynamo/data" // Where to store other data files
 }
 ```
