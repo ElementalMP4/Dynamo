@@ -23,11 +23,5 @@ func getFileSystem() http.FileSystem {
 
 // loadEmbeddedTemplates loads templates from the embedded filesystem
 func loadEmbeddedTemplates() (*template.Template, error) {
-	return template.ParseFS(webContent,
-		"web/templates/base.html",
-		"web/templates/home.html",
-		"web/templates/dns.html",
-		"web/templates/certs.html",
-		"web/templates/circuits.html",
-	)
+	return template.ParseFS(webContent, "web/templates/*.html")
 }
