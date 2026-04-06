@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function loadCerts() {
-    const res = await fetch('/api/certs/list');
+    const res = await fetch('/api/certs');
     const data = await res.json();
 
     ['root', 'server', 'client'].forEach(kind => {

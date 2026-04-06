@@ -49,17 +49,14 @@ func StartAPI() {
 	r.Use(logger())
 	r.Use(gin.Recovery())
 
-	// Load embedded HTML templates
+	// UI routes
 	templ, err := loadEmbeddedTemplates()
 	if err != nil {
 		log.Fatalf("api", "Failed to load templates: %v", err.Error())
 	}
 	r.SetHTMLTemplate(templ)
-
-	// Serve embedded static files
 	r.StaticFS("/static", getFileSystem())
 
-	// Web routes
 	r.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "base.html", gin.H{
 			"isHome": true,
@@ -86,11 +83,11 @@ func StartAPI() {
 
 	// Cert management routes
 	certs := r.Group("/api/certs")
+	certs.GET("", certificate.ListCerts)
 	certs.DELETE("", certificate.DeleteCertGroup)
 	certs.POST("/root", certificate.CreateRootCA)
 	certs.POST("/server", certificate.CreateServerCert)
 	certs.POST("/client", certificate.CreateClientCert)
-	certs.GET("/list", certificate.ListCerts)
 	certs.GET("/download", certificate.DownloadCert)
 
 	// DNS routes
