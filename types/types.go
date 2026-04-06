@@ -17,11 +17,10 @@ import (
 const iptablesTimeout = 10 * time.Second
 
 type DNSRecord struct {
-	ID    int    `json:"id"`
-	Name  string `json:"name"`
-	Type  string `json:"type"`
-	TTL   int    `json:"ttl"`
-	Class string `json:"class"`
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+	Type string `json:"type"`
+	TTL  int    `json:"ttl"`
 
 	IPv4  string   `json:"ipv4,omitempty"`
 	CNAME string   `json:"cname,omitempty"`

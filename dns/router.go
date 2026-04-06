@@ -55,7 +55,6 @@ func GetRecordByID(c *gin.Context) {
 	}
 	fmtErr := fmt.Errorf("DNS record %d not found", id)
 	util.ErrorResponse(c, http.StatusNotFound, loggingSource, fmtErr)
-	return
 }
 
 func UpdateRecord(c *gin.Context) {
@@ -87,9 +86,6 @@ func UpdateRecord(c *gin.Context) {
 		}
 		if update.TTL != records[i].TTL {
 			records[i].TTL = update.TTL
-		}
-		if update.Class != "" && update.Class != records[i].Class {
-			records[i].Class = update.Class
 		}
 		if update.IPv4 != "" && update.IPv4 != records[i].IPv4 {
 			records[i].IPv4 = update.IPv4
@@ -127,7 +123,6 @@ func UpdateRecord(c *gin.Context) {
 
 	fmtErr := fmt.Errorf("Record %d not found", id)
 	util.ErrorResponse(c, http.StatusNotFound, loggingSource, fmtErr)
-	return
 }
 
 func DeleteRecord(c *gin.Context) {

@@ -52,9 +52,8 @@ func loadRecords() ([]types.DNSRecord, error) {
 		}
 
 		rec := types.DNSRecord{
-			ID:    id,
-			TTL:   ttl,
-			Class: "IN",
+			ID:  id,
+			TTL: ttl,
 		}
 
 		switch {
