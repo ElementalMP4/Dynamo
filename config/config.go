@@ -1,12 +1,18 @@
 package config
 
 import (
-	"Dynamo/types"
 	"encoding/json"
 	"os"
 )
 
-var config types.Config
+type Config struct {
+	ServerAddress string `json:"serverBind"`
+	CertsDir      string `json:"certsDir"`
+	DnsmasqFile   string `json:"dnsmasqConfigFile"`
+	DataDirectory string `json:"dataDirectory"`
+}
+
+var config Config
 
 func LoadConfig() error {
 	data, err := os.ReadFile("config.json")
@@ -20,6 +26,6 @@ func LoadConfig() error {
 	return nil
 }
 
-func GetConfig() types.Config {
+func GetConfig() Config {
 	return config
 }

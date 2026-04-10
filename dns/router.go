@@ -1,7 +1,6 @@
 package dns
 
 import (
-	"Dynamo/types"
 	"Dynamo/util"
 	"fmt"
 	"net/http"
@@ -22,7 +21,7 @@ func ListRecords(c *gin.Context) {
 }
 
 func CreateRecord(c *gin.Context) {
-	var rec types.DNSRecord
+	var rec DNSRecord
 	if err := c.BindJSON(&rec); err != nil {
 		fmtErr := fmt.Errorf("Invalid JSON: %v", err)
 		util.ErrorResponse(c, http.StatusBadRequest, loggingSource, fmtErr)
@@ -59,7 +58,7 @@ func GetRecordByID(c *gin.Context) {
 
 func UpdateRecord(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
-	var update types.DNSRecord
+	var update DNSRecord
 	if err := c.BindJSON(&update); err != nil {
 		fmtErr := fmt.Errorf("Invalid JSON: %v", err)
 		util.ErrorResponse(c, http.StatusBadRequest, loggingSource, fmtErr)
@@ -129,8 +128,8 @@ func DeleteRecord(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
 	records, _ := loadRecords()
 
-	var filtered []types.DNSRecord
-	var toBeDeleted types.DNSRecord
+	var filtered []DNSRecord
+	var toBeDeleted DNSRecord
 	for _, r := range records {
 		if r.ID != id {
 			filtered = append(filtered, r)

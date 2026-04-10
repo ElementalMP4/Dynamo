@@ -1,7 +1,6 @@
 package circuit
 
 import (
-	"Dynamo/types"
 	"Dynamo/util"
 	"errors"
 	"fmt"
@@ -13,14 +12,14 @@ import (
 )
 
 func CreateCircuit(c *gin.Context) {
-	var rc types.RoutingCircuit
+	var rc RoutingCircuit
 	if err := c.ShouldBindJSON(&rc); err != nil {
 		fmtErr := fmt.Errorf("Invalid JSON: %v", err)
 		util.ErrorResponse(c, http.StatusBadRequest, loggingSource, fmtErr)
 		return
 	}
 
-	err := circuitStore.Update(func(circuits *[]types.RoutingCircuit) error {
+	err := circuitStore.Update(func(circuits *[]RoutingCircuit) error {
 		rc.ID = nextID(*circuits)
 		rc.Enabled = false
 		*circuits = append(*circuits, rc)
@@ -96,7 +95,7 @@ func EnableCircuit(c *gin.Context) {
 		return
 	}
 
-	err = circuitStore.Update(func(circuits *[]types.RoutingCircuit) error {
+	err = circuitStore.Update(func(circuits *[]RoutingCircuit) error {
 		(*circuits)[idx].Enabled = true
 		return nil
 	})
@@ -140,7 +139,7 @@ func DisableCircuit(c *gin.Context) {
 		return
 	}
 
-	err = circuitStore.Update(func(circuits *[]types.RoutingCircuit) error {
+	err = circuitStore.Update(func(circuits *[]RoutingCircuit) error {
 		(*circuits)[idx].Enabled = false
 		return nil
 	})
@@ -158,7 +157,7 @@ func DisableCircuit(c *gin.Context) {
 func UpdateCircuit(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 
-	var updated types.RoutingCircuit
+	var updated RoutingCircuit
 	if err := c.ShouldBindJSON(&updated); err != nil {
 		fmtErr := fmt.Errorf("Invalid JSON: %v", err)
 		util.ErrorResponse(c, http.StatusBadRequest, loggingSource, fmtErr)
@@ -166,7 +165,7 @@ func UpdateCircuit(c *gin.Context) {
 	}
 
 	errStatus := 500
-	err := circuitStore.Update(func(circuits *[]types.RoutingCircuit) error {
+	err := circuitStore.Update(func(circuits *[]RoutingCircuit) error {
 		for i, existing := range *circuits {
 			if existing.ID == id {
 
@@ -218,7 +217,7 @@ func DeleteCircuit(c *gin.Context) {
 		return
 	}
 
-	circuitStore.Update(func(circuits *[]types.RoutingCircuit) error {
+	circuitStore.Update(func(circuits *[]RoutingCircuit) error {
 		for i, c := range *circuits {
 			if c.ID == id {
 				*circuits = append((*circuits)[:i], (*circuits)[i+1:]...)

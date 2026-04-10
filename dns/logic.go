@@ -2,7 +2,6 @@ package dns
 
 import (
 	"Dynamo/config"
-	"Dynamo/types"
 	"bufio"
 	"fmt"
 	"os"
@@ -28,14 +27,14 @@ func reloadDnsmasq() error {
 	return cmd.Run()
 }
 
-func loadRecords() ([]types.DNSRecord, error) {
+func loadRecords() ([]DNSRecord, error) {
 	file, err := os.Open(config.GetConfig().DnsmasqFile)
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
 
-	var records []types.DNSRecord
+	var records []DNSRecord
 	scanner := bufio.NewScanner(file)
 	id := 1
 	ttl := 0
@@ -51,7 +50,7 @@ func loadRecords() ([]types.DNSRecord, error) {
 			continue
 		}
 
-		rec := types.DNSRecord{
+		rec := DNSRecord{
 			ID:  id,
 			TTL: ttl,
 		}
@@ -97,7 +96,7 @@ func loadRecords() ([]types.DNSRecord, error) {
 	return records, nil
 }
 
-func writeRecords(records []types.DNSRecord) error {
+func writeRecords(records []DNSRecord) error {
 	var out strings.Builder
 
 	out.WriteString("# Managed by Dynamo\n\n")

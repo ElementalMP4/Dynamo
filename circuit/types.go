@@ -1,4 +1,4 @@
-package types
+package circuit
 
 import (
 	"bufio"
@@ -15,29 +15,6 @@ import (
 )
 
 const iptablesTimeout = 10 * time.Second
-
-type DNSRecord struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
-	Type string `json:"type"`
-	TTL  int    `json:"ttl"`
-
-	IPv4  string   `json:"ipv4,omitempty"`
-	CNAME string   `json:"cname,omitempty"`
-	TXT   []string `json:"txt,omitempty"`
-
-	Priority int    `json:"priority"`
-	Weight   int    `json:"weight"`
-	Port     int    `json:"port,omitempty"`
-	Target   string `json:"target,omitempty"`
-}
-
-type Config struct {
-	ServerAddress string `json:"serverBind"`
-	CertsDir      string `json:"certsDir"`
-	DnsmasqFile   string `json:"dnsmasqConfigFile"`
-	DataDirectory string `json:"dataDirectory"`
-}
 
 type CircuitType string
 
@@ -326,22 +303,4 @@ func (c *RoutingCircuit) DisableCircuit() error {
 
 	log.Okf("circuits", "Disabled circuit %s successfully", c.Name)
 	return nil
-}
-
-type CertDir struct {
-	Name  string   `json:"name,omitempty"`
-	Files []string `json:"files"`
-}
-
-type CertListing map[string][]CertDir
-
-type InterfaceStats struct {
-	RX uint64 `json:"rx"`
-	TX uint64 `json:"tx"`
-}
-
-type CertMetadata struct {
-	CaBase       string `json:"caBase"`
-	SerialNumber string `json:"serialNumber"`
-	Type         string `json:"type"`
 }

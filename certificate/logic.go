@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"Dynamo/config"
-	"Dynamo/types"
 
 	"github.com/ElementalMP4/loggerino/log"
 	"software.sslmate.com/src/go-pkcs12"
@@ -54,11 +53,11 @@ func EnsureSslDirs() error {
 	return nil
 }
 
-func listAllCerts() (types.CertListing, error) {
+func listAllCerts() (CertListing, error) {
 	base := certsBaseDir()
 	kinds := []string{"root", "server", "client"}
 
-	out := make(types.CertListing)
+	out := make(CertListing)
 
 	for _, kind := range kinds {
 		dir := filepath.Join(base, kind)
@@ -68,7 +67,7 @@ func listAllCerts() (types.CertListing, error) {
 			return nil, fmt.Errorf("listing %s certs: %w", kind, err)
 		}
 
-		var kindCerts []types.CertDir
+		var kindCerts []CertDir
 		for _, entry := range entries {
 			subDir := filepath.Join(dir, entry.Name())
 
@@ -82,7 +81,7 @@ func listAllCerts() (types.CertListing, error) {
 				files = append(files, f.Name())
 			}
 
-			kindCerts = append(kindCerts, types.CertDir{
+			kindCerts = append(kindCerts, CertDir{
 				Name:  entry.Name(),
 				Files: files,
 			})
@@ -281,7 +280,7 @@ func createClientCert(name, identity, caBase string, days int, p12Pwd string) (c
 		return "", "", "", err
 	}
 
-	meta := types.CertMetadata{
+	meta := CertMetadata{
 		CaBase:       caBase,
 		SerialNumber: serial.String(),
 		Type:         "client",
@@ -499,7 +498,7 @@ func createServerCert(domain, caBase string, days int) (crtPath, keyPath, nginxM
 		return "", "", "", "", err
 	}
 
-	meta := types.CertMetadata{
+	meta := CertMetadata{
 		CaBase:       caBase,
 		SerialNumber: serial.String(),
 		Type:         "server",
@@ -602,7 +601,7 @@ func generateCRL(caBase string, serials []string) error {
 	}), 0o644)
 }
 
-func readMetadata(kind, base string) (*types.CertMetadata, error) {
+func readMetadata(kind, base string) (*CertMetadata, error) {
 	path := filepath.Join(certsBaseDir(), kind, base, "metadata.json")
 
 	data, err := os.ReadFile(path)
@@ -610,7 +609,7 @@ func readMetadata(kind, base string) (*types.CertMetadata, error) {
 		return nil, err
 	}
 
-	var meta types.CertMetadata
+	var meta CertMetadata
 	if err := json.Unmarshal(data, &meta); err != nil {
 		return nil, err
 	}

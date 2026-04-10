@@ -5,7 +5,6 @@ import (
 	"Dynamo/circuit"
 	"Dynamo/config"
 	"Dynamo/dns"
-	"Dynamo/types"
 	"bufio"
 	"fmt"
 	"net/http"
@@ -153,14 +152,14 @@ func getNetStatsHandler(c *gin.Context) {
 	c.JSON(200, stats)
 }
 
-func getNetStats() (map[string]types.InterfaceStats, error) {
+func getNetStats() (map[string]InterfaceStats, error) {
 	file, err := os.Open("/proc/net/dev")
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
 
-	stats := map[string]types.InterfaceStats{}
+	stats := map[string]InterfaceStats{}
 
 	scanner := bufio.NewScanner(file)
 
@@ -179,7 +178,7 @@ func getNetStats() (map[string]types.InterfaceStats, error) {
 		rx, _ := strconv.ParseUint(fields[0], 10, 64)
 		tx, _ := strconv.ParseUint(fields[8], 10, 64)
 
-		stats[iface] = types.InterfaceStats{
+		stats[iface] = InterfaceStats{
 			RX: rx,
 			TX: tx,
 		}

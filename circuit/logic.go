@@ -1,7 +1,6 @@
 package circuit
 
 import (
-	"Dynamo/types"
 	"fmt"
 	"net"
 
@@ -12,9 +11,9 @@ import (
 
 const loggingSource string = "circuit-router"
 
-var circuitStore *store.JSONStore[[]types.RoutingCircuit]
+var circuitStore *store.JSONStore[[]RoutingCircuit]
 
-func nextID(circuits []types.RoutingCircuit) int64 {
+func nextID(circuits []RoutingCircuit) int64 {
 	var max int64
 	for _, c := range circuits {
 		if c.ID > max {
@@ -24,7 +23,7 @@ func nextID(circuits []types.RoutingCircuit) int64 {
 	return max + 1
 }
 
-func findCircuitByID(circuits []types.RoutingCircuit, id int64) (*types.RoutingCircuit, int) {
+func findCircuitByID(circuits []RoutingCircuit, id int64) (*RoutingCircuit, int) {
 	for i, c := range circuits {
 		if c.ID == id {
 			return &c, i
@@ -34,7 +33,7 @@ func findCircuitByID(circuits []types.RoutingCircuit, id int64) (*types.RoutingC
 }
 
 func SyncCircuits() error {
-	circuitStore = store.NewJSONStore[[]types.RoutingCircuit]("circuits.json")
+	circuitStore = store.NewJSONStore[[]RoutingCircuit]("circuits.json")
 	log.Info("circuit-sync", "Syncing circuits")
 
 	circuits, err := circuitStore.Load()
