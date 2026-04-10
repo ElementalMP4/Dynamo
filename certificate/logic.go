@@ -130,6 +130,8 @@ ssl_crl %s;
 
 ssl_protocols TLSv1.2 TLSv1.3;
 ssl_prefer_server_ciphers on;
+
+proxy_set_header X-Dynamo-Cert $ssl_client_s_dn;
 `, serverName, serverCrt, serverKey, caCrt, caCrl)
 	return os.WriteFile(outPath, []byte(conf), 0o644)
 }
