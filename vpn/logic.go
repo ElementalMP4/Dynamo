@@ -385,3 +385,81 @@ func DeletePeer(ifaceName, peerID string) error {
 		return errors.New("interface not found")
 	})
 }
+
+func SyncWireguard() error {
+	state, err := WGStore.Load()
+	if err != nil {
+		return err
+	}
+
+	for _, iface := range state.Interfaces {
+		cfg := buildServerConfig(iface)
+		if err := writeServerConfig(iface.Name, cfg); err != nil {
+			return err
+		}
+
+		svc := "wg-quick@" + iface.Name
+
+		if iface.Enabled {
+			if err := exec.Command("systemctl", "enable", svc).Run(); err != nil {
+				return err
+			}
+			if err := exec.Command("systemctl", "start", svc).Run(); err != nil {
+				return err
+			}
+
+			if err := syncInterface(iface.Name); err != nil {
+				return err
+			}
+		} else {
+			_ = exec.Command("systemctl", "stop", svc).Run()
+			_ = exec.Command("systemctl", "disable", svc).Run()
+		}
+
+		for _, peer := range iface.Peers {
+			if err := writeClientConfig(iface, peer); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func SetInterfaceEnabled(name string, enabled bool) error {
+	return WGStore.Update(func(state *State) error {
+		for i, iface := range state.Interfaces {
+			if iface.Name != name {
+				continue
+			}
+
+			iface.Enabled = enabled
+			state.Interfaces[i] = iface
+
+			svc := "wg-quick@" + iface.Name
+
+			if enabled {
+				cfg := buildServerConfig(iface)
+				if err := writeServerConfig(iface.Name, cfg); err != nil {
+					return err
+				}
+
+				if err := exec.Command("systemctl", "enable", svc).Run(); err != nil {
+					return err
+				}
+				if err := exec.Command("systemctl", "start", svc).Run(); err != nil {
+					return err
+				}
+
+				return syncInterface(iface.Name)
+			}
+
+			_ = exec.Command("systemctl", "stop", svc).Run()
+			_ = exec.Command("systemctl", "disable", svc).Run()
+
+			return nil
+		}
+
+		return errors.New("interface not found")
+	})
+}

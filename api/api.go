@@ -123,6 +123,7 @@ func StartAPI() {
 
 	wg.PUT("/interfaces/:name", vpn.UpdateInterfaceHandler)
 	wg.DELETE("/interfaces/:name", vpn.DeleteInterfaceHandler)
+	wg.PUT("/interfaces/:name/toggle", vpn.ToggleInterfaceHandler)
 
 	wg.POST("/interfaces/:name/peers", vpn.CreatePeerHandler)
 	wg.GET("/interfaces/:name/peers", vpn.ListPeersHandler)

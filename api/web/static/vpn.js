@@ -24,10 +24,16 @@ function renderInterfaceCard(iface) {
     ? `<p style="color: var(--text-secondary); font-size: 0.9rem; padding: 0.5rem 0;">No peers yet.</p>`
     : peers.map(p => renderPeerCard(iface.name, p)).join('');
 
+  const enabled = iface.enabled !== false;
+  const dotClass = enabled ? 'on' : 'off';
+  const cardClass = enabled ? 'enabled' : 'disabled';
+  const toggleLabel = enabled ? 'Disable' : 'Enable';
+  const toggleClass = enabled ? 'secondary' : 'success';
+
   return `
   <div class="record-group" id="iface-group-${esc(iface.name)}">
-    <div class="circuit-card enabled" style="margin-bottom: 1rem;">
-      <div class="circuit-status-dot on"></div>
+    <div class="circuit-card ${cardClass}" style="margin-bottom: 1rem;">
+      <div class="circuit-status-dot ${dotClass}"></div>
       <div class="circuit-info">
         <div class="circuit-info-row">
           <span class="circuit-name">${esc(iface.name)}</span>
@@ -37,6 +43,7 @@ function renderInterfaceCard(iface) {
       </div>
       <div class="circuit-actions">
         <button class="button sm secondary" onclick="showEditInterfaceModal(${jsonAttr(iface)})">Edit</button>
+        <button class="button sm ${toggleClass}" onclick="toggleInterface('${esc(iface.name)}')">${toggleLabel}</button>
         <button class="button sm danger" onclick="showDeleteIfaceModal('${esc(iface.name)}')">Delete</button>
       </div>
     </div>
@@ -119,7 +126,7 @@ function showEditInterfaceModal(ifaceJson) {
   document.getElementById('iface-nat').checked = !!iface.enable_nat;
   document.getElementById('iface-out-iface-group').style.display = iface.enable_nat ? 'block' : 'none';
   if (iface.enable_nat) {
-    loadNetworkInterfaces(iface.out_interface || '');
+    loadInterfacesIntoEditor(iface.out_interface || '');
   } else {
     document.getElementById('iface-out-iface').innerHTML = '';
   }
@@ -192,10 +199,10 @@ async function submitInterfaceForm() {
   loadInterfaces();
 }
 
-async function loadNetworkInterfaces(selectedValue) {
+async function loadInterfacesIntoEditor(selectedValue) {
   const res = await fetch('/api/system/interfaces');
   if (!res.ok) {
-    alert('Failed to load network interfaces');
+    alert('Failed to load system interfaces');
     return;
   }
   const { interfaces } = await res.json();
@@ -308,6 +315,18 @@ async function submitPeerForm() {
   loadInterfaces();
 }
 
+async function toggleInterface(name) {
+  const res = await fetch(`${API}/interfaces/${encodeURIComponent(name)}/toggle`, {
+    method: 'PUT',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Unknown error' }));
+    alert('Error: ' + err.error);
+    return;
+  }
+  loadInterfaces();
+}
+
 async function togglePeer(ifaceName, peerId, enabled) {
   const res = await fetch(`${API}/interfaces/${encodeURIComponent(ifaceName)}/peers/${encodeURIComponent(peerId)}`, {
     method: 'PUT',
@@ -385,7 +404,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const group = document.getElementById('iface-out-iface-group');
     group.style.display = this.checked ? 'block' : 'none';
     if (this.checked) {
-      await loadNetworkInterfaces();
+      await loadInterfacesIntoEditor();
     } else {
       document.getElementById('iface-out-iface').innerHTML = '';
     }

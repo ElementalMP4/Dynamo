@@ -144,3 +144,20 @@ func DeleteInterfaceHandler(c *gin.Context) {
 
 	c.Status(http.StatusNoContent)
 }
+
+func ToggleInterfaceHandler(c *gin.Context) {
+	name := c.Param("name")
+
+	var req ToggleInterfaceRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := SetInterfaceEnabled(name, req.Enabled); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.Status(204)
+}

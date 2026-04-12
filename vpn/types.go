@@ -17,6 +17,7 @@ type Interface struct {
 	ListenPort int    `json:"listen_port"`
 	PublicKey  string `json:"public_key"`
 	PrivateKey string `json:"private_key"`
+	Enabled    bool   `json:"enabled"`
 
 	EnableNAT    bool   `json:"enable_nat"`
 	OutInterface string `json:"out_interface,omitempty"`
@@ -64,4 +65,8 @@ type UpdatePeerRequest struct {
 	Enabled    *bool   `json:"enabled"`
 	DNS        *string `json:"dns"`
 	AllowedIPs *string `json:"allowed_ips"`
+}
+
+type ToggleInterfaceRequest struct {
+	Enabled bool `json:"enabled"`
 }
