@@ -1,6 +1,16 @@
 package vpn
 
-import "github.com/gin-gonic/gin"
+import (
+	"Dynamo/config"
+	"errors"
+	"fmt"
+	"net/http"
+	"os"
+	"os/exec"
+	"path/filepath"
+
+	"github.com/gin-gonic/gin"
+)
 
 func CreateInterfaceHandler(c *gin.Context) {
 	var req CreateInterfaceRequest
@@ -94,4 +104,43 @@ func GetPeerConfigHandler(c *gin.Context) {
 		}
 	}
 	c.JSON(404, gin.H{"error": "not found"})
+}
+
+func DeleteInterfaceHandler(c *gin.Context) {
+	name := c.Param("name")
+
+	err := WGStore.Update(func(state *State) error {
+		for i, iface := range state.Interfaces {
+			if iface.Name != name {
+				continue
+			}
+
+			svc := "wg-quick@" + name
+			_ = exec.Command("systemctl", "stop", svc).Run()
+			_ = exec.Command("systemctl", "disable", svc).Run()
+
+			_ = os.Remove(fmt.Sprintf("/etc/wireguard/%s.conf", name))
+
+			clientDir := filepath.Join(
+				config.GetConfig().DataDirectory,
+				"wireguard",
+				"clients",
+				name,
+			)
+			_ = os.RemoveAll(clientDir)
+			state.Interfaces = append(state.Interfaces[:i], state.Interfaces[i+1:]...)
+			return nil
+		}
+
+		return errors.New("interface not found")
+	})
+
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
 }

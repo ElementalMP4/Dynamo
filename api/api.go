@@ -115,6 +115,7 @@ func StartAPI() {
 	wg.GET("/interfaces", vpn.ListInterfacesHandler)
 
 	wg.PUT("/interfaces/:name", vpn.UpdateInterfaceHandler)
+	wg.DELETE("/interfaces/:name", vpn.DeleteInterfaceHandler)
 
 	wg.POST("/interfaces/:name/peers", vpn.CreatePeerHandler)
 	wg.GET("/interfaces/:name/peers", vpn.ListPeersHandler)
