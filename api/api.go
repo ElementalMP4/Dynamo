@@ -81,6 +81,12 @@ func StartAPI() {
 		})
 	})
 
+	r.GET("/vpn", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "base.html", gin.H{
+			"isVpn": true,
+		})
+	})
+
 	// Cert management routes
 	certs := r.Group("/api/certs")
 	certs.GET("", certificate.ListCerts)
