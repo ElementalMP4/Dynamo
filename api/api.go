@@ -116,7 +116,7 @@ func StartAPI() {
 	circuits.GET("/interfaces", circuit.ListNetworkInterfaces)
 
 	// Wireguard routes
-	wg := r.Group("/wireguard")
+	wg := r.Group("/api/vpn")
 	wg.POST("/interfaces", vpn.CreateInterfaceHandler)
 	wg.GET("/interfaces", vpn.ListInterfacesHandler)
 

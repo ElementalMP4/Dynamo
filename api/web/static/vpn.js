@@ -1,4 +1,4 @@
-const API = '/api/wg';
+const API = '/api/vpn';
 
 let pendingDeleteIface = null;
 let pendingDeletePeer = { iface: null, id: null };
