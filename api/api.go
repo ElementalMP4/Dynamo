@@ -5,9 +5,11 @@ import (
 	"Dynamo/circuit"
 	"Dynamo/config"
 	"Dynamo/dns"
+	"Dynamo/util"
 	"Dynamo/vpn"
 	"bufio"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
@@ -113,7 +115,6 @@ func StartAPI() {
 	circuits.DELETE(":id", circuit.DeleteCircuit)
 	circuits.POST(":id/enable", circuit.EnableCircuit)
 	circuits.POST(":id/disable", circuit.DisableCircuit)
-	circuits.GET("/interfaces", circuit.ListNetworkInterfaces)
 
 	// Wireguard routes
 	wg := r.Group("/api/vpn")
@@ -131,8 +132,9 @@ func StartAPI() {
 	wg.GET("/interfaces/:name/peers/:peer/config", vpn.GetPeerConfigHandler)
 
 	// Statistics routes
-	r.GET("/stats/dynamo", getCountsHandler)
-	r.GET("/stats/network", getNetStatsHandler)
+	r.GET("/api/stats/dynamo", getCountsHandler)
+	r.GET("/api/stats/network", getNetStatsHandler)
+	r.GET("/api/system/interfaces", listNetworkInterfaces)
 
 	log.Info("api", "Starting admin API on "+config.GetConfig().ServerAddress)
 	if err := r.Run(config.GetConfig().ServerAddress); err != nil {
@@ -208,4 +210,28 @@ func getNetStats() (map[string]InterfaceStats, error) {
 	}
 
 	return stats, nil
+}
+
+func listNetworkInterfaces(c *gin.Context) {
+	ifaces, err := listInterfaces()
+	if err != nil {
+		fmtErr := fmt.Errorf("Failed to list network interfaces: %v", err)
+		util.ErrorResponse(c, http.StatusInternalServerError, "api", fmtErr)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"interfaces": ifaces})
+}
+
+func listInterfaces() ([]string, error) {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list interfaces: %v", err)
+	}
+
+	var out []string
+	for _, i := range ifaces {
+		out = append(out, i.Name)
+	}
+
+	return out, nil
 }

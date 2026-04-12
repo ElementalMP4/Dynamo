@@ -230,13 +230,3 @@ func DeleteCircuit(c *gin.Context) {
 	log.Okf(loggingSource, "Circuit %s has been deleted", rc.Name)
 	c.Status(http.StatusNoContent)
 }
-
-func ListNetworkInterfaces(c *gin.Context) {
-	ifaces, err := listInterfaces()
-	if err != nil {
-		fmtErr := fmt.Errorf("Failed to list network interfaces: %v", err)
-		util.ErrorResponse(c, http.StatusInternalServerError, loggingSource, fmtErr)
-	}
-
-	c.JSON(http.StatusOK, gin.H{"interfaces": ifaces})
-}

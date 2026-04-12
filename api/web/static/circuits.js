@@ -163,7 +163,7 @@ document.getElementById('circuit-form').addEventListener('submit', async (e) => 
 });
 
 async function loadInterfacesIntoEditor() {
-    const interfaces = await fetch(`/api/circuits/interfaces`);
+    const interfaces = await fetch(`/api/system/interfaces`);
     if (!interfaces.ok) {
         alert('Failed to load interfaces');
         return;

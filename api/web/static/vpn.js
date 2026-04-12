@@ -99,7 +99,7 @@ function showCreateInterfaceModal() {
   document.getElementById('iface-dns').value = '';
   document.getElementById('iface-allowed-ips').value = '';
   document.getElementById('iface-nat').checked = false;
-  document.getElementById('iface-out-iface').value = '';
+  document.getElementById('iface-out-iface').innerHTML = '';
   document.getElementById('iface-out-iface-group').style.display = 'none';
   showModal('interface-modal');
 }
@@ -117,8 +117,12 @@ function showEditInterfaceModal(ifaceJson) {
   document.getElementById('iface-dns').value = iface.default_dns || '';
   document.getElementById('iface-allowed-ips').value = iface.default_allowed_ips || '';
   document.getElementById('iface-nat').checked = !!iface.enable_nat;
-  document.getElementById('iface-out-iface').value = iface.out_interface || '';
   document.getElementById('iface-out-iface-group').style.display = iface.enable_nat ? 'block' : 'none';
+  if (iface.enable_nat) {
+    loadNetworkInterfaces(iface.out_interface || '');
+  } else {
+    document.getElementById('iface-out-iface').innerHTML = '';
+  }
   showModal('interface-modal');
 }
 
@@ -136,7 +140,7 @@ async function submitInterfaceForm() {
     const dns = document.getElementById('iface-dns').value.trim();
     const allowedIPs = document.getElementById('iface-allowed-ips').value.trim();
     const endpoint = document.getElementById('iface-endpoint').value.trim();
-    const outIface = document.getElementById('iface-out-iface').value.trim();
+    const outIface = document.getElementById('iface-out-iface').value;
     if (dns) body.default_dns = dns;
     if (allowedIPs) body.default_allowed_ips = allowedIPs;
     if (endpoint) body.endpoint = endpoint;
@@ -160,7 +164,7 @@ async function submitInterfaceForm() {
     const endpoint = document.getElementById('iface-endpoint').value.trim();
     const dns = document.getElementById('iface-dns').value.trim();
     const allowedIPs = document.getElementById('iface-allowed-ips').value.trim();
-    const outIface = document.getElementById('iface-out-iface').value.trim();
+    const outIface = document.getElementById('iface-out-iface').value;
 
     if (!name || !address || !port || !endpoint) {
       alert('Name, Address, Listen Port, and Endpoint are required.');
@@ -188,12 +192,23 @@ async function submitInterfaceForm() {
   loadInterfaces();
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('iface-nat').addEventListener('change', function () {
-    document.getElementById('iface-out-iface-group').style.display = this.checked ? 'block' : 'none';
+async function loadNetworkInterfaces(selectedValue) {
+  const res = await fetch('/api/system/interfaces');
+  if (!res.ok) {
+    alert('Failed to load network interfaces');
+    return;
+  }
+  const { interfaces } = await res.json();
+  const select = document.getElementById('iface-out-iface');
+  select.innerHTML = '';
+  interfaces.forEach(iface => {
+    const option = document.createElement('option');
+    option.value = iface;
+    option.textContent = iface;
+    if (iface === selectedValue) option.selected = true;
+    select.appendChild(option);
   });
-  loadInterfaces();
-});
+}
 
 function showDeleteIfaceModal(name) {
   pendingDeleteIface = name;
@@ -216,6 +231,7 @@ async function confirmDeleteIface() {
   hideDeleteIfaceModal();
   loadInterfaces();
 }
+
 function showAddPeerModal(ifaceName) {
   document.getElementById('peer-modal-title').textContent = 'Add Peer';
   document.getElementById('peer-submit-btn').textContent = 'Add Peer';
@@ -362,4 +378,17 @@ window.addEventListener('click', function (e) {
     const modal = document.getElementById(id);
     if (e.target === modal) hideModal(id);
   });
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('iface-nat').addEventListener('change', async function () {
+    const group = document.getElementById('iface-out-iface-group');
+    group.style.display = this.checked ? 'block' : 'none';
+    if (this.checked) {
+      await loadNetworkInterfaces();
+    } else {
+      document.getElementById('iface-out-iface').innerHTML = '';
+    }
+  });
+  loadInterfaces();
 });
