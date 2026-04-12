@@ -14,16 +14,14 @@ type Config struct {
 
 var config Config
 
-func LoadConfig() error {
+func init() {
 	data, err := os.ReadFile("config.json")
 	if err != nil {
-		return err
+		panic(err)
 	}
 	if err := json.Unmarshal(data, &config); err != nil {
-		return err
+		panic(err)
 	}
-
-	return nil
 }
 
 func GetConfig() Config {
