@@ -541,7 +541,7 @@ func collectMetrics() ([]InterfaceStats, error) {
 			ID:            peerID,
 			RX:            rxBytes,
 			TX:            txBytes,
-			LastHandshake: lastHandshake,
+			LastHandshake: now - lastHandshake,
 			Active:        lastHandshake+inactiveTimeout > now,
 		}
 
