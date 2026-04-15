@@ -318,9 +318,9 @@ async function submitPeerForm() {
 async function toggleInterface(name, enabled) {
   const res = await fetch(`${API}/interfaces/${encodeURIComponent(name)}/toggle`, {
     method: 'PUT',
-    body: {
+    body: JSON.stringify({
       enabled: !enabled
-    }
+    })
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Unknown error' }));
