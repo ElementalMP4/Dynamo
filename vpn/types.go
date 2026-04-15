@@ -35,6 +35,15 @@ type State struct {
 	Interfaces []Interface `json:"interfaces"`
 }
 
+func (s *State) ContainsInterface(name string) bool {
+	for _, iface := range s.Interfaces {
+		if iface.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
 type CreateInterfaceRequest struct {
 	Name       string `json:"name" binding:"required"`
 	Address    string `json:"address" binding:"required"`

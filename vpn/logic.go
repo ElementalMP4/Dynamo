@@ -523,6 +523,10 @@ func collectMetrics() ([]InterfaceStats, error) {
 		ifaceName := fields[0]
 		pubKey := fields[1]
 
+		if !state.ContainsInterface(ifaceName) {
+			continue
+		}
+
 		rxBytes, _ := strconv.ParseUint(fields[5], 10, 64)
 		txBytes, _ := strconv.ParseUint(fields[6], 10, 64)
 		lastHandshake, _ := strconv.ParseInt(fields[4], 10, 64)
