@@ -542,7 +542,7 @@ func collectMetrics() ([]InterfaceStats, error) {
 			RX:            rxBytes,
 			TX:            txBytes,
 			LastHandshake: lastHandshake,
-			Active:        lastHandshake+inactiveTimeout < now,
+			Active:        lastHandshake+inactiveTimeout > now,
 		}
 
 		result[ifaceName].Peers = append(result[ifaceName].Peers, ps)
