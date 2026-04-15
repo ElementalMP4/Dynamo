@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ElementalMP4/loggerino/log"
 	"github.com/google/uuid"
 )
 
@@ -408,6 +409,7 @@ func DeletePeer(ifaceName, peerID string) error {
 }
 
 func SyncWireguard() error {
+	log.Info("vpn-sync", "Syncing VPN")
 	state, err := vpnStore.Load()
 	if err != nil {
 		return fmt.Errorf("failed to load VPN store: %v", err)
