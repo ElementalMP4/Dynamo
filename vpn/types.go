@@ -1,5 +1,7 @@
 package vpn
 
+const inactiveTimeout int64 = 60 * 1000
+
 type Peer struct {
 	ID         string  `json:"id"`
 	Name       string  `json:"name"`
@@ -84,7 +86,8 @@ type PeerStats struct {
 	ID            string `json:"id"`
 	RX            uint64 `json:"rx"`
 	TX            uint64 `json:"tx"`
-	LastHandshake int64  `json:"last_handshake"`
+	LastHandshake int64  `json:"handshake"`
+	Active        bool   `json:"active"`
 }
 
 type InterfaceStats struct {

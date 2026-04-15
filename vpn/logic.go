@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ElementalMP4/loggerino/log"
 	"github.com/google/uuid"
@@ -508,6 +509,7 @@ func collectMetrics() ([]InterfaceStats, error) {
 		}
 	}
 
+	now := time.Now().UnixMilli()
 	result := map[string]*InterfaceStats{}
 
 	for _, fields := range lines {
@@ -517,15 +519,16 @@ func collectMetrics() ([]InterfaceStats, error) {
 		}
 
 		ifaceName := fields[0]
-		pubKey := fields[1]
-
 		if !state.ContainsInterface(ifaceName) {
 			continue
 		}
 
-		rxBytes, _ := strconv.ParseUint(fields[5], 10, 64)
-		txBytes, _ := strconv.ParseUint(fields[6], 10, 64)
-		lastHandshake, _ := strconv.ParseInt(fields[4], 10, 64)
+		//0: interface 1: public-key 2: preshared-key 3: endpoint 4: allowed-ips 5: latest-handshake 6: transfer-rx 7: transfer-tx 8: persistent-keepalive
+
+		pubKey := fields[1]
+		lastHandshake, _ := strconv.ParseInt(fields[5], 10, 64)
+		rxBytes, _ := strconv.ParseUint(fields[6], 10, 64)
+		txBytes, _ := strconv.ParseUint(fields[7], 10, 64)
 
 		if _, ok := result[ifaceName]; !ok {
 			result[ifaceName] = &InterfaceStats{
@@ -534,12 +537,12 @@ func collectMetrics() ([]InterfaceStats, error) {
 		}
 
 		peerID := peerMap[pubKey]
-
 		ps := PeerStats{
 			ID:            peerID,
 			RX:            rxBytes,
 			TX:            txBytes,
 			LastHandshake: lastHandshake,
+			Active:        lastHandshake+inactiveTimeout > now,
 		}
 
 		result[ifaceName].Peers = append(result[ifaceName].Peers, ps)
