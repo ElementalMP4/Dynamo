@@ -509,7 +509,6 @@ func collectMetrics() ([]InterfaceStats, error) {
 		}
 	}
 
-	now := time.Now().UnixMilli()
 	result := map[string]*InterfaceStats{}
 
 	for _, fields := range lines {
@@ -536,13 +535,19 @@ func collectMetrics() ([]InterfaceStats, error) {
 			}
 		}
 
+		now := time.Now().Unix()
+		active := false
+		if lastHandshake > 0 && (now-lastHandshake) <= inactiveTimeout {
+			active = true
+		}
+
 		peerID := peerMap[pubKey]
 		ps := PeerStats{
 			ID:            peerID,
 			RX:            rxBytes,
 			TX:            txBytes,
-			LastHandshake: now - lastHandshake,
-			Active:        lastHandshake+inactiveTimeout > now,
+			LastHandshake: lastHandshake,
+			Active:        active,
 		}
 
 		result[ifaceName].Peers = append(result[ifaceName].Peers, ps)

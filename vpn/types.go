@@ -1,6 +1,6 @@
 package vpn
 
-const inactiveTimeout int64 = 120 * 1000
+const inactiveTimeout = 120
 
 type Peer struct {
 	ID         string  `json:"id"`
