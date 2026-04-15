@@ -40,6 +40,7 @@ function renderInterfaceCard(iface) {
           ${iface.enable_nat ? `<span class="circuit-badge">NAT</span>` : ''}
         </div>
         <div class="circuit-meta">${esc(iface.address)} &nbsp;·&nbsp; :${iface.listen_port} &nbsp;·&nbsp; ${esc(iface.endpoint)}</div>
+        <div class="circuit-meta" id="${iface.name}-connectivity-stats"></div>
       </div>
       <div class="circuit-actions">
         <button class="button sm secondary" onclick="showEditInterfaceModal(${jsonAttr(iface)})">Edit</button>
@@ -73,8 +74,10 @@ function renderPeerCard(ifaceName, peer) {
     <div class="circuit-info">
       <div class="circuit-info-row">
         <span class="circuit-name">${esc(peer.name)}</span>
+        <span class="circuit-badge" id="${peer.id}-activity"></span>
       </div>
       <div class="circuit-meta">${esc(peer.ip)}${peer.dns ? ' &nbsp;·&nbsp; DNS: ' + esc(peer.dns) : ''}</div>
+      <div class="circuit-meta" id="${peer.id}-connectivity-stats"></div>
     </div>
     <div class="circuit-actions">
       <button class="button sm secondary" onclick="downloadConfig('${esc(ifaceName)}', '${esc(peer.id)}', '${esc(peer.name)}')">Config</button>
@@ -401,6 +404,24 @@ window.addEventListener('click', function (e) {
     if (e.target === modal) hideModal(id);
   });
 });
+
+async function refreshInterfaceStatsLoop(selectedValue) {
+  const res = await fetch(`${API}/metrics`);
+  if (!res.ok) {
+    console.log("Failed to load metrics")
+    return;
+  }
+
+  const { stats } = await res.json();
+  stats.interfaces.forEach(iface => {
+    const ifaceStatsField = document.getElementById(`${iface.name}-connectivity-stats`)
+    if (ifaceStatsField == null) {
+      continue;
+    }
+
+    
+  });
+}
 
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('iface-nat').addEventListener('change', async function () {
