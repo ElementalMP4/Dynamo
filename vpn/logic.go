@@ -160,7 +160,7 @@ func syncInterface(name string) error {
 
 	err = cmd.Run()
 	if err != nil {
-		return fmt.Errorf("failed to sync interface %s: %v", name, err)
+		return fmt.Errorf("failed to sync interface config %s: %v", name, err)
 	}
 	return nil
 }
@@ -408,36 +408,22 @@ func DeletePeer(ifaceName, peerID string) error {
 func SyncWireguard() error {
 	state, err := vpnStore.Load()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to load VPN store: %v", err)
 	}
 
 	for _, iface := range state.Interfaces {
 		cfg := buildServerConfig(iface)
 		if err := writeServerConfig(iface.Name, cfg); err != nil {
-			return err
+			return fmt.Errorf("failed to writw server config: %v", err)
 		}
 
-		svc := "wg-quick@" + iface.Name
-
-		if iface.Enabled {
-			if err := exec.Command("systemctl", "enable", svc).Run(); err != nil {
-				return err
-			}
-			if err := exec.Command("systemctl", "start", svc).Run(); err != nil {
-				return err
-			}
-
-			if err := syncInterface(iface.Name); err != nil {
-				return err
-			}
-		} else {
-			_ = exec.Command("systemctl", "stop", svc).Run()
-			_ = exec.Command("systemctl", "disable", svc).Run()
+		if err := SetInterfaceEnabled(iface.Name, iface.Enabled); err != nil {
+			return fmt.Errorf("failed to toggle interface: %v", err)
 		}
 
 		for _, peer := range iface.Peers {
 			if err := writeClientConfig(iface, peer); err != nil {
-				return err
+				return fmt.Errorf("failed to write client %s config: %v", peer.Name, err)
 			}
 		}
 	}
@@ -471,10 +457,15 @@ func SetInterfaceEnabled(name string, enabled bool) error {
 				}
 
 				return syncInterface(iface.Name)
-			}
+			} else {
+				if err := exec.Command("systemctl", "stop", svc).Run(); err != nil {
+					return fmt.Errorf("failed to stop interface: %v", err)
+				}
 
-			_ = exec.Command("systemctl", "stop", svc).Run()
-			_ = exec.Command("systemctl", "disable", svc).Run()
+				if err := exec.Command("systemctl", "disable", svc).Run(); err != nil {
+					return fmt.Errorf("failed to disable interface: %v", err)
+				}
+			}
 
 			return nil
 		}
