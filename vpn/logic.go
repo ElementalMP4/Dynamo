@@ -12,7 +12,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/ElementalMP4/loggerino/log"
 	"github.com/google/uuid"
@@ -509,11 +508,6 @@ func collectMetrics() ([]InterfaceStats, error) {
 		}
 	}
 
-	now := time.Now().Unix()
-
-	metricsCache.mu.Lock()
-	defer metricsCache.mu.Unlock()
-
 	result := map[string]*InterfaceStats{}
 
 	for _, fields := range lines {
@@ -539,44 +533,18 @@ func collectMetrics() ([]InterfaceStats, error) {
 			}
 		}
 
-		if _, ok := metricsCache.data[ifaceName]; !ok {
-			metricsCache.data[ifaceName] = ifaceMetrics{
-				Peers: make(map[string]peerMetrics),
-			}
-		}
-
-		cache := metricsCache.data[ifaceName]
-
-		prev := cache.Peers[pubKey]
-
-		var rxBps, txBps uint64
-
-		if prev.LastSeen != 0 {
-			deltaT := now - prev.LastSeen
-			if deltaT > 0 {
-				rxBps = (rxBytes - prev.RxBytes) / uint64(deltaT)
-				txBps = (txBytes - prev.TxBytes) / uint64(deltaT)
-			}
-		}
-
-		cache.Peers[pubKey] = peerMetrics{
-			RxBytes:  rxBytes,
-			TxBytes:  txBytes,
-			LastSeen: now,
-		}
-
 		peerID := peerMap[pubKey]
 
 		ps := PeerStats{
 			ID:            peerID,
-			RxBps:         rxBps,
-			TxBps:         txBps,
+			RX:            rxBytes,
+			TX:            txBytes,
 			LastHandshake: lastHandshake,
 		}
 
 		result[ifaceName].Peers = append(result[ifaceName].Peers, ps)
-		result[ifaceName].RxBps += rxBps
-		result[ifaceName].TxBps += txBps
+		result[ifaceName].RX += rxBytes
+		result[ifaceName].TX += txBytes
 	}
 
 	var out []InterfaceStats
