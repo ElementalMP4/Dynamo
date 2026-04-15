@@ -460,14 +460,14 @@ func SetInterfaceEnabled(name string, enabled bool) error {
 			if enabled {
 				cfg := buildServerConfig(iface)
 				if err := writeServerConfig(iface.Name, cfg); err != nil {
-					return err
+					return fmt.Errorf("failed to write server config: %v", err)
 				}
 
 				if err := exec.Command("systemctl", "enable", svc).Run(); err != nil {
-					return err
+					return fmt.Errorf("failed to enable interface: %v", err)
 				}
 				if err := exec.Command("systemctl", "start", svc).Run(); err != nil {
-					return err
+					return fmt.Errorf("failed to start interface: %v", err)
 				}
 
 				return syncInterface(iface.Name)

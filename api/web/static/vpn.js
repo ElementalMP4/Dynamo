@@ -43,7 +43,7 @@ function renderInterfaceCard(iface) {
       </div>
       <div class="circuit-actions">
         <button class="button sm secondary" onclick="showEditInterfaceModal(${jsonAttr(iface)})">Edit</button>
-        <button class="button sm ${toggleClass}" onclick="toggleInterface('${esc(iface.name)}')">${toggleLabel}</button>
+        <button class="button sm ${toggleClass}" onclick="toggleInterface('${esc(iface.name)}', '${enabled}')">${toggleLabel}</button>
         <button class="button sm danger" onclick="showDeleteIfaceModal('${esc(iface.name)}')">Delete</button>
       </div>
     </div>
@@ -315,9 +315,12 @@ async function submitPeerForm() {
   loadInterfaces();
 }
 
-async function toggleInterface(name) {
+async function toggleInterface(name, enabled) {
   const res = await fetch(`${API}/interfaces/${encodeURIComponent(name)}/toggle`, {
     method: 'PUT',
+    body: {
+      enabled: !enabled
+    }
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Unknown error' }));

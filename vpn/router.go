@@ -150,12 +150,12 @@ func ToggleInterfaceHandler(c *gin.Context) {
 
 	var req ToggleInterfaceRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+		c.JSON(400, gin.H{"error": fmt.Errorf("Couldn't unpack JSON: %v", err)})
 		return
 	}
 
 	if err := SetInterfaceEnabled(name, req.Enabled); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+		c.JSON(400, gin.H{"error": fmt.Errorf("Couldn't enable VPN interface: %v", err)})
 		return
 	}
 
