@@ -15,7 +15,9 @@ import (
 	"github.com/google/uuid"
 )
 
-var WGStore = store.NewJSONStore[State]("wireguard.json")
+const loggingSource string = "vpn-router"
+
+var vpnStore = store.NewJSONStore[State]("wireguard.json")
 
 var validName = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 var validIface = regexp.MustCompile(`^[a-zA-Z0-9._-]+$`)
@@ -23,7 +25,7 @@ var validIface = regexp.MustCompile(`^[a-zA-Z0-9._-]+$`)
 func generateKeyPair() (string, string, error) {
 	privOut, err := exec.Command("wg", "genkey").Output()
 	if err != nil {
-		return "", "", err
+		return "", "", fmt.Errorf("failed to generate private key: %v", err)
 	}
 
 	privateKey := strings.TrimSpace(string(privOut))
@@ -33,7 +35,7 @@ func generateKeyPair() (string, string, error) {
 
 	pubOut, err := pubCmd.Output()
 	if err != nil {
-		return "", "", err
+		return "", "", fmt.Errorf("failed to generate public key: %v", err)
 	}
 
 	return privateKey, strings.TrimSpace(string(pubOut)), nil
@@ -42,7 +44,7 @@ func generateKeyPair() (string, string, error) {
 func nextIP(subnet string, peers []Peer) (string, error) {
 	ip, _, err := net.ParseCIDR(subnet)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to parse subnet: %v", err)
 	}
 
 	used := map[string]bool{}
@@ -130,32 +132,49 @@ PersistentKeepalive = 25
 }
 
 func writeServerConfig(name, cfg string) error {
-	return os.WriteFile(fmt.Sprintf("/etc/wireguard/%s.conf", name), []byte(cfg), 0600)
+	err := os.WriteFile(fmt.Sprintf("/etc/wireguard/%s.conf", name), []byte(cfg), 0600)
+	if err != nil {
+		return fmt.Errorf("failed to write server config: %v", err)
+	}
+	return nil
 }
 
 func writeClientConfig(iface Interface, peer Peer) error {
 	path := clientConfigPath(iface.Name, peer.ID)
 	cfg := buildClientConfig(iface, peer)
-	return os.WriteFile(path, []byte(cfg), 0600)
+	err := os.WriteFile(path, []byte(cfg), 0600)
+	if err != nil {
+		return fmt.Errorf("failed to write client config for peer %s: %v", peer.Name, err)
+	}
+	return nil
 }
 
 func syncInterface(name string) error {
 	out, err := exec.Command("wg-quick", "strip", name).Output()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to strip interface %s: %v", name, err)
 	}
 
 	cmd := exec.Command("wg", "syncconf", name, "/dev/stdin")
 	cmd.Stdin = strings.NewReader(string(out))
-	return cmd.Run()
+
+	err = cmd.Run()
+	if err != nil {
+		return fmt.Errorf("failed to sync interface %s: %v", name, err)
+	}
+	return nil
 }
 
 func enableAndStart(name string) error {
 	svc := "wg-quick@" + name
 	if err := exec.Command("systemctl", "enable", svc).Run(); err != nil {
-		return err
+		return fmt.Errorf("failed to enable interface %s: %v", name, err)
 	}
-	return exec.Command("systemctl", "start", svc).Run()
+	if err := exec.Command("systemctl", "start", svc).Run(); err != nil {
+		return fmt.Errorf("failed to start interface %s: %v", name, err)
+	}
+
+	return nil
 }
 
 func CreateInterface(req CreateInterfaceRequest) (*Interface, error) {
@@ -176,7 +195,7 @@ func CreateInterface(req CreateInterfaceRequest) (*Interface, error) {
 
 	var created *Interface
 
-	err := WGStore.Update(func(state *State) error {
+	err := vpnStore.Update(func(state *State) error {
 		for _, i := range state.Interfaces {
 			if i.Name == req.Name {
 				return errors.New("interface already exists")
@@ -221,7 +240,7 @@ func CreateInterface(req CreateInterfaceRequest) (*Interface, error) {
 }
 
 func UpdateInterface(name string, req UpdateInterfaceRequest) error {
-	return WGStore.Update(func(state *State) error {
+	return vpnStore.Update(func(state *State) error {
 		for i, iface := range state.Interfaces {
 			if iface.Name != name {
 				continue
@@ -269,7 +288,7 @@ func UpdateInterface(name string, req UpdateInterfaceRequest) error {
 func AddPeer(ifaceName string, req CreatePeerRequest) (*Peer, error) {
 	var created *Peer
 
-	err := WGStore.Update(func(state *State) error {
+	err := vpnStore.Update(func(state *State) error {
 		for i, iface := range state.Interfaces {
 			if iface.Name != ifaceName {
 				continue
@@ -320,7 +339,7 @@ func AddPeer(ifaceName string, req CreatePeerRequest) (*Peer, error) {
 }
 
 func UpdatePeer(ifaceName, peerID string, req UpdatePeerRequest) error {
-	return WGStore.Update(func(state *State) error {
+	return vpnStore.Update(func(state *State) error {
 		for i, iface := range state.Interfaces {
 			if iface.Name != ifaceName {
 				continue
@@ -359,7 +378,7 @@ func UpdatePeer(ifaceName, peerID string, req UpdatePeerRequest) error {
 }
 
 func DeletePeer(ifaceName, peerID string) error {
-	return WGStore.Update(func(state *State) error {
+	return vpnStore.Update(func(state *State) error {
 		for i, iface := range state.Interfaces {
 			if iface.Name != ifaceName {
 				continue
@@ -387,7 +406,7 @@ func DeletePeer(ifaceName, peerID string) error {
 }
 
 func SyncWireguard() error {
-	state, err := WGStore.Load()
+	state, err := vpnStore.Load()
 	if err != nil {
 		return err
 	}
@@ -427,7 +446,7 @@ func SyncWireguard() error {
 }
 
 func SetInterfaceEnabled(name string, enabled bool) error {
-	return WGStore.Update(func(state *State) error {
+	return vpnStore.Update(func(state *State) error {
 		for i, iface := range state.Interfaces {
 			if iface.Name != name {
 				continue

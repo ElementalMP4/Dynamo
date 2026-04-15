@@ -27,7 +27,7 @@ func CreateInterfaceHandler(c *gin.Context) {
 }
 
 func ListInterfacesHandler(c *gin.Context) {
-	state, _ := WGStore.Load()
+	state, _ := vpnStore.Load()
 	c.JSON(200, state.Interfaces)
 }
 
@@ -59,7 +59,7 @@ func CreatePeerHandler(c *gin.Context) {
 }
 
 func ListPeersHandler(c *gin.Context) {
-	state, _ := WGStore.Load()
+	state, _ := vpnStore.Load()
 	for _, i := range state.Interfaces {
 		if i.Name == c.Param("name") {
 			c.JSON(200, i.Peers)
@@ -91,7 +91,7 @@ func DeletePeerHandler(c *gin.Context) {
 }
 
 func GetPeerConfigHandler(c *gin.Context) {
-	state, _ := WGStore.Load()
+	state, _ := vpnStore.Load()
 	for _, iface := range state.Interfaces {
 		if iface.Name != c.Param("name") {
 			continue
@@ -109,7 +109,7 @@ func GetPeerConfigHandler(c *gin.Context) {
 func DeleteInterfaceHandler(c *gin.Context) {
 	name := c.Param("name")
 
-	err := WGStore.Update(func(state *State) error {
+	err := vpnStore.Update(func(state *State) error {
 		for i, iface := range state.Interfaces {
 			if iface.Name != name {
 				continue
