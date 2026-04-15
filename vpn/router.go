@@ -161,3 +161,15 @@ func ToggleInterfaceHandler(c *gin.Context) {
 
 	c.Status(204)
 }
+
+func MetricsHandler(c *gin.Context) {
+	stats, err := collectMetrics()
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"interfaces": stats,
+	})
+}

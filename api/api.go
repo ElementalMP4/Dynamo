@@ -132,6 +132,8 @@ func StartAPI() {
 	wg.DELETE("/interfaces/:name/peers/:peer", vpn.DeletePeerHandler)
 	wg.GET("/interfaces/:name/peers/:peer/config", vpn.GetPeerConfigHandler)
 
+	wg.GET("/metrics", vpn.MetricsHandler)
+
 	// Statistics routes
 	r.GET("/api/stats/dynamo", getCountsHandler)
 	r.GET("/api/stats/network", getNetStatsHandler)

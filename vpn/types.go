@@ -1,5 +1,7 @@
 package vpn
 
+import "sync"
+
 type Peer struct {
 	ID         string  `json:"id"`
 	Name       string  `json:"name"`
@@ -69,4 +71,35 @@ type UpdatePeerRequest struct {
 
 type ToggleInterfaceRequest struct {
 	Enabled bool `json:"enabled"`
+}
+
+type PeerStats struct {
+	ID            string `json:"id"`
+	RxBps         uint64 `json:"rx_bps"`
+	TxBps         uint64 `json:"tx_bps"`
+	LastHandshake int64  `json:"last_handshake"`
+}
+
+type InterfaceStats struct {
+	Name  string      `json:"name"`
+	RxBps uint64      `json:"rx_bps"`
+	TxBps uint64      `json:"tx_bps"`
+	Peers []PeerStats `json:"peers"`
+}
+
+type peerMetrics struct {
+	RxBytes  uint64
+	TxBytes  uint64
+	LastSeen int64
+}
+
+type ifaceMetrics struct {
+	Peers map[string]peerMetrics
+}
+
+var metricsCache = struct {
+	mu   sync.Mutex
+	data map[string]ifaceMetrics
+}{
+	data: make(map[string]ifaceMetrics),
 }

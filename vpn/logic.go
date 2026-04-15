@@ -10,7 +10,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -472,4 +474,109 @@ func SetInterfaceEnabled(name string, enabled bool) error {
 
 		return errors.New("interface not found")
 	})
+}
+
+func getWireguardDump() ([][]string, error) {
+	out, err := exec.Command("wg", "show", "all", "dump").Output()
+	if err != nil {
+		return nil, err
+	}
+
+	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
+
+	var result [][]string
+	for _, line := range lines {
+		result = append(result, strings.Split(line, "\t"))
+	}
+
+	return result, nil
+}
+
+func collectMetrics() ([]InterfaceStats, error) {
+	lines, err := getWireguardDump()
+	if err != nil {
+		return nil, err
+	}
+
+	state, _ := vpnStore.Load()
+
+	peerMap := map[string]string{}
+	for _, iface := range state.Interfaces {
+		for _, p := range iface.Peers {
+			peerMap[p.PublicKey] = p.ID
+		}
+	}
+
+	now := time.Now().Unix()
+
+	metricsCache.mu.Lock()
+	defer metricsCache.mu.Unlock()
+
+	result := map[string]*InterfaceStats{}
+
+	for _, fields := range lines {
+		// Skip the interface line
+		if len(fields) < 8 {
+			continue
+		}
+
+		ifaceName := fields[0]
+		pubKey := fields[1]
+
+		rxBytes, _ := strconv.ParseUint(fields[5], 10, 64)
+		txBytes, _ := strconv.ParseUint(fields[6], 10, 64)
+		lastHandshake, _ := strconv.ParseInt(fields[4], 10, 64)
+
+		if _, ok := result[ifaceName]; !ok {
+			result[ifaceName] = &InterfaceStats{
+				Name: ifaceName,
+			}
+		}
+
+		if _, ok := metricsCache.data[ifaceName]; !ok {
+			metricsCache.data[ifaceName] = ifaceMetrics{
+				Peers: make(map[string]peerMetrics),
+			}
+		}
+
+		cache := metricsCache.data[ifaceName]
+
+		prev := cache.Peers[pubKey]
+
+		var rxBps, txBps uint64
+
+		if prev.LastSeen != 0 {
+			deltaT := now - prev.LastSeen
+			if deltaT > 0 {
+				rxBps = (rxBytes - prev.RxBytes) / uint64(deltaT)
+				txBps = (txBytes - prev.TxBytes) / uint64(deltaT)
+			}
+		}
+
+		cache.Peers[pubKey] = peerMetrics{
+			RxBytes:  rxBytes,
+			TxBytes:  txBytes,
+			LastSeen: now,
+		}
+
+		peerID := peerMap[pubKey]
+
+		ps := PeerStats{
+			ID:            peerID,
+			RxBps:         rxBps,
+			TxBps:         txBps,
+			LastHandshake: lastHandshake,
+		}
+
+		result[ifaceName].Peers = append(result[ifaceName].Peers, ps)
+		result[ifaceName].RxBps += rxBps
+		result[ifaceName].TxBps += txBps
+	}
+
+	var out []InterfaceStats
+	for _, v := range result {
+		out = append(out, *v)
+	}
+
+	return out, nil
 }
