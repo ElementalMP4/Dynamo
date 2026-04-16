@@ -437,6 +437,8 @@ async function pollNetwork() {
   const res = await fetch(`${API}/metrics`);
   const data = await res.json();
 
+  if (!data.interfaces) return;
+
   for (const iface of data.interfaces) {
     const statsField = document.getElementById(`${iface.name}-connectivity-stats`);
     if (!statsField) continue;
