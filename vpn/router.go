@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 
 	"github.com/gin-gonic/gin"
 )
@@ -106,8 +107,18 @@ func GetPeerConfigHandler(c *gin.Context) {
 	c.JSON(404, gin.H{"error": "not found"})
 }
 
+var interfaceNamePattern = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
+
+func isSafeInterfaceName(name string) bool {
+	return interfaceNamePattern.MatchString(name)
+}
+
 func DeleteInterfaceHandler(c *gin.Context) {
 	name := c.Param("name")
+	if !isSafeInterfaceName(name) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid interface name"})
+		return
+	}
 
 	err := vpnStore.Update(func(state *State) error {
 		for i, iface := range state.Interfaces {
