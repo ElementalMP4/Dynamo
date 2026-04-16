@@ -405,22 +405,44 @@ window.addEventListener('click', function (e) {
   });
 });
 
-async function refreshInterfaceStatsLoop(selectedValue) {
-  const res = await fetch(`${API}/metrics`);
-  if (!res.ok) {
-    console.log("Failed to load metrics")
-    return;
+function formatRate(bytesPerSec) {
+  let bitsPerSec = bytesPerSec * 8;
+  const units = ["bps", "Kbps", "Mbps", "Gbps"];
+  let i = 0;
+
+  while (bitsPerSec > 1000 && i < units.length - 1) {
+    bitsPerSec /= 1000;
+    i++;
   }
 
-  const { stats } = await res.json();
-  stats.interfaces.forEach(iface => {
-    const ifaceStatsField = document.getElementById(`${iface.name}-connectivity-stats`)
-    if (ifaceStatsField == null) {
-      continue;
+  return bitsPerSec.toFixed(1) + " " + units[i];
+}
+
+async function pollNetwork() {
+  const res = await fetch(`${API}/metrics`);
+  const data = await res.json();
+
+  const now = Date.now();
+
+  for (const iface of data.interfaces) {
+    const statsField = document.getElementById(`${iface.name}-connectivity-stats`);
+    if (!statsField) continue;
+
+    const rx = iface.rx;
+    const tx = iface.tx;
+    const name = iface.name;
+
+    if (lastSamples[iface]) {
+      const seconds = (now - lastTimes[iface.name]) / 1000;
+      const rxRate = (rx - lastSamples[iface.name].rx) / seconds * 8;
+      const txRate = (tx - lastSamples[iface.name].tx) / seconds * 8;
+
+      statsField.innerHTML = `TX ${formatRate(txRate)} RX ${formatRate(rxRate)}`
     }
 
-    
-  });
+    lastSamples[iface.name] = { rx, tx };
+    lastTimes[iface.name] = now;
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -434,4 +456,5 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
   loadInterfaces();
+  setInterval(pollNetwork, 1000);
 });
