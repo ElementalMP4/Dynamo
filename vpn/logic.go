@@ -144,8 +144,9 @@ func writeServerConfig(name, cfg string) error {
 		return fmt.Errorf("failed to write server config: %v", err)
 	}
 
-	conf := filepath.Join(config.GetConfig().DataDirectory, "wireguard", name, fmt.Sprintf("%s.conf", name))
-	err = os.WriteFile(conf, []byte(cfg), 0600)
+	base := filepath.Join(config.GetConfig().DataDirectory, "wireguard", name)
+	_ = os.MkdirAll(base, 0755)
+	err = os.WriteFile(filepath.Join(base, fmt.Sprintf("%s.conf", name)), []byte(cfg), 0600)
 	if err != nil {
 		return fmt.Errorf("failed to write server config: %v", err)
 	}
