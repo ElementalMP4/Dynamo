@@ -420,31 +420,41 @@ function formatRate(bytesPerSec) {
   return bitsPerSec.toFixed(1) + " " + units[i];
 }
 
+function writeStats(element, id, tx, rx) {
+  const now = Date.now()
+  if (lastSamples[id]) {
+    const seconds = (now - lastTimes[id]) / 1000;
+    const rxRate = (rx - lastSamples[id].rx) / seconds * 8;
+    const txRate = (tx - lastSamples[id].tx) / seconds * 8;
+
+    element.innerHTML = `TX ${formatRate(txRate)} RX ${formatRate(rxRate)}`;
+  }
+  lastSamples[id] = { rx, tx };
+  lastTimes[id] = now;
+}
+
 async function pollNetwork() {
   const res = await fetch(`${API}/metrics`);
   const data = await res.json();
 
-  const now = Date.now();
-
   for (const iface of data.interfaces) {
-    console.log("Updating " + iface.name)
     const statsField = document.getElementById(`${iface.name}-connectivity-stats`);
     if (!statsField) continue;
 
     const rx = iface.rx;
     const tx = iface.tx;
     const name = iface.name;
+    writeStats(statsField, name, tx, rx);
 
-    if (lastSamples[iface.name]) {
-      const seconds = (now - lastTimes[iface.name]) / 1000;
-      const rxRate = (rx - lastSamples[iface.name].rx) / seconds * 8;
-      const txRate = (tx - lastSamples[iface.name].tx) / seconds * 8;
+    for (const peer of iface.peers) {
+      const peerStatsField = document.getElementById(`${peer.id}-connectivity-stats`);
+      if (!statsField) continue;
 
-      statsField.innerHTML = `TX ${formatRate(txRate)} RX ${formatRate(rxRate)}`
+      const peerRx = peer.rx;
+      const peerTx = peer.tx;
+      const peerId = peer.id;
+      writeStats(peerStatsField, peerId, tx, rx);
     }
-
-    lastSamples[iface.name] = { rx, tx };
-    lastTimes[iface.name] = now;
   }
 }
 
