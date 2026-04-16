@@ -2,7 +2,6 @@ package circuit
 
 import (
 	"fmt"
-	"net"
 
 	"github.com/ElementalMP4/loggerino/log"
 
@@ -81,20 +80,6 @@ func CountCircuits() (map[string]map[string]int, error) {
 		if _, ok := out[string(c.Type)]; ok {
 			out[string(c.Type)][state]++
 		}
-	}
-
-	return out, nil
-}
-
-func listInterfaces() ([]string, error) {
-	ifaces, err := net.Interfaces()
-	if err != nil {
-		return nil, fmt.Errorf("failed to list interfaces: %v", err)
-	}
-
-	var out []string
-	for _, i := range ifaces {
-		out = append(out, i.Name)
 	}
 
 	return out, nil

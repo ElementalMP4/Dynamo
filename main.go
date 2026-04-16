@@ -5,6 +5,8 @@ import (
 	"Dynamo/banner"
 	"Dynamo/circuit"
 	"Dynamo/config"
+	"Dynamo/vpn"
+	"os"
 
 	"github.com/ElementalMP4/loggerino/log"
 )
@@ -12,14 +14,22 @@ import (
 func main() {
 	banner.ShowTheBanner()
 
-	err := config.LoadConfig()
-	if err != nil {
-		log.Fatalf("config-load", "An error occurred whilst loading the config: %v", err)
+	config := config.GetConfig()
+	if _, err := os.Stat(config.DataDirectory); os.IsNotExist(err) {
+		err := os.MkdirAll(config.DataDirectory, 0755)
+		if err != nil {
+			log.Fatalf("config", "Failed to create data directory: %v", err)
+		}
 	}
 
-	err = circuit.SyncCircuits()
+	err := circuit.SyncCircuits()
 	if err != nil {
 		log.Fatalf("circuit-sync", "An error occurred whilst syncing circuits: %v", err)
+	}
+
+	err = vpn.SyncWireguard()
+	if err != nil {
+		log.Fatalf("vpn-sync", "An error occurred whilst syncing VPN state: %v", err)
 	}
 
 	api.StartAPI()

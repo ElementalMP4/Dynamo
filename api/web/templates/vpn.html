@@ -1,0 +1,128 @@
+{{define "vpn"}}
+<div class="dns-manager">
+  <div class="dns-header">
+    <h1>VPN Interfaces</h1>
+    <button class="button" onclick="showCreateInterfaceModal()">Add Interface</button>
+  </div>
+
+  <div id="interfaces-list" class="record-groups">
+    <p style="color: var(--text-secondary)">Loading interfaces…</p>
+  </div>
+</div>
+
+<!-- Create / Edit Interface Modal -->
+<div id="interface-modal" class="modal">
+  <div class="modal-content">
+    <h2 id="iface-modal-title">Create Interface</h2>
+    <div id="iface-form">
+      <input type="hidden" id="iface-edit-name">
+
+      <div class="form-group">
+        <label>Name</label>
+        <input id="iface-name" placeholder="e.g. wg0">
+      </div>
+
+      <div class="form-group">
+        <label>Address (CIDR)</label>
+        <input id="iface-address" placeholder="e.g. 10.8.0.1/24">
+      </div>
+
+      <div class="form-group">
+        <label>Listen Port</label>
+        <input id="iface-port" type="number" min="1" max="65535" placeholder="e.g. 51820">
+      </div>
+
+      <div class="form-group">
+        <label>Endpoint (host:port)</label>
+        <input id="iface-endpoint" placeholder="e.g. vpn.example.com:51820">
+      </div>
+
+      <div class="form-group">
+        <label>Default DNS</label>
+        <input id="iface-dns" placeholder="e.g. 1.1.1.1">
+      </div>
+
+      <div class="form-group">
+        <label>Default Allowed IPs</label>
+        <input id="iface-allowed-ips" placeholder="e.g. 0.0.0.0/0">
+      </div>
+
+      <div class="form-group" style="display: flex; align-items: center; gap: 0.75rem;">
+        <input id="iface-nat" type="checkbox" style="width: auto;">
+        <label for="iface-nat" style="margin: 0; color: var(--text-primary); cursor: pointer;">Enable NAT masquerade</label>
+      </div>
+
+      <div class="form-group" id="iface-out-iface-group" style="display: none;">
+        <label>Outbound Interface</label>
+        <select id="iface-out-iface"></select>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="button secondary" onclick="hideInterfaceModal()">Cancel</button>
+        <button class="button" id="iface-submit-btn" onclick="submitInterfaceForm()">Create</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Create / Edit Peer Modal -->
+<div id="peer-modal" class="modal">
+  <div class="modal-content">
+    <h2 id="peer-modal-title">Add Peer</h2>
+    <div id="peer-form">
+      <input type="hidden" id="peer-iface-name">
+      <input type="hidden" id="peer-edit-id">
+
+      <div class="form-group">
+        <label>Name</label>
+        <input id="peer-name" placeholder="e.g. laptop">
+      </div>
+
+      <div class="form-group">
+        <label>DNS <span style="color: var(--text-secondary); font-size: 0.85rem;">(leave blank for interface default)</span></label>
+        <input id="peer-dns" placeholder="e.g. 1.1.1.1">
+      </div>
+
+      <div class="form-group">
+        <label>Allowed IPs <span style="color: var(--text-secondary); font-size: 0.85rem;">(leave blank for interface default)</span></label>
+        <input id="peer-allowed-ips" placeholder="e.g. 0.0.0.0/0">
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="button secondary" onclick="hidePeerModal()">Cancel</button>
+        <button class="button" id="peer-submit-btn" onclick="submitPeerForm()">Add Peer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Interface Confirm Modal -->
+<div id="delete-iface-modal" class="modal">
+  <div class="modal-content">
+    <h2>Delete Interface</h2>
+    <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+      Are you sure you want to delete <strong id="delete-iface-name"></strong>? This will remove the interface and all associated peers.
+    </p>
+    <div class="form-actions">
+      <button type="button" class="button secondary" onclick="hideDeleteIfaceModal()">Cancel</button>
+      <button class="button danger" onclick="confirmDeleteIface()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Peer Confirm Modal -->
+<div id="delete-peer-modal" class="modal">
+  <div class="modal-content">
+    <h2>Delete Peer</h2>
+    <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+      Are you sure you want to delete peer <strong id="delete-peer-name"></strong>?
+    </p>
+    <div class="form-actions">
+      <button type="button" class="button secondary" onclick="hideDeletePeerModal()">Cancel</button>
+      <button class="button danger" onclick="confirmDeletePeer()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/vpn.js"></script>
+{{end}}

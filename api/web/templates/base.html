@@ -19,6 +19,7 @@
             <a href="/dns" class="nav-item">DNS Records</a>
             <a href="/certs" class="nav-item">Certificates</a>
             <a href="/circuits" class="nav-item">Circuits</a>
+            <a href="/vpn" class="nav-item">VPN</a>
         </div>
     </nav>
     <main>
@@ -30,6 +31,8 @@
             {{template "certs" .}}
         {{else if .isCircuits}}
             {{template "circuits" .}}
+        {{else if .isVpn}}
+            {{template "vpn" .}}
         {{else}}
             {{template "home" .}}
         {{end}}
