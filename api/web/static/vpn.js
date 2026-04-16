@@ -39,7 +39,7 @@ function renderInterfaceCard(iface) {
       <div class="circuit-info">
         <div class="circuit-info-row">
           <span class="circuit-name">${esc(iface.name)}</span>
-          ${iface.enable_nat ? `<span class="circuit-badge">NAT</span>` : ''}
+          <span class="circuit-badge">NAT ${iface.enable_nat ? "ON" : "OFF"}</span>
         </div>
         <div class="circuit-meta">${esc(iface.address)} &nbsp;·&nbsp; :${iface.listen_port} &nbsp;·&nbsp; ${esc(iface.endpoint)}</div>
         <div class="circuit-meta" id="${iface.name}-connectivity-stats"></div>
