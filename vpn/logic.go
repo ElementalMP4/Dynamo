@@ -1,7 +1,6 @@
 package vpn
 
 import (
-	"Dynamo/config"
 	"Dynamo/store"
 	"crypto/rand"
 	"encoding/base64"
@@ -10,7 +9,6 @@ import (
 	"net"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -67,12 +65,6 @@ func nextIP(subnet string, peers []Peer) (string, error) {
 	}
 
 	return "", errors.New("no available IPs")
-}
-
-func clientConfigPath(ifaceName, peerID string) string {
-	base := filepath.Join(config.GetConfig().DataDirectory, "wireguard", ifaceName, "clients")
-	_ = os.MkdirAll(base, 0755)
-	return filepath.Join(base, peerID+".conf")
 }
 
 func buildServerConfig(iface Interface) string {
@@ -142,23 +134,6 @@ func writeServerConfig(name, cfg string) error {
 	err := os.WriteFile(fmt.Sprintf("/etc/wireguard/%s.conf", name), []byte(cfg), 0600)
 	if err != nil {
 		return fmt.Errorf("failed to write server config: %v", err)
-	}
-
-	base := filepath.Join(config.GetConfig().DataDirectory, "wireguard", name)
-	_ = os.MkdirAll(base, 0755)
-	err = os.WriteFile(filepath.Join(base, fmt.Sprintf("%s.conf", name)), []byte(cfg), 0600)
-	if err != nil {
-		return fmt.Errorf("failed to write server config: %v", err)
-	}
-	return nil
-}
-
-func writeClientConfig(iface Interface, peer Peer) error {
-	path := clientConfigPath(iface.Name, peer.ID)
-	cfg := buildClientConfig(iface, peer)
-	err := os.WriteFile(path, []byte(cfg), 0600)
-	if err != nil {
-		return fmt.Errorf("failed to write client config for peer %s: %v", peer.Name, err)
 	}
 	return nil
 }
@@ -287,12 +262,6 @@ func UpdateInterface(name string, req UpdateInterfaceRequest) error {
 				return err
 			}
 
-			for _, p := range iface.Peers {
-				if err := writeClientConfig(iface, p); err != nil {
-					return err
-				}
-			}
-
 			return nil
 		}
 		return errors.New("interface not found")
@@ -354,10 +323,6 @@ func AddPeer(ifaceName string, req CreatePeerRequest) (*Peer, error) {
 				return err
 			}
 
-			if err := writeClientConfig(iface, peer); err != nil {
-				return err
-			}
-
 			created = &peer
 			return nil
 		}
@@ -388,10 +353,6 @@ func UpdatePeer(ifaceName, peerID string, req UpdatePeerRequest) error {
 					if req.AllowedIPs != nil {
 						iface.Peers[j].AllowedIPs = req.AllowedIPs
 					}
-
-					if err := writeClientConfig(iface, iface.Peers[j]); err != nil {
-						return err
-					}
 				}
 			}
 
@@ -417,8 +378,6 @@ func DeletePeer(ifaceName, peerID string) error {
 			for _, p := range iface.Peers {
 				if p.ID != peerID {
 					peers = append(peers, p)
-				} else {
-					_ = os.Remove(clientConfigPath(ifaceName, peerID))
 				}
 			}
 
@@ -449,12 +408,6 @@ func SyncWireguard() error {
 
 		if err := SetInterfaceEnabled(iface.Name, iface.Enabled); err != nil {
 			return fmt.Errorf("failed to toggle interface: %v", err)
-		}
-
-		for _, peer := range iface.Peers {
-			if err := writeClientConfig(iface, peer); err != nil {
-				return fmt.Errorf("failed to write client %s config: %v", peer.Name, err)
-			}
 		}
 	}
 
