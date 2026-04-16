@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -131,7 +132,14 @@ PersistentKeepalive = 25
 }
 
 func writeServerConfig(name, cfg string) error {
-	err := os.WriteFile(fmt.Sprintf("/etc/wireguard/%s.conf", name), []byte(cfg), 0600)
+	// Ensure interface name is a single path component and cannot escape safeDir.
+	if name == "" || name != filepath.Base(name) || strings.Contains(name, "..") ||
+		strings.Contains(name, "/") || strings.Contains(name, "\\") {
+		return errors.New("invalid interface name")
+	}
+
+	path := filepath.Join("/etc/wireguard", name+".conf")
+	err := os.WriteFile(path, []byte(cfg), 0600)
 	if err != nil {
 		return fmt.Errorf("failed to write server config: %v", err)
 	}
