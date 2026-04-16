@@ -448,12 +448,16 @@ async function pollNetwork() {
 
     for (const peer of iface.peers) {
       const peerStatsField = document.getElementById(`${peer.id}-connectivity-stats`);
+      const peerActivityField = document.getElementById(`${peer.id}-activity`);
+
       if (!statsField) continue;
 
       const peerRx = peer.rx;
       const peerTx = peer.tx;
       const peerId = peer.id;
       writeStats(peerStatsField, peerId, tx, rx);
+
+      peerActivityField.innerHTML = peer.active ? "Active" : "Inactive";
     }
   }
 }
