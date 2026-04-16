@@ -2,6 +2,9 @@ package config
 
 import (
 	"encoding/json"
+
+	"github.com/ElementalMP4/loggerino/log"
+
 	"os"
 )
 
@@ -17,10 +20,10 @@ var config Config
 func init() {
 	data, err := os.ReadFile("config.json")
 	if err != nil {
-		panic(err)
+		log.Fatalf("config", "failed to read condfig: %v", err)
 	}
 	if err := json.Unmarshal(data, &config); err != nil {
-		panic(err)
+		log.Fatalf("config", "failed to unmarshal condfig: %v", err)
 	}
 }
 
