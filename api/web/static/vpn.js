@@ -41,7 +41,7 @@ function renderInterfaceCard(iface) {
           <span class="circuit-name">${esc(iface.name)}</span>
           <span class="circuit-badge">NAT ${iface.enable_nat ? "ON" : "OFF"}</span>
         </div>
-        <div class="circuit-meta">${esc(iface.address)} &nbsp;·&nbsp; :${iface.listen_port} &nbsp;·&nbsp; ${esc(iface.endpoint)}</div>
+        <div class="circuit-meta">${esc(iface.address)} &nbsp; :${iface.listen_port} &nbsp; ${esc(iface.endpoint)}</div>
         <div class="circuit-meta" id="${iface.name}-connectivity-stats">TX: Loading RX: Loading</div>
       </div>
       <div class="circuit-actions">
@@ -78,7 +78,7 @@ function renderPeerCard(ifaceName, peer) {
         <span class="circuit-name">${esc(peer.name)}</span>
         <span class="circuit-badge" id="${peer.id}-activity">Unknown</span>
       </div>
-      <div class="circuit-meta">${esc(peer.ip)}${peer.dns ? ' &nbsp;·&nbsp; DNS: ' + esc(peer.dns) : ''}</div>
+      <div class="circuit-meta">${esc(peer.ip)}${peer.dns ? ' &nbsp; DNS: ' + esc(peer.dns) : ''}</div>
       <div class="circuit-meta" id="${peer.id}-connectivity-stats">TX: Loading RX: Loading</div>
     </div>
     <div class="circuit-actions">
