@@ -435,7 +435,7 @@ async function pollNetwork() {
     const tx = iface.tx;
     const name = iface.name;
 
-    if (lastSamples[iface]) {
+    if (lastSamples[iface.name]) {
       const seconds = (now - lastTimes[iface.name]) / 1000;
       const rxRate = (rx - lastSamples[iface.name].rx) / seconds * 8;
       const txRate = (tx - lastSamples[iface.name].tx) / seconds * 8;
