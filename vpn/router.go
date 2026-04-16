@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -113,12 +114,23 @@ func isSafeInterfaceName(name string) bool {
 	return interfaceNamePattern.MatchString(name)
 }
 
+func isSafePathComponent(name string) bool {
+	if name == "" || name == "." || name == ".." {
+		return false
+	}
+	if strings.Contains(name, "/") || strings.Contains(name, "\\") {
+		return false
+	}
+	return true
+}
+
 func DeleteInterfaceHandler(c *gin.Context) {
 	name := c.Param("name")
-	if !isSafeInterfaceName(name) {
+	if !isSafeInterfaceName(name) || !isSafePathComponent(name) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid interface name"})
 		return
 	}
+	safeName := name
 
 	err := vpnStore.Update(func(state *State) error {
 		for i, iface := range state.Interfaces {
@@ -126,17 +138,17 @@ func DeleteInterfaceHandler(c *gin.Context) {
 				continue
 			}
 
-			svc := "wg-quick@" + name
+			svc := "wg-quick@" + safeName
 			_ = exec.Command("systemctl", "stop", svc).Run()
 			_ = exec.Command("systemctl", "disable", svc).Run()
 
-			_ = os.Remove(fmt.Sprintf("/etc/wireguard/%s.conf", name))
+			_ = os.Remove(fmt.Sprintf("/etc/wireguard/%s.conf", safeName))
 
 			clientDir := filepath.Join(
 				config.GetConfig().DataDirectory,
 				"wireguard",
 				"clients",
-				name,
+				safeName,
 			)
 			_ = os.RemoveAll(clientDir)
 			state.Interfaces = append(state.Interfaces[:i], state.Interfaces[i+1:]...)
