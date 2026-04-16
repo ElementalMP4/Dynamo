@@ -427,6 +427,7 @@ async function pollNetwork() {
   const now = Date.now();
 
   for (const iface of data.interfaces) {
+    console.log("Updating " + iface.name)
     const statsField = document.getElementById(`${iface.name}-connectivity-stats`);
     if (!statsField) continue;
 
