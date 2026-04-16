@@ -3,14 +3,15 @@ package vpn
 const inactiveTimeout = 120
 
 type Peer struct {
-	ID         string  `json:"id"`
-	Name       string  `json:"name"`
-	PublicKey  string  `json:"public_key"`
-	PrivateKey string  `json:"private_key"`
-	IP         string  `json:"ip"`
-	Enabled    bool    `json:"enabled"`
-	DNS        *string `json:"dns,omitempty"`
-	AllowedIPs *string `json:"allowed_ips,omitempty"`
+	ID           string  `json:"id"`
+	Name         string  `json:"name"`
+	PublicKey    string  `json:"public_key"`
+	PrivateKey   string  `json:"private_key"`
+	IP           string  `json:"ip"`
+	Enabled      bool    `json:"enabled"`
+	DNS          *string `json:"dns"`
+	AllowedIPs   *string `json:"allowed_ips"`
+	PresharedKey string  `json:"preshared_key"`
 }
 
 type Interface struct {

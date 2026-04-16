@@ -3,6 +3,8 @@ package vpn
 import (
 	"Dynamo/config"
 	"Dynamo/store"
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net"
@@ -93,11 +95,11 @@ PostDown = iptables -t nat -D POSTROUTING -o %s -j MASQUERADE
 			continue
 		}
 
-		cfg += fmt.Sprintf(`
-[Peer]
+		cfg += fmt.Sprintf(`[Peer]
 PublicKey = %s
+PresharedKey = %s
 AllowedIPs = %s
-`, p.PublicKey, p.IP)
+`, p.PublicKey, p.PresharedKey, p.IP)
 	}
 
 	return cfg
@@ -121,6 +123,7 @@ DNS = %s
 
 [Peer]
 PublicKey = %s
+PresharedKey = %s
 Endpoint = %s
 AllowedIPs = %s
 PersistentKeepalive = 25
@@ -129,6 +132,7 @@ PersistentKeepalive = 25
 		peer.IP,
 		dns,
 		iface.PublicKey,
+		peer.PresharedKey,
 		iface.Endpoint,
 		allowed,
 	)
@@ -294,6 +298,15 @@ func UpdateInterface(name string, req UpdateInterfaceRequest) error {
 	})
 }
 
+func generatePresharedKey() (string, error) {
+	key := make([]byte, 32)
+	_, err := rand.Read(key)
+	if err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(key), nil
+}
+
 func AddPeer(ifaceName string, req CreatePeerRequest) (*Peer, error) {
 	var created *Peer
 
@@ -313,15 +326,21 @@ func AddPeer(ifaceName string, req CreatePeerRequest) (*Peer, error) {
 				return err
 			}
 
+			psk, err := generatePresharedKey()
+			if err != nil {
+				return err
+			}
+
 			peer := Peer{
-				ID:         uuid.New().String(),
-				Name:       req.Name,
-				PublicKey:  pub,
-				PrivateKey: priv,
-				IP:         ip,
-				Enabled:    true,
-				DNS:        req.DNS,
-				AllowedIPs: req.AllowedIPs,
+				ID:           uuid.New().String(),
+				Name:         req.Name,
+				PublicKey:    pub,
+				PrivateKey:   priv,
+				IP:           ip,
+				Enabled:      true,
+				DNS:          req.DNS,
+				AllowedIPs:   req.AllowedIPs,
+				PresharedKey: psk,
 			}
 
 			iface.Peers = append(iface.Peers, peer)
