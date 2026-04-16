@@ -68,7 +68,7 @@ func nextIP(subnet string, peers []Peer) (string, error) {
 }
 
 func clientConfigPath(ifaceName, peerID string) string {
-	base := filepath.Join(config.GetConfig().DataDirectory, "wireguard", "clients", ifaceName)
+	base := filepath.Join(config.GetConfig().DataDirectory, "wireguard", ifaceName, "clients")
 	_ = os.MkdirAll(base, 0755)
 	return filepath.Join(base, peerID+".conf")
 }
@@ -136,6 +136,12 @@ PersistentKeepalive = 25
 
 func writeServerConfig(name, cfg string) error {
 	err := os.WriteFile(fmt.Sprintf("/etc/wireguard/%s.conf", name), []byte(cfg), 0600)
+	if err != nil {
+		return fmt.Errorf("failed to write server config: %v", err)
+	}
+
+	conf := filepath.Join(config.GetConfig().DataDirectory, "wireguard", name, fmt.Sprintf("%s.conf", name))
+	err = os.WriteFile(conf, []byte(cfg), 0600)
 	if err != nil {
 		return fmt.Errorf("failed to write server config: %v", err)
 	}
