@@ -9,6 +9,7 @@ Network Management Platform
 - Conntrack
 - iptables
 - iptables-save
+- wireguard
 
 ## Features
 
@@ -67,7 +68,7 @@ conf-dir=/etc/dnsmasq.d
 
 ```jsonc
 {
-    "serverBind": "127.0.0.1:6789", // Bind address and port are mandatory. If using Dynamo 
+    "serverBind": "127.0.0.1:6789", // Bind address and port are mandatory. If using nginx (or other proxy) make sure to bind Dynamo to localhost only
     "certsDir": "/etc/Dynamo/ssl", // Where to store SSL certs
     "dnsmasqConfigFile": "/etc/dnsmasq.d/dynamo.conf", // Absolute path to dnsmasq config file (NOT the main config file!)
     "dataDirectory": "/etc/Dynamo/data" // Where to store other data files
