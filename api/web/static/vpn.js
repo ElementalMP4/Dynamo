@@ -1,4 +1,6 @@
 const API = '/api/vpn';
+const lastSamples = {};
+const lastTimes = {};
 
 let pendingDeleteIface = null;
 let pendingDeletePeer = { iface: null, id: null };
