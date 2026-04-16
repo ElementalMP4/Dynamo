@@ -401,11 +401,7 @@ func SyncWireguard() error {
 	}
 
 	for _, iface := range state.Interfaces {
-		cfg := buildServerConfig(iface)
-		if err := writeServerConfig(iface.Name, cfg); err != nil {
-			return fmt.Errorf("failed to writw server config: %v", err)
-		}
-
+		log.Infof("vpn-sync", "Syncing interface %s", iface.Name)
 		if err := SetInterfaceEnabled(iface.Name, iface.Enabled); err != nil {
 			return fmt.Errorf("failed to toggle interface: %v", err)
 		}
@@ -423,10 +419,11 @@ func SetInterfaceEnabled(name string, enabled bool) error {
 
 			iface.Enabled = enabled
 			state.Interfaces[i] = iface
-
 			svc := "wg-quick@" + iface.Name
 
 			if enabled {
+				log.Infof("vpn", "Enabling interface %s", iface.Name)
+
 				cfg := buildServerConfig(iface)
 				if err := writeServerConfig(iface.Name, cfg); err != nil {
 					return fmt.Errorf("failed to write server config: %v", err)
@@ -439,8 +436,13 @@ func SetInterfaceEnabled(name string, enabled bool) error {
 					return fmt.Errorf("failed to start interface: %v", err)
 				}
 
-				return syncInterface(iface.Name)
+				if err := syncInterface(iface.Name); err != nil {
+					return err
+				}
+
+				log.Okf("vpn", "Enabled interface %s", iface.Name)
 			} else {
+				log.Infof("vpn", "Disabling interface %s", iface.Name)
 				if err := exec.Command("systemctl", "stop", svc).Run(); err != nil {
 					return fmt.Errorf("failed to stop interface: %v", err)
 				}
@@ -448,6 +450,7 @@ func SetInterfaceEnabled(name string, enabled bool) error {
 				if err := exec.Command("systemctl", "disable", svc).Run(); err != nil {
 					return fmt.Errorf("failed to disable interface: %v", err)
 				}
+				log.Okf("vpn", "Disabled interface %s", iface.Name)
 			}
 
 			return nil
