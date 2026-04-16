@@ -42,7 +42,7 @@ function renderInterfaceCard(iface) {
           <span class="circuit-badge">NAT ${iface.enable_nat ? "ON" : "OFF"}</span>
         </div>
         <div class="circuit-meta">${esc(iface.address)} &nbsp;·&nbsp; :${iface.listen_port} &nbsp;·&nbsp; ${esc(iface.endpoint)}</div>
-        <div class="circuit-meta" id="${iface.name}-connectivity-stats"></div>
+        <div class="circuit-meta" id="${iface.name}-connectivity-stats">TX: Loading RX: Loading</div>
       </div>
       <div class="circuit-actions">
         <button class="button sm secondary" onclick="showEditInterfaceModal(${jsonAttr(iface)})">Edit</button>
@@ -76,10 +76,10 @@ function renderPeerCard(ifaceName, peer) {
     <div class="circuit-info">
       <div class="circuit-info-row">
         <span class="circuit-name">${esc(peer.name)}</span>
-        <span class="circuit-badge" id="${peer.id}-activity"></span>
+        <span class="circuit-badge" id="${peer.id}-activity">Unknown</span>
       </div>
       <div class="circuit-meta">${esc(peer.ip)}${peer.dns ? ' &nbsp;·&nbsp; DNS: ' + esc(peer.dns) : ''}</div>
-      <div class="circuit-meta" id="${peer.id}-connectivity-stats"></div>
+      <div class="circuit-meta" id="${peer.id}-connectivity-stats">TX: Loading RX: Loading</div>
     </div>
     <div class="circuit-actions">
       <button class="button sm secondary" onclick="downloadConfig('${esc(ifaceName)}', '${esc(peer.id)}', '${esc(peer.name)}')">Config</button>
