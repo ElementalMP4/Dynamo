@@ -78,9 +78,9 @@ SaveConfig = true
 
 	if iface.EnableNAT {
 		cfg += fmt.Sprintf(`
-PostUp = iptables -t nat -A POSTROUTING -o %s -j MASQUERADE
-PostDown = iptables -t nat -D POSTROUTING -o %s -j MASQUERADE
-`, iface.OutInterface, iface.OutInterface)
+PostUp = iptables -A FORWARD -i %s -j ACCEPT; iptables -t nat -A POSTROUTING -o %s -j MASQUERADE; ip6tables -A FORWARD -i %s -j ACCEPT; ip6tables -t nat -A POSTROUTING -o %s -j MASQUERADE
+PostDown = iptables -D FORWARD -i %s -j ACCEPT; iptables -t nat -D POSTROUTING -o %s -j MASQUERADE; ip6tables -D FORWARD -i %s -j ACCEPT; ip6tables -t nat -D POSTROUTING -o %s -j MASQUERADE
+`, iface.Name, iface.OutInterface, iface.Name, iface.OutInterface, iface.Name, iface.OutInterface, iface.Name, iface.OutInterface)
 	}
 
 	for _, p := range iface.Peers {
