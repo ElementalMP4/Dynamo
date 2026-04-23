@@ -457,7 +457,7 @@ async function pollNetwork() {
       const peerRx = peer.rx;
       const peerTx = peer.tx;
       const peerId = peer.id;
-      writeStats(peerStatsField, peerId, tx, rx);
+      writeStats(peerStatsField, peerId, peerTx, peerRx);
 
       peerActivityField.innerHTML = peer.active ? "Active" : "Inactive";
     }

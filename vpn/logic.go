@@ -85,8 +85,11 @@ PostDown = iptables -D FORWARD -i %s -j ACCEPT; iptables -t nat -D POSTROUTING -
 
 	for _, p := range iface.Peers {
 		if !p.Enabled {
+			log.Infof("vpn", "Omitting peer %s", p.Name)
 			continue
 		}
+
+		log.Infof("vpn", "Including peer %s", p.Name)
 
 		cfg += fmt.Sprintf(`[Peer]
 PublicKey = %s
