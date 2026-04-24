@@ -679,5 +679,5 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
   loadInterfaces();
-  setInterval(pollNetwork, 1000);
+  setInterval(pollNetwork, 500);
 });
