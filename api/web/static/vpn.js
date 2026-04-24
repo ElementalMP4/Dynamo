@@ -40,17 +40,7 @@ function createMiniChart(canvasId, key) {
       ],
     },
     options: {
-      animation: {
-        duration: 650,
-        easing: 'linear',
-      },
-      transitions: {
-        active: {
-          animation: {
-            duration: 0,
-          },
-        },
-      },
+      animation: false,
       responsive: true,
       maintainAspectRatio: false,
       scales: {
@@ -116,7 +106,7 @@ function pushToChart(key, rxRate, txRate) {
     0
   );
   chart.options.scales.y.suggestedMax = maxVal * 1.3;
-  chart.update();
+  chart.update('none');
 }
 
 async function loadInterfaces() {
@@ -679,5 +669,5 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
   loadInterfaces();
-  setInterval(pollNetwork, 500);
+  setInterval(pollNetwork, 1000);
 });
