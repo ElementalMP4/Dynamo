@@ -164,9 +164,8 @@ async function pollNetwork() {
         lastSamples[iface] = { rx, tx };
         lastTimes[iface] = now;
     }
+    setTimeout(pollNetwork, 1000);
 }
-
-setInterval(pollNetwork, 1000);
 
 async function loadCounts() {
     const res = await fetch("/api/stats/dynamo");
@@ -225,3 +224,4 @@ async function loadCounts() {
 }
 
 loadCounts();
+pollNetwork();

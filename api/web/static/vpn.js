@@ -290,7 +290,8 @@ async function pollNetwork() {
       dot.classList.toggle('off', !peer.active);
     }
   }
-}
+  setTimeout(pollNetwork, 1000);
+};
 
 function jsonAttr(obj) {
   return "'" + JSON.stringify(obj).replace(/'/g, '&#39;').replace(/"/g, '&quot;') + "'";
@@ -669,5 +670,5 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
   loadInterfaces();
-  setInterval(pollNetwork, 1000);
+  pollNetwork();
 });
