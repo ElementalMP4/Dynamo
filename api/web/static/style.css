@@ -240,26 +240,6 @@ main {
     gap: 0.75rem;
 }
 
-.cert-bubble {
-    background-color: var(--bg-primary);
-    border: 1px solid var(--border);
-    padding: 1rem;
-    border-radius: 0.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    margin-bottom: 2rem;
-}
-
-.cert-title {
-    font-weight: 700;
-}
-
-.cert-meta {
-    color: var(--text-secondary);
-    font-size: 0.95rem;
-}
-
 .cert-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -627,5 +607,56 @@ main {
 
     .nav-brand {
         font-size: 1.25rem;
+    }
+}
+
+.circuit-card--with-chart {
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.circuit-chart {
+    width: 100%;
+    height: 55px;
+    margin-top: 0.5rem;
+}
+
+.circuit-chart--peer {
+    height: 45px;
+}
+
+.iface-peers-section {
+    margin-left: 1.5rem;
+}
+
+@media screen and (max-width: 768px) {
+    .circuit-card--with-chart .circuit-actions {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        gap: 0.4rem;
+    }
+
+    .circuit-card--with-chart .circuit-actions .button.sm {
+        flex: 1 1 calc(50% - 0.4rem);
+        text-align: center;
+        min-width: 0;
+    }
+
+    .iface-peers-section {
+        margin-left: 0.5rem;
+    }
+
+    .circuit-chart {
+        height: 45px;
+    }
+
+    .circuit-chart--peer {
+        height: 38px;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .circuit-card--with-chart .circuit-actions .button.sm {
+        flex: 1 1 100%;
     }
 }
