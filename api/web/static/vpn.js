@@ -109,8 +109,6 @@ function pushToChart(key, rxRate, txRate) {
   chart.update('none');
 }
 
-// ─── Load / render ────────────────────────────────────────────────────────────
-
 async function loadInterfaces() {
   const res = await fetch(`${API}/interfaces`);
   const interfaces = await res.json();
@@ -144,29 +142,27 @@ function renderInterfaceCard(iface) {
 
   return `
   <div class="record-group" id="iface-group-${esc(iface.name)}">
-    <div class="circuit-card ${cardClass}" style="margin-bottom: 1rem; flex-direction: column; align-items: stretch; gap: 0;">
-      <div style="display: flex; align-items: center; gap: 1rem;">
-        <div class="circuit-status-dot ${dotClass}"></div>
-        <div class="circuit-info">
-          <div class="circuit-info-row">
-            <span class="circuit-name">${esc(iface.name)}</span>
-            <span class="circuit-badge">NAT ${iface.enable_nat ? 'ON' : 'OFF'}</span>
-          </div>
-          <div class="circuit-meta">${esc(iface.address)} &nbsp; :${iface.listen_port} &nbsp; ${esc(iface.endpoint)}</div>
-          <div class="circuit-meta" id="${iface.name}-connectivity-stats">TX: Loading&nbsp; RX: Loading</div>
+    <div class="circuit-card circuit-card--with-chart ${cardClass}" style="margin-bottom: 1rem;">
+      <div class="circuit-status-dot ${dotClass}"></div>
+      <div class="circuit-info">
+        <div class="circuit-info-row">
+          <span class="circuit-name">${esc(iface.name)}</span>
+          <span class="circuit-badge">NAT ${iface.enable_nat ? 'ON' : 'OFF'}</span>
         </div>
-        <div class="circuit-actions">
-          <button class="button sm secondary" onclick="showEditInterfaceModal(${jsonAttr(iface)})">Edit</button>
-          <button class="button sm ${toggleClass}" onclick="toggleInterface('${esc(iface.name)}', ${enabled})">${toggleLabel}</button>
-          <button class="button sm danger" onclick="showDeleteIfaceModal('${esc(iface.name)}')">Delete</button>
-        </div>
+        <div class="circuit-meta">${esc(iface.address)} &nbsp; :${iface.listen_port} &nbsp; ${esc(iface.endpoint)}</div>
+        <div class="circuit-meta" id="${iface.name}-connectivity-stats">TX: Loading&nbsp; RX: Loading</div>
       </div>
-      <div style="height: 55px; margin-top: 0.6rem;">
+      <div class="circuit-actions">
+        <button class="button sm secondary" onclick="showEditInterfaceModal(${jsonAttr(iface)})">Edit</button>
+        <button class="button sm ${toggleClass}" onclick="toggleInterface('${esc(iface.name)}', ${enabled})">${toggleLabel}</button>
+        <button class="button sm danger" onclick="showDeleteIfaceModal('${esc(iface.name)}')">Delete</button>
+      </div>
+      <div class="circuit-chart">
         <canvas id="chart-iface-${esc(iface.name)}"></canvas>
       </div>
     </div>
 
-    <div style="margin-left: 1.5rem;">
+    <div class="iface-peers-section">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
         <h2 class="record-group" style="font-size: 1rem; color: var(--text-secondary); margin: 0;">
           Peers <span style="font-weight: normal;">(${peers.length})</span>
@@ -186,31 +182,27 @@ function renderPeerCard(ifaceName, peer) {
   const toggleClass = peer.enabled ? 'secondary' : 'success';
 
   return `
-  <div class="circuit-card ${peer.enabled ? 'enabled' : 'disabled'}" id="peer-card-${esc(peer.id)}" style="flex-direction: column; align-items: stretch; gap: 0;">
-    <div style="display: flex; align-items: center; gap: 1rem;">
-      <div class="circuit-status-dot ${dotClass}"></div>
-      <div class="circuit-info">
-        <div class="circuit-info-row">
-          <span class="circuit-name">${esc(peer.name)}</span>
-          <span class="circuit-badge" id="${peer.id}-activity">Unknown</span>
-        </div>
-        <div class="circuit-meta">${esc(peer.ip)}${peer.dns ? ' &nbsp; DNS: ' + esc(peer.dns) : ''}</div>
-        <div class="circuit-meta" id="${peer.id}-connectivity-stats">TX: Loading&nbsp; RX: Loading</div>
+  <div class="circuit-card circuit-card--with-chart ${peer.enabled ? 'enabled' : 'disabled'}" id="peer-card-${esc(peer.id)}">
+    <div class="circuit-status-dot ${dotClass}"></div>
+    <div class="circuit-info">
+      <div class="circuit-info-row">
+        <span class="circuit-name">${esc(peer.name)}</span>
+        <span class="circuit-badge" id="${peer.id}-activity">Unknown</span>
       </div>
-      <div class="circuit-actions">
-        <button class="button sm secondary" onclick="downloadConfig('${esc(ifaceName)}', '${esc(peer.id)}', '${esc(peer.name)}')">Config</button>
-        <button class="button sm secondary" onclick="showEditPeerModal('${esc(ifaceName)}', ${jsonAttr(peer)})">Edit</button>
-        <button class="button sm ${toggleClass}" onclick="togglePeer('${esc(ifaceName)}', '${esc(peer.id)}', ${!peer.enabled})">${toggleLabel}</button>
-        <button class="button sm danger" onclick="showDeletePeerModal('${esc(ifaceName)}', '${esc(peer.id)}', '${esc(peer.name)}')">Delete</button>
-      </div>
+      <div class="circuit-meta">${esc(peer.ip)}${peer.dns ? ' &nbsp; DNS: ' + esc(peer.dns) : ''}</div>
+      <div class="circuit-meta" id="${peer.id}-connectivity-stats">TX: Loading&nbsp; RX: Loading</div>
     </div>
-    <div style="height: 45px; margin-top: 0.5rem;">
+    <div class="circuit-actions">
+      <button class="button sm secondary" onclick="downloadConfig('${esc(ifaceName)}', '${esc(peer.id)}', '${esc(peer.name)}')">Config</button>
+      <button class="button sm secondary" onclick="showEditPeerModal('${esc(ifaceName)}', ${jsonAttr(peer)})">Edit</button>
+      <button class="button sm ${toggleClass}" onclick="togglePeer('${esc(ifaceName)}', '${esc(peer.id)}', ${!peer.enabled})">${toggleLabel}</button>
+      <button class="button sm danger" onclick="showDeletePeerModal('${esc(ifaceName)}', '${esc(peer.id)}', '${esc(peer.name)}')">Delete</button>
+    </div>
+    <div class="circuit-chart circuit-chart--peer">
       <canvas id="chart-peer-${esc(peer.id)}"></canvas>
     </div>
   </div>`;
 }
-
-// ─── Polling ──────────────────────────────────────────────────────────────────
 
 function formatRate(bytesPerSec) {
   let bitsPerSec = bytesPerSec * 8;
@@ -265,8 +257,6 @@ async function pollNetwork() {
     }
   }
 }
-
-// ─── Modals ───────────────────────────────────────────────────────────────────
 
 function jsonAttr(obj) {
   return "'" + JSON.stringify(obj).replace(/'/g, '&#39;').replace(/"/g, '&quot;') + "'";
