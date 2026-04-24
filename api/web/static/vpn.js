@@ -204,10 +204,10 @@ function renderPeerCard(ifaceName, peer) {
     <div class="vpn-card vpn-card--peer ${peer.enabled ? 'enabled' : 'disabled'}" id="peer-card-${safeId}">
       <div class="vpn-info">
         <div class="vpn-header">
-          <div class="circuit-status-dot ${enabledClass}"></div>
           <div class="vpn-title-row">
-            <span class="vpn-name">${safeName}</span>
+            <span class="circuit-status-dot ${enabledClass}"></span>
             <span class="circuit-status-dot ${activityClass}" id="${safeId}-activity-dot"></span>
+            <span class="vpn-name">${safeName}</span>
           </div>
         </div>
 
