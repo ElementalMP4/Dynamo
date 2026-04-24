@@ -495,10 +495,12 @@ func collectMetrics() ([]InterfaceStats, error) {
 
 	state, _ := vpnStore.Load()
 
-	peerMap := map[string]string{}
+	peerKeyMap := map[string]string{}
+	peerEnabledMap := map[string]bool{}
 	for _, iface := range state.Interfaces {
 		for _, p := range iface.Peers {
-			peerMap[p.PublicKey] = p.ID
+			peerKeyMap[p.PublicKey] = p.ID
+			peerEnabledMap[p.PublicKey] = p.Enabled
 		}
 	}
 
@@ -534,13 +536,15 @@ func collectMetrics() ([]InterfaceStats, error) {
 			active = true
 		}
 
-		peerID := peerMap[pubKey]
+		peerID := peerKeyMap[pubKey]
+		enabled := peerEnabledMap[pubKey]
 		ps := PeerStats{
 			ID:            peerID,
 			RX:            rxBytes,
 			TX:            txBytes,
 			LastHandshake: lastHandshake,
 			Active:        active,
+			Enabled:       enabled,
 		}
 
 		result[ifaceName].Peers = append(result[ifaceName].Peers, ps)
