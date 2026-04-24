@@ -287,6 +287,7 @@ async function pollNetwork() {
       }
       dot.classList.toggle('on', peer.active);
       dot.classList.toggle('idle', !peer.active);
+      dot.classList.toggle('off', !peer.active);
     }
   }
 }
