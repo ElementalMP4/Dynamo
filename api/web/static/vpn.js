@@ -163,13 +163,16 @@ function renderInterfaceCard(iface) {
     </div>
 
     <div class="iface-peers-section">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-        <h2 class="record-group" style="font-size: 1rem; color: var(--text-secondary); margin: 0;">
-          Peers <span style="font-weight: normal;">(${peers.length})</span>
-        </h2>
-        <button class="button sm" onclick="showAddPeerModal('${esc(iface.name)}')">Add Peer</button>
-      </div>
-      <div class="records" id="peers-list-${esc(iface.name)}">
+      <button class="peers-toggle" onclick="togglePeersVisibility('${esc(iface.name)}')" id="peers-toggle-${esc(iface.name)}">
+        <span class="peers-toggle-label">
+          <svg class="peers-chevron" id="peers-chevron-${esc(iface.name)}" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06z" clip-rule="evenodd"/>
+          </svg>
+          Peers <span style="font-weight: normal; color: var(--text-secondary);">(${peers.length})</span>
+        </span>
+        <button class="button sm" onclick="event.stopPropagation(); showAddPeerModal('${esc(iface.name)}')">Add Peer</button>
+      </button>
+      <div class="records peers-list" id="peers-list-${esc(iface.name)}" style="display: none;">
         ${peersHtml}
       </div>
     </div>
@@ -580,6 +583,14 @@ async function downloadConfig(ifaceName, peerId, peerName) {
   a.download = `${peerName}.conf`;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+function togglePeersVisibility(ifaceName) {
+  const list = document.getElementById(`peers-list-${ifaceName}`);
+  const chevron = document.getElementById(`peers-chevron-${ifaceName}`);
+  const open = list.style.display !== 'none';
+  list.style.display = open ? 'none' : 'grid';
+  chevron.classList.toggle('peers-chevron--open', !open);
 }
 
 function showModal(id) {
