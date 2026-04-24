@@ -144,13 +144,15 @@ function renderInterfaceCard(iface) {
   return `
     <div class="vpn-interface-group" id="iface-group-${safeName}">
       <div class="vpn-card ${cardClass}">
-        <div class="circuit-status-dot ${dotClass}"></div>
-
         <div class="vpn-info">
-          <div class="vpn-title-row">
-            <span class="vpn-name">${safeName}</span>
-            <span class="circuit-badge">NAT ${iface.enable_nat ? 'ON' : 'OFF'}</span>
+          <div class="vpn-header">
+            <div class="circuit-status-dot ${dotClass}"></div>
+            <div class="vpn-title-row">
+              <span class="vpn-name">${safeName}</span>
+              <span class="circuit-badge">NAT ${iface.enable_nat ? 'ON' : 'OFF'}</span>
+            </div>
           </div>
+
           <div class="vpn-meta">${esc(iface.address)} &nbsp; :${iface.listen_port} &nbsp; ${esc(iface.endpoint)}</div>
           <div class="vpn-stats" id="${safeName}-connectivity-stats">TX: Loading&nbsp; RX: Loading</div>
         </div>
@@ -182,9 +184,10 @@ function renderInterfaceCard(iface) {
 }
 
 function renderPeerCard(ifaceName, peer) {
-  const dotClass = peer.enabled ? 'on' : 'off';
+  const enabledClass = peer.enabled ? 'on' : 'off';
   const toggleLabel = peer.enabled ? 'Disable' : 'Enable';
   const toggleClass = peer.enabled ? 'secondary' : 'success';
+  const activityClass = peer.active ? 'on' : 'off';
 
   const safeIface = esc(ifaceName);
   const safeId = esc(peer.id);
@@ -199,13 +202,15 @@ function renderPeerCard(ifaceName, peer) {
 
   return `
     <div class="vpn-card vpn-card--peer ${peer.enabled ? 'enabled' : 'disabled'}" id="peer-card-${safeId}">
-      <div class="circuit-status-dot ${dotClass}"></div>
-
       <div class="vpn-info">
-        <div class="vpn-title-row">
-          <span class="vpn-name">${safeName}</span>
-          <span class="circuit-badge" id="${safeId}-activity">Unknown</span>
+        <div class="vpn-header">
+          <div class="circuit-status-dot ${enabledClass}"></div>
+          <div class="vpn-title-row">
+            <span class="vpn-name">${safeName}</span>
+            <span class="circuit-status-dot ${activityClass}" id="${safeId}-activity-dot"></span>
+          </div>
         </div>
+
         <div class="vpn-meta">${esc(peer.ip)}${peer.dns ? ' &nbsp; DNS: ' + esc(peer.dns) : ''}</div>
         <div class="vpn-stats" id="${safeId}-connectivity-stats">TX: Loading&nbsp; RX: Loading</div>
       </div>
@@ -270,13 +275,14 @@ async function pollNetwork() {
 
     for (const peer of iface.peers) {
       const peerStatsField = document.getElementById(`${peer.id}-connectivity-stats`);
-      const peerActivityField = document.getElementById(`${peer.id}-activity`);
-
+      const dot = document.getElementById(`${peer.id}-activity-dot`);
       writeStats(peerStatsField, peer.id, peer.tx, peer.rx, `peer-${peer.id}`);
 
-      if (peerActivityField) {
-        peerActivityField.innerHTML = peer.active ? 'Active' : 'Inactive';
+      if (!dot) {
+        continue;
       }
+      dot.classList.toggle('on', peer.active);
+      dot.classList.toggle('off', !peer.active);
     }
   }
 }
