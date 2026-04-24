@@ -323,10 +323,12 @@ main {
 
 .status-dot.off {
     background-color: var(--danger);
+    box-shadow: 0 0 6px var(--danger);
 }
 
 .status-dot.idle {
     background-color: var(--idle);
+    box-shadow: 0 0 6px var(--idle);
 }
 
 .circuit-info {
