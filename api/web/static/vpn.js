@@ -155,6 +155,7 @@ function renderInterfaceCard(iface) {
       <div class="circuit-actions">
         <button class="button sm secondary" onclick="showEditInterfaceModal(${jsonAttr(iface)})">Edit</button>
         <button class="button sm ${toggleClass}" onclick="toggleInterface('${esc(iface.name)}', ${enabled})">${toggleLabel}</button>
+        <button class="button sm secondary" onclick="event.stopPropagation(); showAddPeerModal('${esc(iface.name)}')">Add Peer</button>
         <button class="button sm danger" onclick="showDeleteIfaceModal('${esc(iface.name)}')">Delete</button>
       </div>
       <div class="circuit-chart">
@@ -170,9 +171,8 @@ function renderInterfaceCard(iface) {
           </svg>
           Peers <span style="font-weight: normal; color: var(--text-secondary);">(${peers.length})</span>
         </span>
-        <button class="button sm" onclick="event.stopPropagation(); showAddPeerModal('${esc(iface.name)}')">Add Peer</button>
       </button>
-      <div class="records peers-list" id="peers-list-${esc(iface.name)}" style="display: none;">
+      <div class="peers-list" id="peers-list-${esc(iface.name)}" style="display: none;">
         ${peersHtml}
       </div>
     </div>
