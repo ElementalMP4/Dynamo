@@ -40,7 +40,17 @@ function createMiniChart(canvasId, key) {
       ],
     },
     options: {
-      animation: false,
+      animation: {
+        duration: 650,
+        easing: 'linear',
+      },
+      transitions: {
+        active: {
+          animation: {
+            duration: 0,
+          },
+        },
+      },
       responsive: true,
       maintainAspectRatio: false,
       scales: {
@@ -106,7 +116,7 @@ function pushToChart(key, rxRate, txRate) {
     0
   );
   chart.options.scales.y.suggestedMax = maxVal * 1.3;
-  chart.update('none');
+  chart.update();
 }
 
 async function loadInterfaces() {
