@@ -172,7 +172,7 @@ function renderInterfaceCard(iface) {
           Peers <span style="font-weight: normal; color: var(--text-secondary);">(${peers.length})</span>
         </span>
       </button>
-      <div class="peers-list" id="records peers-list-${esc(iface.name)}" style="display: none;">
+      <div class="records peers-list" id="peers-list-${esc(iface.name)}" style="display: none;">
         ${peersHtml}
       </div>
     </div>
