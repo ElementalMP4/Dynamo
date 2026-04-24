@@ -146,7 +146,7 @@ function renderInterfaceCard(iface) {
       <div class="vpn-card ${cardClass}">
         <div class="vpn-info">
           <div class="vpn-header">
-            <div class="circuit-status-dot ${dotClass}"></div>
+            <div class="status-dot ${dotClass}"></div>
             <div class="vpn-title-row">
               <span class="vpn-name">${safeName}</span>
               <span class="circuit-badge">NAT ${iface.enable_nat ? 'ON' : 'OFF'}</span>
@@ -154,7 +154,7 @@ function renderInterfaceCard(iface) {
           </div>
 
           <div class="vpn-meta">${esc(iface.address)} &nbsp; :${iface.listen_port} &nbsp; ${esc(iface.endpoint)}</div>
-          <div class="vpn-stats" id="${safeName}-connectivity-stats">TX: Loading&nbsp; RX: Loading</div>
+          <div class="vpn-stats" id="${safeName}-connectivity-stats">TX: No Data&nbsp; RX: No Data</div>
         </div>
 
         <div class="vpn-actions">
@@ -205,8 +205,8 @@ function renderPeerCard(ifaceName, peer) {
       <div class="vpn-info">
         <div class="vpn-header">
           <div class="vpn-title-row">
-            <span class="circuit-status-dot ${enabledClass}"></span>
-            <span class="circuit-status-dot ${activityClass}" id="${safeId}-activity-dot"></span>
+            <span class="status-dot ${enabledClass}"></span>
+            <span class="status-dot ${activityClass}" id="${safeId}-activity-dot"></span>
             <span class="vpn-name">${safeName}</span>
           </div>
         </div>
@@ -274,6 +274,10 @@ async function pollNetwork() {
     writeStats(statsField, iface.name, iface.tx, iface.rx, `iface-${iface.name}`);
 
     for (const peer of iface.peers) {
+      if (!peer.enabled) {
+        continue;
+      }
+
       const peerStatsField = document.getElementById(`${peer.id}-connectivity-stats`);
       const dot = document.getElementById(`${peer.id}-activity-dot`);
       writeStats(peerStatsField, peer.id, peer.tx, peer.rx, `peer-${peer.id}`);
@@ -282,7 +286,7 @@ async function pollNetwork() {
         continue;
       }
       dot.classList.toggle('on', peer.active);
-      dot.classList.toggle('off', !peer.active);
+      dot.classList.toggle('idle', !peer.active);
     }
   }
 }

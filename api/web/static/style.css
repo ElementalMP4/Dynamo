@@ -10,6 +10,7 @@
     --danger-hover: #b91c1c;
     --success: #059669;
     --border: #404040;
+    --idle: #ffe100;
 }
 
 * {
@@ -308,20 +309,24 @@ main {
     border-left: 3px solid var(--border);
 }
 
-.circuit-status-dot {
+.status-dot {
     width: 10px;
     height: 10px;
     border-radius: 50%;
     flex-shrink: 0;
 }
 
-.circuit-status-dot.on {
+.status-dot.on {
     background-color: var(--success);
     box-shadow: 0 0 6px var(--success);
 }
 
-.circuit-status-dot.off {
-    background-color: var(--border);
+.status-dot.off {
+    background-color: var(--danger);
+}
+
+.status-dot.idle {
+    background-color: var(--idle);
 }
 
 .circuit-info {
