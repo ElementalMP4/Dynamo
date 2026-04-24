@@ -30,7 +30,7 @@ function renderCircuits(circuits) {
 
     list.innerHTML = circuits.map(rc => `
       <div class="circuit-card ${rc.enabled ? 'enabled' : 'disabled'}" id="card-${rc.id}">
-        <div class="circuit-status-dot ${rc.enabled ? 'on' : 'off'}"></div>
+        <div class="status-dot ${rc.enabled ? 'on' : 'off'}"></div>
         <div class="circuit-info">
           <div class="circuit-info-row">
             <span class="circuit-name">${escHtml(rc.name)}</span>

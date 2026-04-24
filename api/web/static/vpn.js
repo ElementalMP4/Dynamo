@@ -129,86 +129,111 @@ function renderInterfaces(interfaces) {
 
 function renderInterfaceCard(iface) {
   const peers = iface.peers || [];
-  const peersHtml =
-    peers.length === 0
-      ? `<p style="color: var(--text-secondary); font-size: 0.9rem; padding: 0.5rem 0;">No peers yet.</p>`
-      : peers.map((p) => renderPeerCard(iface.name, p)).join('');
-
   const enabled = iface.enabled !== false;
   const dotClass = enabled ? 'on' : 'off';
   const cardClass = enabled ? 'enabled' : 'disabled';
   const toggleLabel = enabled ? 'Disable' : 'Enable';
   const toggleClass = enabled ? 'secondary' : 'success';
 
-  return `
-  <div class="record-group" id="iface-group-${esc(iface.name)}">
-    <div class="circuit-card circuit-card--with-chart ${cardClass}" style="margin-bottom: 1rem;">
-      <div class="circuit-status-dot ${dotClass}"></div>
-      <div class="circuit-info">
-        <div class="circuit-info-row">
-          <span class="circuit-name">${esc(iface.name)}</span>
-          <span class="circuit-badge">NAT ${iface.enable_nat ? 'ON' : 'OFF'}</span>
-        </div>
-        <div class="circuit-meta">${esc(iface.address)} &nbsp; :${iface.listen_port} &nbsp; ${esc(iface.endpoint)}</div>
-        <div class="circuit-meta" id="${iface.name}-connectivity-stats">TX: Loading&nbsp; RX: Loading</div>
-      </div>
-      <div class="circuit-actions">
-        <button class="button sm secondary" onclick="showEditInterfaceModal(${jsonAttr(iface)})">Edit</button>
-        <button class="button sm ${toggleClass}" onclick="toggleInterface('${esc(iface.name)}', ${enabled})">${toggleLabel}</button>
-        <button class="button sm secondary" onclick="event.stopPropagation(); showAddPeerModal('${esc(iface.name)}')">Add Peer</button>
-        <button class="button sm danger" onclick="showDeleteIfaceModal('${esc(iface.name)}')">Delete</button>
-      </div>
-      <div class="circuit-chart">
-        <canvas id="chart-iface-${esc(iface.name)}"></canvas>
-      </div>
-    </div>
+  const safeName = esc(iface.name);
 
-    <div class="iface-peers-section">
-      <button class="peers-toggle" onclick="togglePeersVisibility('${esc(iface.name)}')" id="peers-toggle-${esc(iface.name)}">
-        <span class="peers-toggle-label">
-          <svg class="peers-chevron" id="peers-chevron-${esc(iface.name)}" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06z" clip-rule="evenodd"/>
-          </svg>
-          Peers <span style="font-weight: normal; color: var(--text-secondary);">(${peers.length})</span>
-        </span>
+  const peersHtml = peers.length
+    ? peers.map((p) => renderPeerCard(iface.name, p)).join('')
+    : `<p class="vpn-meta" style="padding:0.5rem 0;">No peers yet.</p>`;
+
+  return `
+    <div class="vpn-interface-group" id="iface-group-${safeName}">
+      <div class="vpn-card ${cardClass}">
+        <div class="vpn-info">
+          <div class="vpn-header">
+            <div class="status-dot ${dotClass}"></div>
+            <div class="vpn-title-row">
+              <span class="vpn-name">${safeName}</span>
+              <span class="circuit-badge">NAT ${iface.enable_nat ? 'ON' : 'OFF'}</span>
+            </div>
+          </div>
+
+          <div class="vpn-meta">${esc(iface.address)} &nbsp; :${iface.listen_port} &nbsp; ${esc(iface.endpoint)}</div>
+          <div class="vpn-stats" id="${safeName}-connectivity-stats">TX: No Data&nbsp; RX: No Data</div>
+        </div>
+
+        <div class="vpn-actions">
+          <button class="button sm secondary" onclick="showEditInterfaceModal(${jsonAttr(iface)})">Edit</button>
+          <button class="button sm ${toggleClass}" onclick="toggleInterface('${safeName}', ${enabled})">${toggleLabel}</button>
+          <button class="button sm secondary" onclick="showAddPeerModal('${safeName}')">Add Peer</button>
+          <button class="button sm danger" onclick="showDeleteIfaceModal('${safeName}')">Delete</button>
+        </div>
+
+        <div class="vpn-chart">
+          <canvas id="chart-iface-${safeName}"></canvas>
+        </div>
+      </div>
+
+      <button class="vpn-peers-header" onclick="togglePeersVisibility('${safeName}')">
+        <span>Peers <span style="font-weight:400;color:var(--text-secondary);">(${peers.length})</span></span>
+        <svg class="peers-chevron" id="peers-chevron-${safeName}" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06z" clip-rule="evenodd"/>
+        </svg>
       </button>
-      <div class="records peers-list" id="peers-list-${esc(iface.name)}" style="display: none;">
+
+      <div class="vpn-peers-list" id="peers-list-${safeName}">
         ${peersHtml}
       </div>
     </div>
-  </div>`;
+  `;
 }
 
 function renderPeerCard(ifaceName, peer) {
-  const dotClass = peer.enabled ? 'on' : 'off';
+  const enabledClass = peer.enabled ? 'on' : 'off';
   const toggleLabel = peer.enabled ? 'Disable' : 'Enable';
   const toggleClass = peer.enabled ? 'secondary' : 'success';
+  const activityClass = peer.active ? 'on' : 'off';
+
+  const safeIface = esc(ifaceName);
+  const safeId = esc(peer.id);
+  const safeName = esc(peer.name);
+
+  const actions = `
+    <button class="button sm secondary" onclick="downloadConfig('${safeIface}', '${safeId}', '${safeName}')">Config</button>
+    <button class="button sm secondary" onclick="showEditPeerModal('${safeIface}', ${jsonAttr(peer)})">Edit</button>
+    <button class="button sm ${toggleClass}" onclick="togglePeer('${safeIface}', '${safeId}', ${!peer.enabled})">${toggleLabel}</button>
+    <button class="button sm danger" onclick="showDeletePeerModal('${safeIface}', '${safeId}', '${safeName}')">Delete</button>
+  `;
 
   return `
-  <div class="circuit-card circuit-card--with-chart ${peer.enabled ? 'enabled' : 'disabled'}" id="peer-card-${esc(peer.id)}">
-    <div class="circuit-status-dot ${dotClass}"></div>
-    <div class="circuit-info">
-      <div class="circuit-info-row">
-        <span class="circuit-name">${esc(peer.name)}</span>
-        <span class="circuit-badge" id="${peer.id}-activity">Unknown</span>
+    <div class="vpn-card vpn-card--peer ${peer.enabled ? 'enabled' : 'disabled'}" id="peer-card-${safeId}">
+      <div class="vpn-info">
+        <div class="vpn-header">
+          <div class="vpn-title-row">
+            <span class="status-dot ${enabledClass}"></span>
+            <span class="status-dot ${activityClass}" id="${safeId}-activity-dot"></span>
+            <span class="vpn-name">${safeName}</span>
+          </div>
+        </div>
+
+        <div class="vpn-meta">${esc(peer.ip)}${peer.dns ? ' &nbsp; DNS: ' + esc(peer.dns) : ''}</div>
+        <div class="vpn-stats" id="${safeId}-connectivity-stats">TX: Loading&nbsp; RX: Loading</div>
       </div>
-      <div class="circuit-meta">${esc(peer.ip)}${peer.dns ? ' &nbsp; DNS: ' + esc(peer.dns) : ''}</div>
-      <div class="circuit-meta" id="${peer.id}-connectivity-stats">TX: Loading&nbsp; RX: Loading</div>
+
+      <div class="vpn-actions">
+        ${actions}
+      </div>
+
+      <div class="peer-options">
+        <button class="button sm secondary" onclick="togglePeerOptions(event, '${safeId}')">Options</button>
+        <div class="peer-options-menu" id="peer-options-${safeId}">
+          ${actions}
+        </div>
+      </div>
+
+      <div class="vpn-chart vpn-chart--peer">
+        <canvas id="chart-peer-${safeId}"></canvas>
+      </div>
     </div>
-    <div class="circuit-actions">
-      <button class="button sm secondary" onclick="downloadConfig('${esc(ifaceName)}', '${esc(peer.id)}', '${esc(peer.name)}')">Config</button>
-      <button class="button sm secondary" onclick="showEditPeerModal('${esc(ifaceName)}', ${jsonAttr(peer)})">Edit</button>
-      <button class="button sm ${toggleClass}" onclick="togglePeer('${esc(ifaceName)}', '${esc(peer.id)}', ${!peer.enabled})">${toggleLabel}</button>
-      <button class="button sm danger" onclick="showDeletePeerModal('${esc(ifaceName)}', '${esc(peer.id)}', '${esc(peer.name)}')">Delete</button>
-    </div>
-    <div class="circuit-chart circuit-chart--peer">
-      <canvas id="chart-peer-${esc(peer.id)}"></canvas>
-    </div>
-  </div>`;
+  `;
 }
 
-function formatRate(bytesPerSec) {
-  let bitsPerSec = bytesPerSec * 8;
+function formatRate(bitsPerSec) {
   const units = ['bps', 'Kbps', 'Mbps', 'Gbps'];
   let i = 0;
   while (bitsPerSec > 1000 && i < units.length - 1) {
@@ -249,14 +274,20 @@ async function pollNetwork() {
     writeStats(statsField, iface.name, iface.tx, iface.rx, `iface-${iface.name}`);
 
     for (const peer of iface.peers) {
-      const peerStatsField = document.getElementById(`${peer.id}-connectivity-stats`);
-      const peerActivityField = document.getElementById(`${peer.id}-activity`);
+      if (!peer.enabled) {
+        continue;
+      }
 
+      const peerStatsField = document.getElementById(`${peer.id}-connectivity-stats`);
+      const dot = document.getElementById(`${peer.id}-activity-dot`);
       writeStats(peerStatsField, peer.id, peer.tx, peer.rx, `peer-${peer.id}`);
 
-      if (peerActivityField) {
-        peerActivityField.innerHTML = peer.active ? 'Active' : 'Inactive';
+      if (!dot) {
+        continue;
       }
+      dot.classList.toggle('on', peer.active);
+      dot.classList.toggle('idle', !peer.active);
+      dot.classList.toggle('off', !peer.active);
     }
   }
 }
@@ -588,10 +619,29 @@ async function downloadConfig(ifaceName, peerId, peerName) {
 function togglePeersVisibility(ifaceName) {
   const list = document.getElementById(`peers-list-${ifaceName}`);
   const chevron = document.getElementById(`peers-chevron-${ifaceName}`);
-  const open = list.style.display !== 'none';
-  list.style.display = open ? 'none' : 'grid';
-  chevron.classList.toggle('peers-chevron--open', !open);
+
+  if (!list) return;
+
+  const open = list.classList.toggle('open');
+  if (chevron) chevron.classList.toggle('peers-chevron--open', open);
 }
+
+function togglePeerOptions(event, peerId) {
+  event.stopPropagation();
+
+  document.querySelectorAll('.peer-options-menu.open').forEach((menu) => {
+    if (menu.id !== `peer-options-${peerId}`) menu.classList.remove('open');
+  });
+
+  const menu = document.getElementById(`peer-options-${peerId}`);
+  if (menu) menu.classList.toggle('open');
+}
+
+document.addEventListener('click', () => {
+  document.querySelectorAll('.peer-options-menu.open').forEach((menu) => {
+    menu.classList.remove('open');
+  });
+});
 
 function showModal(id) {
   document.getElementById(id).style.display = 'flex';
