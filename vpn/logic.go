@@ -78,9 +78,10 @@ SaveConfig = true
 
 	if iface.EnableNAT {
 		cfg += fmt.Sprintf(`
-PostUp = iptables -A FORWARD -i %s -j ACCEPT; iptables -t nat -A POSTROUTING -o %s -j MASQUERADE; ip6tables -A FORWARD -i %s -j ACCEPT; ip6tables -t nat -A POSTROUTING -o %s -j MASQUERADE
-PostDown = iptables -D FORWARD -i %s -j ACCEPT; iptables -t nat -D POSTROUTING -o %s -j MASQUERADE; ip6tables -D FORWARD -i %s -j ACCEPT; ip6tables -t nat -D POSTROUTING -o %s -j MASQUERADE
-`, iface.Name, iface.OutInterface, iface.Name, iface.OutInterface, iface.Name, iface.OutInterface, iface.Name, iface.OutInterface)
+PostUp = iptables -I FORWARD 1 -i %s -j ACCEPT; iptables -I FORWARD 2 -o %s -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT; iptables -t nat -A POSTROUTING -o %s -j MASQUERADE; ip6tables -I FORWARD 1 -i %s -j ACCEPT; ip6tables -I FORWARD 2 -o %s -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT; ip6tables -t nat -A POSTROUTING -o %s -j MASQUERADE
+PostDown = iptables -D FORWARD -i %s -j ACCEPT; iptables -D FORWARD -o %s -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT; iptables -t nat -D POSTROUTING -o %s -j MASQUERADE; ip6tables -D FORWARD -i %s -j ACCEPT; ip6tables -D FORWARD -o %s -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT; ip6tables -t nat -D POSTROUTING -o %s -j MASQUERADE
+`, iface.Name, iface.Name, iface.OutInterface, iface.Name, iface.Name, iface.OutInterface,
+			iface.Name, iface.Name, iface.OutInterface, iface.Name, iface.Name, iface.OutInterface)
 	}
 
 	for _, p := range iface.Peers {
@@ -91,7 +92,8 @@ PostDown = iptables -D FORWARD -i %s -j ACCEPT; iptables -t nat -D POSTROUTING -
 
 		log.Infof("vpn", "Including peer %s", p.Name)
 
-		cfg += fmt.Sprintf(`[Peer]
+		cfg += fmt.Sprintf(`
+[Peer]
 PublicKey = %s
 PresharedKey = %s
 AllowedIPs = %s
