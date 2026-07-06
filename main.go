@@ -5,6 +5,7 @@ import (
 	"Dynamo/banner"
 	"Dynamo/circuit"
 	"Dynamo/config"
+	"Dynamo/dns"
 	"Dynamo/vpn"
 	"os"
 
@@ -30,6 +31,11 @@ func main() {
 	err = vpn.SyncWireguard()
 	if err != nil {
 		log.Fatalf("vpn-sync", "An error occurred whilst syncing VPN state: %v", err)
+	}
+
+	err = dns.SyncDns()
+	if err != nil {
+		log.Fatalf("dns-sync", "An error occurred whilst syncing DNS state: %v", err)
 	}
 
 	api.StartAPI()

@@ -11,7 +11,7 @@ import (
 )
 
 func ListRecords(c *gin.Context) {
-	records, err := loadRecords()
+	records, err := dnsStore.Load()
 	if err != nil {
 		fmtErr := fmt.Errorf("Failed to load DNS records: %v", err)
 		util.ErrorResponse(c, http.StatusInternalServerError, loggingSource, fmtErr)
@@ -28,7 +28,13 @@ func CreateRecord(c *gin.Context) {
 		return
 	}
 
-	records, _ := loadRecords()
+	records, err := dnsStore.Load()
+	if err != nil {
+		fmtErr := fmt.Errorf("Failed to load DNS records: %v", err)
+		util.ErrorResponse(c, http.StatusInternalServerError, loggingSource, fmtErr)
+		return
+	}
+
 	rec.ID = len(records) + 1
 	records = append(records, rec)
 
@@ -44,7 +50,12 @@ func CreateRecord(c *gin.Context) {
 
 func GetRecordByID(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
-	records, _ := loadRecords()
+	records, err := dnsStore.Load()
+	if err != nil {
+		fmtErr := fmt.Errorf("Failed to load DNS records: %v", err)
+		util.ErrorResponse(c, http.StatusInternalServerError, loggingSource, fmtErr)
+		return
+	}
 
 	for _, r := range records {
 		if r.ID == id {
@@ -65,7 +76,7 @@ func UpdateRecord(c *gin.Context) {
 		return
 	}
 
-	records, err := loadRecords()
+	records, err := dnsStore.Load()
 	if err != nil {
 		fmtErr := fmt.Errorf("Failed to load DNS records: %v", err)
 		util.ErrorResponse(c, http.StatusInternalServerError, loggingSource, fmtErr)
@@ -126,7 +137,13 @@ func UpdateRecord(c *gin.Context) {
 
 func DeleteRecord(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
-	records, _ := loadRecords()
+	records, err := dnsStore.Load()
+
+	if err != nil {
+		fmtErr := fmt.Errorf("Failed to load DNS records: %v", err)
+		util.ErrorResponse(c, http.StatusInternalServerError, loggingSource, fmtErr)
+		return
+	}
 
 	var filtered []DNSRecord
 	var toBeDeleted DNSRecord

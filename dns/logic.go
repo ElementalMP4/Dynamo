@@ -3,15 +3,36 @@ package dns
 import (
 	"Dynamo/config"
 	"Dynamo/store"
-	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
-	"strconv"
 	"strings"
+
+	"github.com/ElementalMP4/loggerino/log"
 )
 
 const loggingSource string = "dns-router"
+
+var dnsStore *store.JSONStore[[]DNSRecord]
+
+func SyncDns() error {
+	dnsStore = store.NewJSONStore[[]DNSRecord]("circuits.json")
+	log.Info("dns-sync", "Syncing DNS")
+
+	records, err := dnsStore.Load()
+	if err != nil {
+		return err
+	}
+
+	err = writeRecords(records)
+	if err != nil {
+		return err
+	}
+
+	log.Okf("dns-sync", "DNS sync completed successfully")
+
+	return nil
+}
 
 func EnsureWritable() error {
 	f, err := os.OpenFile(config.GetConfig().DnsmasqFile, os.O_RDWR|os.O_CREATE, 0644)
@@ -28,82 +49,10 @@ func reloadDnsmasq() error {
 	return cmd.Run()
 }
 
-func loadRecords() ([]DNSRecord, error) {
-	file, err := os.Open(config.GetConfig().DnsmasqFile)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	var records []DNSRecord
-	scanner := bufio.NewScanner(file)
-	id := 1
-	ttl := 0
-
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-
-		if strings.HasPrefix(line, "# ttl=") {
-			ttl, _ = strconv.Atoi(strings.TrimPrefix(line, "# ttl="))
-			continue
-		}
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-
-		rec := DNSRecord{
-			ID:  id,
-			TTL: ttl,
-		}
-
-		switch {
-		case strings.HasPrefix(line, "address=/"):
-			rec.Type = "A"
-			parts := strings.Split(strings.TrimPrefix(line, "address=/"), "/")
-			rec.Name = parts[0]
-			rec.IPv4 = parts[1]
-
-		case strings.HasPrefix(line, "cname="):
-			rec.Type = "CNAME"
-			parts := strings.Split(strings.TrimPrefix(line, "cname="), ",")
-			rec.Name = parts[0]
-			rec.CNAME = parts[1]
-
-		case strings.HasPrefix(line, "txt-record="):
-			rec.Type = "TXT"
-			parts := strings.SplitN(strings.TrimPrefix(line, "txt-record="), ",", 2)
-			rec.Name = parts[0]
-			rec.TXT = []string{strings.Trim(parts[1], `"`)}
-
-		case strings.HasPrefix(line, "srv-host="):
-			rec.Type = "SRV"
-			parts := strings.Split(strings.TrimPrefix(line, "srv-host="), ",")
-			rec.Name = parts[0]
-			rec.Target = parts[1]
-			port, _ := strconv.Atoi(parts[2])
-			rec.Port = port
-			priority, _ := strconv.Atoi(parts[3])
-			rec.Priority = priority
-			weight, _ := strconv.Atoi(parts[4])
-			rec.Weight = weight
-		default:
-			continue
-		}
-
-		records = append(records, rec)
-		id++
-	}
-
-	dnsStore := store.NewJSONStore[[]DNSRecord]("dns.json")
-	dnsStore.Save(records)
-
-	return records, nil
-}
-
 func writeRecords(records []DNSRecord) error {
 	var out strings.Builder
 
-	out.WriteString("# Managed by Dynamo\n\n")
+	out.WriteString("# Managed by Dynamo - Do not edit manually! Edits will be overwritten\n\n")
 
 	for _, r := range records {
 		out.WriteString(fmt.Sprintf("# ttl=%d\n", r.TTL))
@@ -125,6 +74,7 @@ func writeRecords(records []DNSRecord) error {
 		}
 
 		out.WriteString("\n")
+		log.Infof("dns-sync", "Created %s record for %s", r.Type, r.Name)
 	}
 
 	if err := os.WriteFile(config.GetConfig().DnsmasqFile, []byte(out.String()), 0644); err != nil {
@@ -135,7 +85,7 @@ func writeRecords(records []DNSRecord) error {
 }
 
 func CountDNSRecords() (map[string]int, error) {
-	records, err := loadRecords()
+	records, err := dnsStore.Load()
 	if err != nil {
 		return nil, err
 	}
