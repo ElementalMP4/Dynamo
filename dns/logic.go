@@ -2,6 +2,7 @@ package dns
 
 import (
 	"Dynamo/config"
+	"Dynamo/store"
 	"bufio"
 	"fmt"
 	"os"
@@ -92,6 +93,9 @@ func loadRecords() ([]DNSRecord, error) {
 		records = append(records, rec)
 		id++
 	}
+
+	dnsStore := store.NewJSONStore[[]DNSRecord]("dns.json")
+	dnsStore.Save(records)
 
 	return records, nil
 }
