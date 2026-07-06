@@ -16,7 +16,7 @@ const loggingSource string = "dns-router"
 var dnsStore *store.JSONStore[[]DNSRecord]
 
 func SyncDns() error {
-	dnsStore = store.NewJSONStore[[]DNSRecord]("circuits.json")
+	dnsStore = store.NewJSONStore[[]DNSRecord]("dns.json")
 	log.Info("dns-sync", "Syncing DNS")
 
 	records, err := dnsStore.Load()
