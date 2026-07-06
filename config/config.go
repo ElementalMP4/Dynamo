@@ -13,6 +13,7 @@ type Config struct {
 	CertsDir      string `json:"certsDir"`
 	DnsmasqFile   string `json:"dnsmasqConfigFile"`
 	DataDirectory string `json:"dataDirectory"`
+	InstanceName  string `json:"instance"`
 }
 
 var config Config
