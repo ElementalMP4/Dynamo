@@ -174,6 +174,10 @@ async function loadInterfacesIntoEditor() {
     select.innerHTML = "";
 
     interfacesJson.interfaces.forEach(iface => {
+        if (iface.startsWith("veth")) continue;
+        if (iface.startsWith("docker")) continue;
+        if (iface.startsWith("br-")) continue;
+        
         const option = document.createElement('option');
         option.value = iface;
         option.textContent = iface;
