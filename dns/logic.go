@@ -74,7 +74,7 @@ func writeRecords(records []DNSRecord) error {
 		}
 
 		out.WriteString("\n")
-		log.Infof("dns-sync", "Created %s record for %s", r.Type, r.Name)
+		log.Infof("dns", "Created %s record for %s", r.Type, r.Name)
 	}
 
 	if err := os.WriteFile(config.GetConfig().DnsmasqFile, []byte(out.String()), 0644); err != nil {
