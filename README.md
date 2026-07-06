@@ -2,29 +2,33 @@
 
 Network Management Platform
 
-## Dependencies
-
-- NGINX
-- dnsmasq
-- Conntrack
-- iptables
-- iptables-save
-- wireguard
+![a screenshot showing a demonstration of the Dynamo homepage](demo.png "Dynamo Home")
 
 ## Features
 
 - Manages DNS records in dnsmasq
 - Creates Root CAs, Service Certificates & Client Certificates
-- Creates NGINX mTLS-ready configurations with http -> https redirects & CRLs
-- Manages iptables routing rules for a variety of redirects
+- Creates Nginx mTLS-ready configurations with http -> https redirects & CRLs
+- Manages iptables routing rules for a variety of redirects and circuit breakers
 
-## Example NGINX config
+## Requires
+
+- dnsmasq
+- conntrack
+- iptables (or nftables)
+- wireguard
+
+Dynamo also generates configuration files that can be included in Nginx, but Nginx is not a mandatory dependency.
+
+Dynamo should not be run as root - however it does require read and write access to `/etc/Dynamo` and `/etc/dnsmasq.d` as well as authorisation to manipulate iptables. 
+
+## Example Nginx config
 
 ```nginx
-include /opt/Dynamo/ssl/server/<service name>/nginx-redirect.conf;
+include /etc/Dynamo/ssl/server/<service name>/nginx-redirect.conf;
 
 server {
-    include /opt/Dynamo/ssl/server/<service name>/nginx-mtls.conf;
+    include /etc/Dynamo/ssl/server/<service name>/nginx-mtls.conf;
     location / {
         proxy_pass http://127.0.0.1:8080;
     }
@@ -37,17 +41,17 @@ Include looks something like this:
 listen 443 ssl;
 server_name <service name>;
 
-ssl_certificate     /opt/Dynamo/ssl/server/<service name>/<service name>.crt;
-ssl_certificate_key /opt/Dynamo/ssl/server/<service name>/<service name>.key;
+ssl_certificate     /etc/Dynamo/ssl/server/<service name>/<service name>.crt;
+ssl_certificate_key /etc/Dynamo/ssl/server/<service name>/<service name>.key;
 
-ssl_client_certificate /opt/Dynamo/ssl/root/elitedesk/elitedesk.crt;
+ssl_client_certificate /etc/Dynamo/ssl/root/elitedesk/elitedesk.crt;
 ssl_verify_client on;
 
 ssl_protocols TLSv1.2 TLSv1.3;
 ssl_prefer_server_ciphers on;
 ```
 
-## dnsmasq
+## Example dnsmasq config
 
 `/etc/dnsmasq.conf` must contain a bare minimum of the following:
 ```ini
@@ -71,6 +75,7 @@ conf-dir=/etc/dnsmasq.d
     "serverBind": "127.0.0.1:6789", // Bind address and port are mandatory. If using nginx (or other proxy) make sure to bind Dynamo to localhost only
     "certsDir": "/etc/Dynamo/ssl", // Where to store SSL certs
     "dnsmasqConfigFile": "/etc/dnsmasq.d/dynamo.conf", // Absolute path to dnsmasq config file (NOT the main config file!)
-    "dataDirectory": "/etc/Dynamo/data" // Where to store other data files
+    "dataDirectory": "/etc/Dynamo/data", // Where to store other data files
+    "instance": "Server Name"
 }
 ```
