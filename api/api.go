@@ -50,43 +50,16 @@ func StartAPI() {
 	r := gin.New()
 	r.Use(logger())
 	r.Use(gin.Recovery())
+	htmlFS := getHTMLFileSystem()
 
-	// UI routes
-	templ, err := loadEmbeddedTemplates()
-	if err != nil {
-		log.Fatalf("api", "Failed to load templates: %v", err.Error())
-	}
-	r.SetHTMLTemplate(templ)
-	r.StaticFS("/static", getFileSystem())
+	// Static assets
+	r.StaticFS("/css", getCSSFileSystem())
+	r.StaticFS("/js", getJSFileSystem())
 
+	// Serve index.html at /  — http.FileServer on a directory serves its
+	// index.html directly without issuing any redirect.
 	r.GET("/", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "base.html", gin.H{
-			"isHome": true,
-		})
-	})
-
-	r.GET("/dns", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "base.html", gin.H{
-			"isDns": true,
-		})
-	})
-
-	r.GET("/certs", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "base.html", gin.H{
-			"isCerts": true,
-		})
-	})
-
-	r.GET("/circuits", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "base.html", gin.H{
-			"isCircuits": true,
-		})
-	})
-
-	r.GET("/vpn", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "base.html", gin.H{
-			"isVpn": true,
-		})
+		http.FileServer(htmlFS).ServeHTTP(c.Writer, c.Request)
 	})
 
 	// Cert management routes
@@ -137,6 +110,7 @@ func StartAPI() {
 	// Statistics routes
 	r.GET("/api/stats/dynamo", getCountsHandler)
 	r.GET("/api/stats/network", getNetStatsHandler)
+	r.GET("/api/stats/system", getSystemStatsHandler)
 	r.GET("/api/system/interfaces", listNetworkInterfaces)
 
 	log.Info("api", "Starting admin API on "+config.GetConfig().ServerAddress)
@@ -165,7 +139,7 @@ func getCountsHandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, gin.H{"dns": dnsCounts, "certs": certCounts, "circuits": circuitCounts})
+	c.JSON(200, gin.H{"dns": dnsCounts, "certs": certCounts, "circuits": circuitCounts, "instance": config.GetConfig().InstanceName})
 }
 
 func getNetStatsHandler(c *gin.Context) {
@@ -237,4 +211,78 @@ func listInterfaces() ([]string, error) {
 	}
 
 	return out, nil
+}
+
+func getSystemStatsHandler(c *gin.Context) {
+	cpu, err := getCPUStats()
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	mem, err := getMemStats()
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, SystemStats{CPU: cpu, Mem: mem})
+}
+
+func getCPUStats() (CPUStats, error) {
+	file, err := os.Open("/proc/stat")
+	if err != nil {
+		return CPUStats{}, err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if !strings.HasPrefix(line, "cpu ") {
+			continue
+		}
+		fields := strings.Fields(line)
+		if len(fields) < 9 {
+			break
+		}
+		parse := func(i int) uint64 {
+			v, _ := strconv.ParseUint(fields[i], 10, 64)
+			return v
+		}
+		return CPUStats{
+			User:    parse(1),
+			Nice:    parse(2),
+			System:  parse(3),
+			Idle:    parse(4),
+			Iowait:  parse(5),
+			Irq:     parse(6),
+			Softirq: parse(7),
+			Steal:   parse(8),
+		}, nil
+	}
+	return CPUStats{}, fmt.Errorf("cpu stats not found in /proc/stat")
+}
+
+func getMemStats() (MemStats, error) {
+	file, err := os.Open("/proc/meminfo")
+	if err != nil {
+		return MemStats{}, err
+	}
+	defer file.Close()
+
+	var stats MemStats
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		fields := strings.Fields(scanner.Text())
+		if len(fields) < 2 {
+			continue
+		}
+		v, _ := strconv.ParseUint(fields[1], 10, 64)
+		switch fields[0] {
+		case "MemTotal:":
+			stats.TotalKB = v
+		case "MemAvailable:":
+			stats.AvailableKB = v
+		}
+	}
+	return stats, nil
 }
