@@ -50,6 +50,11 @@ func reloadDnsmasq() error {
 }
 
 func writeRecords(records []DNSRecord) error {
+	err := dnsStore.Save(records)
+	if err != nil {
+		return fmt.Errorf("failed to save DNS state: %v", err)
+	}
+
 	var out strings.Builder
 
 	out.WriteString("# Managed by Dynamo - Do not edit manually! Edits will be overwritten\n\n")
