@@ -173,16 +173,16 @@ async function loadInterfacesIntoEditor() {
     const select = document.getElementById('circuit-interface');
     select.innerHTML = "";
 
-    interfacesJson.interfaces.forEach(iface => {
+    for (const iface of interfacesJson.interfaces) {
         if (iface.startsWith("veth")) continue;
         if (iface.startsWith("docker")) continue;
         if (iface.startsWith("br-")) continue;
-        
+
         const option = document.createElement('option');
         option.value = iface;
         option.textContent = iface;
         select.appendChild(option);
-    });
+    }
 }
 
 async function showCreateModal() {
