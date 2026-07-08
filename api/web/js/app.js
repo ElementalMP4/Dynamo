@@ -1,4 +1,5 @@
 import Mini from "/js/mini.js";
+import { showAlert, showConfirm, IncludeAlertModal, IncludeConfirmModal } from "/js/mini-modal.js";
 
 const appStore = Mini.createStore({ instanceName: "" });
 
@@ -47,27 +48,11 @@ function formatRate(bitsPerSec) {
     return `${value.toFixed(1)} ${units[i]}`;
 }
 
-function formatError(error) {
-    if (!error) return "Unknown error";
-    if (typeof error === "string") return error;
-    if (error.error) return error.error;
-    if (error.message) return error.message;
-    return "Unknown error";
-}
-
-async function parseJsonSafe(response) {
-    try {
-        return await response.json();
-    } catch (_) {
-        return null;
-    }
-}
-
 async function request(path, options = {}) {
     const res = await fetch(path, options);
     if (!res.ok) {
-        const body = await parseJsonSafe(res);
-        throw new Error(formatError(body) || `${res.status} ${res.statusText}`);
+        const body = await res.text();
+        throw new Error(`${res.status} ${res.statusText} ${body || ""}` );
     }
     const contentType = res.headers.get("content-type") || "";
     if (contentType.includes("application/json")) return res.json();
@@ -658,7 +643,7 @@ function DnsScreen() {
             setAddOpen(false);
             loadRecords();
         } catch (err) {
-            alert(`Error creating record: ${err.message}`);
+            await showAlert(`Error creating record: ${err.message}`);
         }
     }
 
@@ -679,17 +664,17 @@ function DnsScreen() {
             setEditRecord(null);
             loadRecords();
         } catch (err) {
-            alert(`Error updating record: ${err.message}`);
+            await showAlert(`Error updating record: ${err.message}`);
         }
     }
 
     async function removeRecord(id) {
-        if (!confirm("Are you sure you want to delete this record?")) return;
+        if (!(await showConfirm("Are you sure you want to delete this record?"))) return;
         try {
             await request(`/api/dns/${id}`, { method: "DELETE" });
             loadRecords();
         } catch (err) {
-            alert(`Error deleting record: ${err.message}`);
+            await showAlert(`Error deleting record: ${err.message}`);
         }
     }
 
@@ -877,7 +862,7 @@ function CertsScreen() {
             setRootForm({ name: "", days: "3650" });
             loadCerts();
         } catch (err) {
-            alert(`Failed to create root CA: ${err.message}`);
+            await showAlert(`Failed to create root CA: ${err.message}`);
         }
     }
 
@@ -895,7 +880,7 @@ function CertsScreen() {
             setActiveModal("");
             loadCerts();
         } catch (err) {
-            alert(`Failed to create server certificate: ${err.message}`);
+            await showAlert(`Failed to create server certificate: ${err.message}`);
         }
     }
 
@@ -916,18 +901,18 @@ function CertsScreen() {
             setClientForm({ name: "", caBase: clientForm.caBase, identity: "", p12Pass: "" });
             loadCerts();
         } catch (err) {
-            alert(`Failed to create client certificate: ${err.message}`);
+            await showAlert(`Failed to create client certificate: ${err.message}`);
         }
     }
 
     async function deleteGroup(kind, groupName) {
-        if (!confirm(`Delete and revoke ${groupName}? This cannot be undone.`)) return;
+        if (!(await showConfirm(`Delete and revoke ${groupName}? This cannot be undone.`))) return;
         try {
             await request(`/api/certs?kind=${encodeURIComponent(kind)}&base=${encodeURIComponent(groupName)}`, { method: "DELETE" });
             setDetail(null);
             loadCerts();
         } catch (err) {
-            alert(`Failed to delete certificate: ${err.message}`);
+            await showAlert(`Failed to delete certificate: ${err.message}`);
         }
     }
 
@@ -1185,7 +1170,7 @@ function CircuitsScreen() {
             setEditing(null);
             loadCircuits();
         } catch (err) {
-            alert(`Failed to save circuit: ${err.message}`);
+            await showAlert(`Failed to save circuit: ${err.message}`);
         }
     }
 
@@ -1194,7 +1179,7 @@ function CircuitsScreen() {
             await request(`/api/circuits/${id}/${enable ? "enable" : "disable"}`, { method: "POST" });
             loadCircuits();
         } catch (err) {
-            alert(`Failed to update circuit: ${err.message}`);
+            await showAlert(`Failed to update circuit: ${err.message}`);
         }
     }
 
@@ -1205,7 +1190,7 @@ function CircuitsScreen() {
             setDeleting(null);
             loadCircuits();
         } catch (err) {
-            alert(`Failed to delete circuit: ${err.message}`);
+            await showAlert(`Failed to delete circuit: ${err.message}`);
         }
     }
 
@@ -1635,7 +1620,7 @@ function VpnScreen() {
             setIfaceModal({ open: false, editName: "" });
             loadInterfaces();
         } catch (err) {
-            alert(`Failed to save interface: ${err.message}`);
+            await showAlert(`Failed to save interface: ${err.message}`);
         }
     }
 
@@ -1648,7 +1633,7 @@ function VpnScreen() {
             });
             loadInterfaces();
         } catch (err) {
-            alert(`Failed to toggle interface: ${err.message}`);
+            await showAlert(`Failed to toggle interface: ${err.message}`);
         }
     }
 
@@ -1659,7 +1644,7 @@ function VpnScreen() {
             setDeleteIface(null);
             loadInterfaces();
         } catch (err) {
-            alert(`Failed to delete interface: ${err.message}`);
+            await showAlert(`Failed to delete interface: ${err.message}`);
         }
     }
 
@@ -1702,7 +1687,7 @@ function VpnScreen() {
             setPeerModal({ open: false, iface: "", editId: "" });
             loadInterfaces();
         } catch (err) {
-            alert(`Failed to save peer: ${err.message}`);
+            await showAlert(`Failed to save peer: ${err.message}`);
         }
     }
 
@@ -1743,7 +1728,7 @@ function VpnScreen() {
             link.click();
             URL.revokeObjectURL(url);
         } catch (err) {
-            alert(`Failed to download config: ${err.message}`);
+            await showAlert(`Failed to download config: ${err.message}`);
         }
     }
 
@@ -1968,6 +1953,8 @@ function App() {
     ];
 
     return Mini.div({ class: "mui-shell" },
+        IncludeAlertModal(),
+        IncludeConfirmModal(),
         Mini.header({ class: "mui-topbar" },
             Mini.div({ class: "mui-brand" },
                 Mini.span({ class: "mui-brand-mark" }, "D"),
