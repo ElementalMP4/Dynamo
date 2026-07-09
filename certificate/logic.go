@@ -163,9 +163,9 @@ func deleteCertGroup(kind, base string) error {
 			entries, _ := os.ReadDir(dir)
 
 			for _, e := range entries {
-				meta, err := readMetadata(k, e.Name())
+				meta, err, metaPath := readMetadata(k, e.Name())
 				if err != nil {
-					log.Warnf("cert-revoke", "Metadata not found for %s", base)
+					log.Warnf("cert-revoke", "Error whilst trying to read metadata for %s at %s: %v", base, metaPath, err)
 				}
 
 				if meta.CaBase == base {
@@ -176,14 +176,14 @@ func deleteCertGroup(kind, base string) error {
 	}
 
 	if kind == "client" || kind == "server" {
-		meta, err := readMetadata(kind, base)
+		meta, err, metaPath := readMetadata(kind, base)
 		if err != nil {
-			log.Warnf("cert-revoke", "Metadata not found for %s", base)
+			log.Warnf("cert-revoke", "Error whilst trying to read metadata for %s at %s: %v", base, metaPath, err)
 
 		}
 		err = revokeCert(meta.CaBase, meta.SerialNumber)
 		if err != nil {
-			log.Warnf("cert-revoke", "Certificate revokation failed for %s", base)
+			log.Warnf("cert-revoke", "Certificate revokation failed for %s: %v", base, err)
 		}
 	}
 
@@ -605,18 +605,18 @@ func generateCRL(caBase string, serials []string) error {
 	}), 0o644)
 }
 
-func readMetadata(kind, base string) (*CertMetadata, error) {
+func readMetadata(kind, base string) (*CertMetadata, error, string) {
 	path := filepath.Join(certsBaseDir(), kind, base, "metadata.json")
 
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, err
+		return nil, err, path
 	}
 
 	var meta CertMetadata
 	if err := json.Unmarshal(data, &meta); err != nil {
-		return nil, err
+		return nil, err, path
 	}
 
-	return &meta, nil
+	return &meta, nil, path
 }
