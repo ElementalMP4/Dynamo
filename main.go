@@ -3,6 +3,7 @@ package main
 import (
 	"Dynamo/api"
 	"Dynamo/banner"
+	"Dynamo/certificate"
 	"Dynamo/circuit"
 	"Dynamo/config"
 	"Dynamo/dns"
@@ -23,7 +24,17 @@ func main() {
 		}
 	}
 
-	err := circuit.SyncCircuits()
+	err := certificate.EnsureSslDirs()
+	if err != nil {
+		log.Fatalf("certificates", "Failed to check SSL dirs: %v", err)
+	}
+
+	err = dns.EnsureWritable()
+	if err != nil {
+		log.Fatalf("dns", "DNS config file is not writable: %v", err)
+	}
+
+	err = circuit.SyncCircuits()
 	if err != nil {
 		log.Fatalf("circuit-sync", "An error occurred whilst syncing circuits: %v", err)
 	}

@@ -36,16 +36,6 @@ func logger() gin.HandlerFunc {
 }
 
 func StartAPI() {
-	err := certificate.EnsureSslDirs()
-	if err != nil {
-		log.Fatalf("api", "Failed to check SSL dirs: %v", err)
-	}
-
-	err = dns.EnsureWritable()
-	if err != nil {
-		log.Fatalf("api", "DNS config file is not writable: %v", err)
-	}
-
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 	r.Use(logger())
