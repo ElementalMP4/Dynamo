@@ -166,6 +166,7 @@ func deleteCertGroup(kind, base string) error {
 				meta, err, metaPath := readMetadata(k, e.Name())
 				if err != nil {
 					log.Warnf("cert-revoke", "Error whilst trying to read metadata for %s at %s: %v", base, metaPath, err)
+					continue
 				}
 
 				if meta.CaBase == base {
@@ -179,7 +180,7 @@ func deleteCertGroup(kind, base string) error {
 		meta, err, metaPath := readMetadata(kind, base)
 		if err != nil {
 			log.Warnf("cert-revoke", "Error whilst trying to read metadata for %s at %s: %v", base, metaPath, err)
-
+			return err
 		}
 		err = revokeCert(meta.CaBase, meta.SerialNumber)
 		if err != nil {
