@@ -12,6 +12,7 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"Dynamo/config"
@@ -70,6 +71,10 @@ func listAllCerts() (CertListing, error) {
 		var kindCerts []CertDir
 		for _, entry := range entries {
 			subDir := filepath.Join(dir, entry.Name())
+
+			if kind == "root" && strings.HasSuffix(entry.Name(), ".key") {
+				continue
+			}
 
 			certFiles, err := os.ReadDir(subDir)
 			if err != nil {
