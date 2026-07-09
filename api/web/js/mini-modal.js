@@ -47,7 +47,7 @@ export function IncludeAlertModal() {
         },
             Mini.div({ class: "mui-modal-header" },
                 Mini.strong({}, title || "Alert"),
-                Mini.button({ class: "mui-button secondary", onclick: closeAlert }, "x")
+                Mini.button({ class: "mui-button secondary", onclick: closeAlert }, "Close")
             ),
             Mini.div({ class: "mui-modal-body" },
                 Mini.p({}, message)
@@ -76,7 +76,7 @@ export function IncludeConfirmModal() {
         },
             Mini.div({ class: "mui-modal-header" },
                 Mini.strong({}, title || "Confirm"),
-                Mini.button({ class: "mui-button secondary", onclick: () => closeConfirm(false) }, "x")
+                Mini.button({ class: "mui-button secondary", onclick: () => closeConfirm(false) }, "Close")
             ),
             Mini.div({ class: "mui-modal-body" },
                 Mini.p({}, message),
