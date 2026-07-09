@@ -72,10 +72,6 @@ func listAllCerts() (CertListing, error) {
 		for _, entry := range entries {
 			subDir := filepath.Join(dir, entry.Name())
 
-			if kind == "root" && strings.HasSuffix(entry.Name(), ".key") {
-				continue
-			}
-
 			certFiles, err := os.ReadDir(subDir)
 			if err != nil {
 				return nil, fmt.Errorf("listing cert dir %s/%s: %w", kind, entry.Name(), err)
@@ -83,6 +79,9 @@ func listAllCerts() (CertListing, error) {
 
 			files := make([]string, 0, len(certFiles))
 			for _, f := range certFiles {
+				if kind == "root" && strings.HasSuffix(f.Name(), ".key") {
+					continue
+				}
 				files = append(files, f.Name())
 			}
 
