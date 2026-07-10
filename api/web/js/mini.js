@@ -10,12 +10,14 @@ const Mini = (() => {
     let routeChangeListenerAttached = false;
     let scheduled = false;
 
+    /** Flattens nested children and removes non-renderable booleans/nullish values. */
     function flatten(items) {
         return items.flat(Infinity).filter(child =>
             child !== false && child !== true && child !== null && child !== undefined
         );
     }
 
+    /** Normalizes a child into a vnode (text, empty placeholder, or vnode passthrough). */
     function normalize(child) {
         if (child === false || child === true || child === null || child === undefined)
             return newVnode(EMPTY, {});
@@ -24,22 +26,25 @@ const Mini = (() => {
         return child;
     }
 
+    /** Creates a vnode with normalized children and metadata. */
     function newVnode(type, props = {}, ...children) {
         const safeProps = props || {};
         const normalizedChildren = flatten(children).map(normalize);
         return {
             type,
             props: { ...safeProps, children: normalizedChildren },
-            key: safeProps.key ?? null,   // null = no key (unkeyed reconciliation)
-            dom: null,                    // filled in by createDom / patch
-            instance: null                // filled in for component vNodes
+            key: safeProps.key ?? null,
+            dom: null,
+            instance: null
         };
     }
 
+    /** Public vnode factory used by components and tag helpers. */
     function vnode(type, props = {}, ...children) {
         return newVnode(type, props, ...children);
     }
 
+    /** Applies a single prop diff to a DOM element. */
     function setProp(dom, key, value, oldValue) {
         if (key === "children" || key === "key") return;
 
@@ -85,6 +90,7 @@ const Mini = (() => {
         else dom.setAttribute(key, String(value));
     }
 
+    /** Reconciles element props by applying changed/removed keys. */
     function updateProps(dom, oldProps = {}, newProps = {}) {
         const keys = new Set([...Object.keys(oldProps), ...Object.keys(newProps)]);
         keys.forEach(key => {
@@ -94,6 +100,7 @@ const Mini = (() => {
         });
     }
 
+    /** Creates and returns real DOM for a vnode tree. */
     function createDom(vNode) {
         if (vNode.type === EMPTY) {
             vNode.dom = document.createComment("empty");
@@ -106,8 +113,6 @@ const Mini = (() => {
         }
 
         if (typeof vNode.type === "function") {
-            // Create (or reuse) the instance object that persists across renders.
-            // `hooks` is the array that useState / useEffect write into.
             const instance = vNode.instance || {
                 hooks: [],
                 child: null,
@@ -116,7 +121,6 @@ const Mini = (() => {
             };
             vNode.instance = instance;
 
-            // Make this instance visible to hooks before calling the component.
             currentInstance = instance;
             hookIndex = 0;
 
@@ -129,7 +133,6 @@ const Mini = (() => {
             return dom;
         }
 
-        // Plain HTML element
         const dom = document.createElement(vNode.type);
         vNode.dom = dom;
         updateProps(dom, {}, vNode.props);
@@ -137,12 +140,14 @@ const Mini = (() => {
         return dom;
     }
 
+    /** Returns true when two vnodes cannot be patched in place. */
     function changed(a, b) {
         return !a || !b
             || a.type !== b.type
             || (a.key !== b.key && (a.key !== null || b.key !== null));
     }
 
+    /** Runs cleanup callbacks for any effect hooks on an instance. */
     function cleanupHooks(hooks = []) {
         hooks.forEach(hook => {
             if (hook && typeof hook.cleanup === "function") {
@@ -153,6 +158,7 @@ const Mini = (() => {
         });
     }
 
+    /** Recursively unmounts a vnode and runs component cleanup. */
     function unmountVNode(vNode) {
         if (!vNode) return;
 
@@ -169,6 +175,7 @@ const Mini = (() => {
         children.forEach(child => unmountVNode(child));
     }
 
+    /** Patches old vnode into new vnode and syncs DOM under parent. */
     function patch(parentDom, oldVNode, newVNode, index = 0) {
         newVNode = normalize(newVNode);
         const existingDom = oldVNode?.dom || parentDom.childNodes[index];
@@ -192,7 +199,6 @@ const Mini = (() => {
             return newVNode;
         }
 
-        // Same type — update in place.
         newVNode.dom = oldVNode.dom;
 
         if (newVNode.type === TEXT) {
@@ -205,7 +211,6 @@ const Mini = (() => {
         if (newVNode.type === EMPTY) return newVNode;
 
         if (typeof newVNode.type === "function") {
-            // Re-use the existing instance so hooks retain their state.
             const instance = oldVNode.instance;
             newVNode.instance = instance;
             currentInstance = instance;
@@ -219,14 +224,13 @@ const Mini = (() => {
             return newVNode;
         }
 
-        // Plain element — diff props then recurse into children.
         updateProps(newVNode.dom, oldVNode.props, newVNode.props);
         patchChildren(newVNode.dom, oldVNode.props.children || [], newVNode.props.children || []);
         return newVNode;
     }
 
+    /** Reconciles child lists using keyed and unkeyed matching. */
     function patchChildren(parentDom, oldChildren, newChildren) {
-        // Separate keyed and unkeyed old children for O(1) key lookup.
         const oldKeyed = new Map();
         const oldUnkeyed = [];
 
@@ -248,14 +252,12 @@ const Mini = (() => {
             const patched = patch(parentDom, oldMatch, newChild, newIndex);
             patchedChildren.push(patched);
 
-            // Move the DOM node into the correct slot if it drifted.
             const wantedDom = parentDom.childNodes[newIndex];
             if (patched?.dom && patched.dom !== wantedDom) {
                 parentDom.insertBefore(patched.dom, wantedDom || null);
             }
         });
 
-        // Remove DOM nodes for old children that no longer exist.
         oldChildren.forEach(oldChild => {
             const stillExists = patchedChildren.some(
                 child => child === oldChild || child?.dom === oldChild?.dom
@@ -267,6 +269,7 @@ const Mini = (() => {
         });
     }
 
+    /** Queues a single microtask render for batched updates. */
     function scheduleRender() {
         if (scheduled) return;
         scheduled = true;
@@ -276,13 +279,13 @@ const Mini = (() => {
         });
     }
 
+    /** Stores component-local state and returns value plus setter. */
     function useState(initialValue) {
         const instance = currentInstance;
         const index = hookIndex;
 
         if (!instance) throw new Error("useState must be called inside a component.");
 
-        // Initialise only on first render.
         if (instance.hooks[index] === undefined) {
             instance.hooks[index] = typeof initialValue === "function"
                 ? initialValue()
@@ -292,7 +295,7 @@ const Mini = (() => {
         function setState(nextValue) {
             const oldValue = instance.hooks[index];
             const next = typeof nextValue === "function" ? nextValue(oldValue) : nextValue;
-            if (Object.is(oldValue, next)) return;   // bail out if nothing changed
+            if (Object.is(oldValue, next)) return;
             instance.hooks[index] = next;
             scheduleRender();
         }
@@ -302,11 +305,13 @@ const Mini = (() => {
         return [value, setState];
     }
 
+    /** Convenience hook for boolean state with a toggle action. */
     function useToggle(initialValue = false) {
         const [value, setValue] = useState(initialValue);
         return [value, () => setValue(v => !v), setValue];
     }
 
+    /** Runs side effects after render when dependencies change. */
     function useEffect(effect, deps) {
         const instance = currentInstance;
         if (!instance) throw new Error("useEffect must be called inside a component.");
@@ -316,7 +321,6 @@ const Mini = (() => {
         const changedDeps = !old || !deps || deps.some((dep, i) => !Object.is(dep, old.deps[i]));
 
         if (changedDeps) {
-            // Run previous cleanup before the new effect.
             old?.cleanup?.();
             queueMicrotask(() => {
                 const cleanup = effect();
@@ -327,19 +331,14 @@ const Mini = (() => {
         hookIndex++;
     }
 
+    /** Creates a tiny observable store with set/get/subscribe. */
     function createStore(initialState = {}) {
         let state = initialState;
         const listeners = new Set();
 
         return {
-            /** Returns the current state snapshot. */
             getState: () => state,
 
-            /**
-             * Updates state and notifies all listeners.
-             * Accepts a partial object (merged with spread) or an updater function.
-             * @param {object | ((prev: object) => object)} update
-             */
             setState(update) {
                 state = typeof update === "function"
                     ? update(state)
@@ -347,12 +346,6 @@ const Mini = (() => {
                 listeners.forEach(listener => listener(state));
             },
 
-            /**
-             * Subscribes a listener function that is called with the new state
-             * on every setState call.
-             * @param {(state: object) => void} listener
-             * @returns {() => void} unsubscribe function
-             */
             subscribe(listener) {
                 listeners.add(listener);
                 return () => listeners.delete(listener);
@@ -360,40 +353,40 @@ const Mini = (() => {
         };
     }
 
+    /** Subscribes to a store and returns selected state snapshots. */
     function useStore(store, selector = state => state) {
         const [snapshot, setSnapshot] = useState(() => selector(store.getState()));
 
         useEffect(() => store.subscribe(nextState => {
             const selected = selector(nextState);
-            // Only re-render if the selected value actually changed.
             setSnapshot(old => Object.is(old, selected) ? old : selected);
         }), [store]);
 
         return snapshot;
     }
 
+    /** Navigates via hash routing and triggers rerender as needed. */
     function navigate(path) {
         if (location.hash.slice(1) !== path) location.hash = path;
         else scheduleRender();
     }
 
+    /** Returns the current hash path or root. */
     function getPath() {
         return location.hash.slice(1) || "/";
     }
 
+    /** Resolves a route component for the current path. */
     function Router({ routes, fallback }) {
         const path = getPath();
         const screen = routes[path] || fallback || routes["/"];
 
-        // Return the screen as a component vnode, not a direct call.
-        // This gives every screen its own hook-state instance; without this,
-        // two screens that call useState the same number of times would share
-        // hook slots and produce extremely confusing bugs.
         return screen
             ? vnode(screen, { key: path, path, navigate })
             : vnode("div", {}, "No route found");
     }
 
+    /** Mounts the root component into a container and starts routing listener. */
     function render(component, container) {
         rootComponent = component;
         rootElement = container;
@@ -406,6 +399,7 @@ const Mini = (() => {
         renderRoot();
     }
 
+    /** Renders and patches the current root component tree. */
     function renderRoot() {
         if (!rootComponent || !rootElement) return;
         const nextVNode = normalize(vnode(rootComponent, {}));
