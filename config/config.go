@@ -9,17 +9,23 @@ import (
 )
 
 type Config struct {
-	ServerAddress        string `json:"serverBind"`
+	System       SystemConfig      `json:"system"`
+	Certificates CertificateConfig `json:"certificates"`
+}
+
+type SystemConfig struct {
+	ServerAddress string `json:"serverBind"`
+	DnsmasqFile   string `json:"dnsmasqConfigFile"`
+	DataDirectory string `json:"dataDirectory"`
+	InstanceName  string `json:"instance"`
+}
+
+type CertificateConfig struct {
 	CertsDir             string `json:"certsDir"`
-	DnsmasqFile          string `json:"dnsmasqConfigFile"`
-	DataDirectory        string `json:"dataDirectory"`
-	InstanceName         string `json:"instance"`
-	RemoteCertMode       bool   `json:"remoteCertMode"`
-	RemoteCertURL        string `json:"remoteCertURL"`
-	RemoteCertMTLS       bool   `json:"remoteCertMTLS"`
+	RemoteCertURL        string `json:"remoteCertUrl"`
 	RemoteCertClientCert string `json:"remoteCertClientCert"`
 	RemoteCertClientKey  string `json:"remoteCertClientKey"`
-	RemoteCertCACert     string `json:"remoteCertCACert"`
+	RemoteCertCACert     string `json:"remoteCertTrust"`
 }
 
 var config Config
@@ -36,4 +42,15 @@ func init() {
 
 func GetConfig() Config {
 	return config
+}
+
+func (c *Config) CheckCertMode() bool {
+	if c.Certificates.CertsDir == "" {
+		tlsValid := !(c.Certificates.RemoteCertClientCert != "" || c.Certificates.RemoteCertClientKey != "" || c.Certificates.RemoteCertCACert != "")
+		return tlsValid && c.Certificates.RemoteCertURL != ""
+	}
+}
+
+func (c *Config) RemoteCertModeEnabled() bool {
+	return c.Certificates.CertsDir == ""
 }
