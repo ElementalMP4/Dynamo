@@ -803,6 +803,9 @@ function CertsScreen() {
     const [error, setError] = Mini.useState("");
     const [activeModal, setActiveModal] = Mini.useState("");
     const [detail, setDetail] = Mini.useState(null);
+    const [remoteCertMode, setRemoteCertMode] = Mini.useState(false);
+    const [remoteCertURL, setRemoteCertURL] = Mini.useState("");
+    const [remoteCertMTLS, setRemoteCertMTLS] = Mini.useState(false);
 
     const [rootForm, setRootForm] = Mini.useState({ name: "", days: "3650" });
     const [serverForm, setServerForm] = Mini.useState({ domain: "", caBase: "" });
@@ -811,10 +814,15 @@ function CertsScreen() {
     async function loadCerts() {
         setLoading(true);
         try {
-            const [certData, dnsData] = await Promise.all([
+            const [certData, dnsData, sysInfo] = await Promise.all([
                 request("/api/certs"),
-                request("/api/dns").catch(() => [])
+                request("/api/dns").catch(() => []),
+                request("/api/system/info").catch(() => ({}))
             ]);
+
+            setRemoteCertMode(!!sysInfo.remoteCertMode);
+            setRemoteCertURL(sysInfo.remoteCertURL || "");
+            setRemoteCertMTLS(!!sysInfo.remoteCertMTLS);
 
             const next = {
                 root: certData.root || [],
@@ -946,6 +954,12 @@ function CertsScreen() {
             title: "Certificates",
             subtitle: "Issue root, server, and client certificates"
         }),
+        remoteCertMode && Mini.div({ class: "mui-alert warning" },
+            Mini.strong({}, "Remote Certificate Mode is active. "),
+            `All certificate operations are proxied to ${remoteCertURL}`,
+            remoteCertMTLS ? " (mTLS). " : ". ",
+            Mini.strong({}, "No certificate files will be written to disk on this instance.")
+        ),
         error && Mini.div({ class: "mui-alert danger" }, error),
         loading
             ? Spinner({ label: "Loading certificates..." })

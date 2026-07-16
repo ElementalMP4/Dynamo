@@ -8,9 +8,13 @@ import (
 	"Dynamo/util"
 	"Dynamo/vpn"
 	"bufio"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"net"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -53,13 +57,35 @@ func StartAPI() {
 	})
 
 	// Cert management routes
+	cfg := config.GetConfig()
 	certs := r.Group("/api/certs")
-	certs.GET("", certificate.ListCerts)
-	certs.DELETE("", certificate.DeleteCertGroup)
-	certs.POST("/root", certificate.CreateRootCA)
-	certs.POST("/server", certificate.CreateServerCert)
-	certs.POST("/client", certificate.CreateClientCert)
-	certs.GET("/download", certificate.DownloadCert)
+	if cfg.RemoteCertMode {
+		remote, err := url.Parse(cfg.RemoteCertURL)
+		if err != nil {
+			log.Fatalf("api", "Invalid remoteCertURL: %v", err)
+		}
+		proxy := httputil.NewSingleHostReverseProxy(remote)
+		if cfg.RemoteCertMTLS {
+			tlsCfg, err := buildMTLSConfig(cfg)
+			if err != nil {
+				log.Fatalf("api", "Failed to build mTLS config for cert proxy: %v", err)
+			}
+			proxy.Transport = &http.Transport{TLSClientConfig: tlsCfg}
+			log.Info("api", "Remote cert proxy: mTLS enabled")
+		}
+		certProxy := func(c *gin.Context) {
+			c.Request.URL.Path = "/api/certs" + c.Param("path")
+			proxy.ServeHTTP(c.Writer, c.Request)
+		}
+		certs.Any("/*path", certProxy)
+	} else {
+		certs.GET("", certificate.ListCerts)
+		certs.DELETE("", certificate.DeleteCertGroup)
+		certs.POST("/root", certificate.CreateRootCA)
+		certs.POST("/server", certificate.CreateServerCert)
+		certs.POST("/client", certificate.CreateClientCert)
+		certs.GET("/download", certificate.DownloadCert)
+	}
 
 	// DNS routes
 	api := r.Group("/api/dns")
@@ -102,11 +128,47 @@ func StartAPI() {
 	r.GET("/api/stats/network", getNetStatsHandler)
 	r.GET("/api/stats/system", getSystemStatsHandler)
 	r.GET("/api/system/interfaces", listNetworkInterfaces)
+	r.GET("/api/system/info", getSystemInfoHandler)
 
 	log.Info("api", "Starting admin API on "+config.GetConfig().ServerAddress)
 	if err := r.Run(config.GetConfig().ServerAddress); err != nil {
 		log.Fatalf("api", "admin API failed: %v", err)
 	}
+}
+
+func buildMTLSConfig(cfg config.Config) (*tls.Config, error) {
+	tlsCfg := &tls.Config{}
+
+	if cfg.RemoteCertClientCert != "" && cfg.RemoteCertClientKey != "" {
+		cert, err := tls.LoadX509KeyPair(cfg.RemoteCertClientCert, cfg.RemoteCertClientKey)
+		if err != nil {
+			return nil, fmt.Errorf("loading client cert/key: %w", err)
+		}
+		tlsCfg.Certificates = []tls.Certificate{cert}
+	}
+
+	if cfg.RemoteCertCACert != "" {
+		pem, err := os.ReadFile(cfg.RemoteCertCACert)
+		if err != nil {
+			return nil, fmt.Errorf("reading CA cert: %w", err)
+		}
+		pool := x509.NewCertPool()
+		if !pool.AppendCertsFromPEM(pem) {
+			return nil, fmt.Errorf("failed to parse CA cert from %s", cfg.RemoteCertCACert)
+		}
+		tlsCfg.RootCAs = pool
+	}
+
+	return tlsCfg, nil
+}
+
+func getSystemInfoHandler(c *gin.Context) {
+	cfg := config.GetConfig()
+	c.JSON(http.StatusOK, gin.H{
+		"remoteCertMode": cfg.RemoteCertMode,
+		"remoteCertURL":  cfg.RemoteCertURL,
+		"remoteCertMTLS": cfg.RemoteCertMTLS,
+	})
 }
 
 func getCountsHandler(c *gin.Context) {

@@ -190,6 +190,12 @@ select {
     background: rgba(239, 68, 68, 0.1);
 }
 
+.mui-alert.warning {
+    color: #fcd34d;
+    border-color: rgba(245, 158, 11, 0.35);
+    background: rgba(245, 158, 11, 0.1);
+}
+
 .mui-card {
     border: 1px solid var(--line);
     background: var(--surface);

@@ -9,11 +9,17 @@ import (
 )
 
 type Config struct {
-	ServerAddress string `json:"serverBind"`
-	CertsDir      string `json:"certsDir"`
-	DnsmasqFile   string `json:"dnsmasqConfigFile"`
-	DataDirectory string `json:"dataDirectory"`
-	InstanceName  string `json:"instance"`
+	ServerAddress        string `json:"serverBind"`
+	CertsDir             string `json:"certsDir"`
+	DnsmasqFile          string `json:"dnsmasqConfigFile"`
+	DataDirectory        string `json:"dataDirectory"`
+	InstanceName         string `json:"instance"`
+	RemoteCertMode       bool   `json:"remoteCertMode"`
+	RemoteCertURL        string `json:"remoteCertURL"`
+	RemoteCertMTLS       bool   `json:"remoteCertMTLS"`
+	RemoteCertClientCert string `json:"remoteCertClientCert"`
+	RemoteCertClientKey  string `json:"remoteCertClientKey"`
+	RemoteCertCACert     string `json:"remoteCertCACert"`
 }
 
 var config Config
