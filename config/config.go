@@ -69,3 +69,7 @@ func (c *Config) CheckCertMode() bool {
 func (c *Config) RemoteCertModeEnabled() bool {
 	return c.Certificates.CertsDir == ""
 }
+
+func (c *Config) RemoteCertMtlsEnabled() bool {
+	return c.Certificates.RemoteCertCACert != ""
+}

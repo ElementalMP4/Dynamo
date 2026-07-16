@@ -59,19 +59,19 @@ func StartAPI() {
 	// Cert management routes
 	cfg := config.GetConfig()
 	certs := r.Group("/api/certs")
-	if cfg.RemoteCertMode {
-		remote, err := url.Parse(cfg.RemoteCertURL)
+	if cfg.RemoteCertModeEnabled() {
+		remote, err := url.Parse(cfg.Certificates.RemoteCertURL)
 		if err != nil {
-			log.Fatalf("api", "Invalid remoteCertURL: %v", err)
+			log.Fatalf("api/certs", "Invalid remote certificate URL: %v", err)
 		}
 		proxy := httputil.NewSingleHostReverseProxy(remote)
-		if cfg.RemoteCertMTLS {
+		if cfg.RemoteCertMtlsEnabled() {
 			tlsCfg, err := buildMTLSConfig(cfg)
 			if err != nil {
-				log.Fatalf("api", "Failed to build mTLS config for cert proxy: %v", err)
+				log.Fatalf("api/certs", "Failed to build mTLS config for cert proxy: %v", err)
 			}
 			proxy.Transport = &http.Transport{TLSClientConfig: tlsCfg}
-			log.Info("api", "Remote cert proxy: mTLS enabled")
+			log.Info("api/certs", "Remote cert proxy using mTLS")
 		}
 		certProxy := func(c *gin.Context) {
 			c.Request.URL.Path = "/api/certs" + c.Param("path")
@@ -130,8 +130,8 @@ func StartAPI() {
 	r.GET("/api/system/interfaces", listNetworkInterfaces)
 	r.GET("/api/system/info", getSystemInfoHandler)
 
-	log.Info("api", "Starting admin API on "+config.GetConfig().ServerAddress)
-	if err := r.Run(config.GetConfig().ServerAddress); err != nil {
+	log.Info("api", "Starting admin API on "+config.GetConfig().System.ServerAddress)
+	if err := r.Run(config.GetConfig().System.ServerAddress); err != nil {
 		log.Fatalf("api", "admin API failed: %v", err)
 	}
 }
@@ -139,36 +139,39 @@ func StartAPI() {
 func buildMTLSConfig(cfg config.Config) (*tls.Config, error) {
 	tlsCfg := &tls.Config{}
 
-	if cfg.RemoteCertClientCert != "" && cfg.RemoteCertClientKey != "" {
-		cert, err := tls.LoadX509KeyPair(cfg.RemoteCertClientCert, cfg.RemoteCertClientKey)
-		if err != nil {
-			return nil, fmt.Errorf("loading client cert/key: %w", err)
-		}
-		tlsCfg.Certificates = []tls.Certificate{cert}
+	cert, err := tls.LoadX509KeyPair(cfg.Certificates.RemoteCertClientCert, cfg.Certificates.RemoteCertClientKey)
+	if err != nil {
+		return nil, fmt.Errorf("loading client cert/key: %w", err)
 	}
+	tlsCfg.Certificates = []tls.Certificate{cert}
 
-	if cfg.RemoteCertCACert != "" {
-		pem, err := os.ReadFile(cfg.RemoteCertCACert)
-		if err != nil {
-			return nil, fmt.Errorf("reading CA cert: %w", err)
-		}
-		pool := x509.NewCertPool()
-		if !pool.AppendCertsFromPEM(pem) {
-			return nil, fmt.Errorf("failed to parse CA cert from %s", cfg.RemoteCertCACert)
-		}
-		tlsCfg.RootCAs = pool
+	pem, err := os.ReadFile(cfg.Certificates.RemoteCertCACert)
+	if err != nil {
+		return nil, fmt.Errorf("reading CA cert: %w", err)
 	}
+	pool := x509.NewCertPool()
+	if !pool.AppendCertsFromPEM(pem) {
+		return nil, fmt.Errorf("failed to parse CA cert from %s", cfg.Certificates.RemoteCertCACert)
+	}
+	tlsCfg.RootCAs = pool
 
 	return tlsCfg, nil
 }
 
 func getSystemInfoHandler(c *gin.Context) {
 	cfg := config.GetConfig()
-	c.JSON(http.StatusOK, gin.H{
-		"remoteCertMode": cfg.RemoteCertMode,
-		"remoteCertURL":  cfg.RemoteCertURL,
-		"remoteCertMTLS": cfg.RemoteCertMTLS,
-	})
+
+	if cfg.RemoteCertModeEnabled() {
+		c.JSON(http.StatusOK, gin.H{
+			"remoteCertMode": cfg.RemoteCertModeEnabled(),
+			"remoteCertURL":  cfg.Certificates.RemoteCertURL,
+			"remoteCertMTLS": cfg.RemoteCertMtlsEnabled(),
+		})
+	} else {
+		c.JSON(http.StatusOK, gin.H{
+			"remoteCertMode": cfg.RemoteCertModeEnabled(),
+		})
+	}
 }
 
 func getCountsHandler(c *gin.Context) {
@@ -191,7 +194,7 @@ func getCountsHandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, gin.H{"dns": dnsCounts, "certs": certCounts, "circuits": circuitCounts, "instance": config.GetConfig().InstanceName})
+	c.JSON(200, gin.H{"dns": dnsCounts, "certs": certCounts, "circuits": circuitCounts, "instance": config.GetConfig().System.InstanceName})
 }
 
 func getNetStatsHandler(c *gin.Context) {
