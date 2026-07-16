@@ -35,7 +35,7 @@ func SyncDns() error {
 }
 
 func EnsureWritable() error {
-	f, err := os.OpenFile(config.GetConfig().DnsmasqFile, os.O_RDWR|os.O_CREATE, 0644)
+	f, err := os.OpenFile(config.GetConfig().System.DnsmasqFile, os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
 		return err
 	}
@@ -82,7 +82,7 @@ func writeRecords(records []DNSRecord) error {
 		log.Infof("dns", "Created %s record for %s", r.Type, r.Name)
 	}
 
-	if err := os.WriteFile(config.GetConfig().DnsmasqFile, []byte(out.String()), 0644); err != nil {
+	if err := os.WriteFile(config.GetConfig().System.DnsmasqFile, []byte(out.String()), 0644); err != nil {
 		return err
 	}
 

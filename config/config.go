@@ -45,10 +45,25 @@ func GetConfig() Config {
 }
 
 func (c *Config) CheckCertMode() bool {
-	if c.Certificates.CertsDir == "" {
-		tlsValid := !(c.Certificates.RemoteCertClientCert != "" || c.Certificates.RemoteCertClientKey != "" || c.Certificates.RemoteCertCACert != "")
-		return tlsValid && c.Certificates.RemoteCertURL != ""
+	// If certs directory is set, require that remote URL and all remote TLS values are empty.
+	if c.Certificates.CertsDir != "" {
+		return c.Certificates.RemoteCertURL == "" && c.Certificates.RemoteCertClientCert == "" && c.Certificates.RemoteCertClientKey == "" && c.Certificates.RemoteCertCACert == ""
 	}
+
+	// If certs directory is not set, require RemoteCertURL and ensure TLS values
+	// are either all empty or all non-empty (no mixed state).
+	if c.Certificates.RemoteCertURL == "" {
+		return false
+	}
+
+	clientCertSet := c.Certificates.RemoteCertClientCert != ""
+	clientKeySet := c.Certificates.RemoteCertClientKey != ""
+	caCertSet := c.Certificates.RemoteCertCACert != ""
+
+	allEmpty := !clientCertSet && !clientKeySet && !caCertSet
+	allSet := clientCertSet && clientKeySet && caCertSet
+
+	return allEmpty || allSet
 }
 
 func (c *Config) RemoteCertModeEnabled() bool {

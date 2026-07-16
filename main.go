@@ -17,15 +17,20 @@ func main() {
 	banner.ShowTheBanner()
 
 	config := config.GetConfig()
-	if _, err := os.Stat(config.DataDirectory); os.IsNotExist(err) {
-		err := os.MkdirAll(config.DataDirectory, 0755)
+	if _, err := os.Stat(config.System.DataDirectory); os.IsNotExist(err) {
+		err := os.MkdirAll(config.System.DataDirectory, 0755)
 		if err != nil {
 			log.Fatalf("config", "Failed to create data directory: %v", err)
 		}
 	}
 
-	if config.RemoteCertMode {
-		log.Warnf("certificates", "Remote certificate mode is enabled — certificate operations will be proxied to %s. No certificate files will be written to disk on this instance.", config.RemoteCertURL)
+	validCertMode := config.CheckCertMode()
+	if !validCertMode {
+		log.Fatalf("config", "Certificate configuration is invalid")
+	}
+
+	if config.RemoteCertModeEnabled() {
+		log.Infof("certificates", "Using certificates from %s", config.Certificates.RemoteCertURL)
 	} else {
 		if err := certificate.EnsureSslDirs(); err != nil {
 			log.Fatalf("certificates", "Failed to check SSL dirs: %v", err)

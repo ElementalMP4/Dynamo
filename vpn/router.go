@@ -1,13 +1,11 @@
 package vpn
 
 import (
-	"Dynamo/config"
 	"errors"
 	"fmt"
 	"net/http"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -140,14 +138,6 @@ func DeleteInterfaceHandler(c *gin.Context) {
 			_ = exec.Command("systemctl", "disable", svc).Run()
 
 			_ = os.Remove(fmt.Sprintf("/etc/wireguard/%s.conf", safeName))
-
-			clientDir := filepath.Join(
-				config.GetConfig().DataDirectory,
-				"wireguard",
-				"clients",
-				safeName,
-			)
-			_ = os.RemoveAll(clientDir)
 			state.Interfaces = append(state.Interfaces[:i], state.Interfaces[i+1:]...)
 			return nil
 		}
