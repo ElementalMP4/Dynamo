@@ -65,6 +65,8 @@ func StartAPI() {
 			log.Fatalf("api/certs", "Invalid remote certificate URL: %v", err)
 		}
 
+		fmt.Println(remote.Scheme)
+
 		proxy := &httputil.ReverseProxy{
 			Rewrite: func(req *httputil.ProxyRequest) {
 				req.SetURL(remote)
