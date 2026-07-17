@@ -67,7 +67,7 @@ func StartAPI() {
 
 		proxy := &httputil.ReverseProxy{
 			Rewrite: func(req *httputil.ProxyRequest) {
-				req.Out.Host = remote.Host
+				req.SetURL(remote)
 				req.Out.Header.Set("X-Dynamo-ID", cfg.System.InstanceName)
 			},
 		}
