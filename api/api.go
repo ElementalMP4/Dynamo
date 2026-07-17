@@ -178,19 +178,25 @@ func getCountsHandler(c *gin.Context) {
 	dnsCounts, err := dns.CountDNSRecords()
 
 	if err != nil {
-		c.JSON(500, gin.H{"error": fmt.Errorf("failed to count DNS records: %v", err.Error())})
+		errFmt := fmt.Errorf("failed to count DNS records: %v", err.Error())
+		log.Errorf("stats", "%v", errFmt)
+		c.JSON(500, gin.H{"error": errFmt})
 		return
 	}
 
 	certCounts, err := certificate.CountCerts()
 	if err != nil {
-		c.JSON(500, gin.H{"error": fmt.Errorf("failed to count certs: %v", err.Error())})
+		errFmt := fmt.Errorf("failed to count certs: %v", err.Error())
+		log.Errorf("stats", "%v", errFmt)
+		c.JSON(500, gin.H{"error": errFmt})
 		return
 	}
 
 	circuitCounts, err := circuit.CountCircuits()
 	if err != nil {
-		c.JSON(500, gin.H{"error": fmt.Errorf("failed to count circuits: %v", err.Error())})
+		errFmt := fmt.Errorf("failed to count circuits: %v", err.Error())
+		log.Errorf("stats", "%v", errFmt)
+		c.JSON(500, gin.H{"error": errFmt})
 		return
 	}
 
