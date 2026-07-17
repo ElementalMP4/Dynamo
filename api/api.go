@@ -65,11 +65,11 @@ func StartAPI() {
 			log.Fatalf("api/certs", "Invalid remote certificate URL: %v", err)
 		}
 
-		proxy := httputil.NewSingleHostReverseProxy(remote)
-		originalDirector := proxy.Rewrite
-		proxy.Rewrite = func(req *httputil.ProxyRequest) {
-			originalDirector(req)
-			req.Out.Host = remote.Host
+		proxy := &httputil.ReverseProxy{
+			Rewrite: func(req *httputil.ProxyRequest) {
+				req.Out.Host = remote.Host
+				req.Out.Header.Set("X-Dynamo-ID", cfg.System.InstanceName)
+			},
 		}
 
 		if cfg.RemoteCertMtlsEnabled() {
