@@ -64,7 +64,14 @@ func StartAPI() {
 		if err != nil {
 			log.Fatalf("api/certs", "Invalid remote certificate URL: %v", err)
 		}
+
 		proxy := httputil.NewSingleHostReverseProxy(remote)
+		originalDirector := proxy.Rewrite
+		proxy.Rewrite = func(req *httputil.ProxyRequest) {
+			originalDirector(req)
+			req.Out.Host = remote.Host
+		}
+
 		if cfg.RemoteCertMtlsEnabled() {
 			tlsCfg, err := buildMTLSConfig(cfg)
 			if err != nil {
