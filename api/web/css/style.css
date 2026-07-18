@@ -572,7 +572,7 @@ select {
     }
 }
 
-@media (min-width: 861px) and (max-height: 900px) {
+@media (min-width: 861px){
     .mui-screen-overview {
         gap: 0.85rem;
     }
@@ -599,7 +599,7 @@ select {
     }
 }
 
-@media (min-width: 861px) and (max-width: 1080px) {
+@media (min-width: 861px) {
     .mui-summary-grid {
         grid-template-columns: 1fr;
     }
