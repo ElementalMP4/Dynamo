@@ -487,6 +487,14 @@ select {
     cursor: pointer;
 }
 
+.mui-chip strong {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    display: block;
+}
+
 .mui-chip:hover {
     border-color: rgba(235, 107, 45, 0.45);
     background: rgba(235, 107, 45, 0.08);
