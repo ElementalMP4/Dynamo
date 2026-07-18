@@ -51,7 +51,10 @@ func StartAPI() {
 	// Cert management routes
 	cfg := config.GetConfig()
 	certs := r.Group("/api/certs")
+
+	// Alway run /save locally as this endpoint pulls certs in from the remote
 	certs.POST("/save", certificate.SaveRemoteCertHandler)
+
 	if cfg.RemoteCertModeEnabled() {
 		remote, err := url.Parse(cfg.Certificates.RemoteCertURL)
 		if err != nil {
@@ -71,20 +74,27 @@ func StartAPI() {
 			if err != nil {
 				log.Fatalf("api/certs", "Failed to build mTLS config for cert proxy: %v", err)
 			}
-			proxy.Transport = &http.Transport{TLSClientConfig: tlsCfg}
+
+			proxy.Transport = &http.Transport{
+				TLSClientConfig: tlsCfg,
+			}
+
 			log.Info("api/certs", "Remote cert proxy using mTLS")
 		}
 
-		certProxy := func(c *gin.Context) {
+		r.NoRoute(func(c *gin.Context) {
+			if !strings.HasPrefix(c.Request.URL.Path, "/api/certs/") {
+				c.Next()
+				return
+			}
+
 			c.Request.URL.Path = strings.TrimSuffix(
-				"/api/certs"+c.Param("path"),
+				c.Request.URL.Path,
 				"/",
 			)
 
 			proxy.ServeHTTP(c.Writer, c.Request)
-		}
-
-		certs.Any("/*path", certProxy)
+		})
 	} else {
 		certs.GET("", certificate.ListCerts)
 		certs.DELETE("", certificate.DeleteCertGroup)
