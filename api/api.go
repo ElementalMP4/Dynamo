@@ -97,6 +97,7 @@ func StartAPI() {
 		})
 	} else {
 		certs.GET("", certificate.ListCerts)
+		certs.GET("/files", certificate.GetCertFiles)
 		certs.DELETE("", certificate.DeleteCertGroup)
 		certs.POST("/root", certificate.CreateRootCA)
 		certs.POST("/server", certificate.CreateServerCert)

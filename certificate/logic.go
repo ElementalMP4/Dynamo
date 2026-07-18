@@ -51,6 +51,30 @@ func EnsureSslDirs() error {
 	return nil
 }
 
+func listFilesForCertificate(kind, name string) ([]string, error) {
+	base := certsBaseDir()
+
+	dir := filepath.Join(base, kind)
+	subDir := filepath.Join(dir, name)
+
+	certFiles, err := os.ReadDir(subDir)
+	if err != nil {
+		return nil, fmt.Errorf("listing cert dir %s: %w", subDir, err)
+	}
+
+	files := make([]string, 0, len(certFiles))
+	for _, f := range certFiles {
+
+		// Root keys should never be accessible over the web
+		if kind == "root" && strings.HasSuffix(f.Name(), ".key") {
+			continue
+		}
+		files = append(files, f.Name())
+	}
+
+	return files, nil
+}
+
 func listAllCerts() (CertListing, error) {
 	base := certsBaseDir()
 	kinds := []string{"root", "server", "client"}
@@ -67,19 +91,10 @@ func listAllCerts() (CertListing, error) {
 
 		var kindCerts []CertDir
 		for _, entry := range entries {
-			subDir := filepath.Join(dir, entry.Name())
+			files, err := listFilesForCertificate(kind, entry.Name())
 
-			certFiles, err := os.ReadDir(subDir)
 			if err != nil {
-				return nil, fmt.Errorf("listing cert dir %s/%s: %w", kind, entry.Name(), err)
-			}
-
-			files := make([]string, 0, len(certFiles))
-			for _, f := range certFiles {
-				if kind == "root" && strings.HasSuffix(f.Name(), ".key") {
-					continue
-				}
-				files = append(files, f.Name())
+				return nil, fmt.Errorf("reading files for %s: %w", entry.Name(), err)
 			}
 
 			kindCerts = append(kindCerts, CertDir{
