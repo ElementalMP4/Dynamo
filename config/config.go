@@ -1,7 +1,10 @@
 package config
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
+	"fmt"
 
 	"github.com/ElementalMP4/loggerino/log"
 
@@ -45,15 +48,8 @@ func GetConfig() Config {
 }
 
 func (c *Config) CheckCertMode() bool {
-	// If certs directory is set, require that remote URL and all remote TLS values are empty
-	if c.Certificates.CertsDir != "" {
-		return c.Certificates.RemoteCertURL == "" && c.Certificates.RemoteCertClientCert == "" && c.Certificates.RemoteCertClientKey == "" && c.Certificates.RemoteCertCACert == ""
-	}
-
-	// If certs directory is not set, require RemoteCertURL and ensure TLS values
-	// are either all empty or all non-empty
 	if c.Certificates.RemoteCertURL == "" {
-		return false
+		return true
 	}
 
 	clientCertSet := c.Certificates.RemoteCertClientCert != ""
@@ -67,9 +63,31 @@ func (c *Config) CheckCertMode() bool {
 }
 
 func (c *Config) RemoteCertModeEnabled() bool {
-	return c.Certificates.CertsDir == ""
+	return c.Certificates.RemoteCertURL != ""
 }
 
 func (c *Config) RemoteCertMtlsEnabled() bool {
 	return c.Certificates.RemoteCertCACert != ""
+}
+
+func (c *Config) BuildMTLSConfig() (*tls.Config, error) {
+	tlsCfg := &tls.Config{}
+
+	cert, err := tls.LoadX509KeyPair(c.Certificates.RemoteCertClientCert, c.Certificates.RemoteCertClientKey)
+	if err != nil {
+		return nil, fmt.Errorf("loading client cert/key: %w", err)
+	}
+	tlsCfg.Certificates = []tls.Certificate{cert}
+
+	pem, err := os.ReadFile(c.Certificates.RemoteCertCACert)
+	if err != nil {
+		return nil, fmt.Errorf("reading CA cert: %w", err)
+	}
+	pool := x509.NewCertPool()
+	if !pool.AppendCertsFromPEM(pem) {
+		return nil, fmt.Errorf("failed to parse CA cert from %s", c.Certificates.RemoteCertCACert)
+	}
+	tlsCfg.RootCAs = pool
+
+	return tlsCfg, nil
 }

@@ -1,12 +1,16 @@
 package certificate
 
 import (
+	"Dynamo/config"
 	"Dynamo/util"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/ElementalMP4/loggerino/log"
 	"github.com/gin-gonic/gin"
@@ -184,4 +188,74 @@ func DeleteCertGroup(c *gin.Context) {
 	}
 
 	c.Status(http.StatusNoContent)
+}
+
+func SaveRemoteCertHandler(c *gin.Context) {
+	cfg := config.GetConfig()
+	if !cfg.RemoteCertModeEnabled() {
+		util.ErrorResponse(c, http.StatusBadRequest, "api", fmt.Errorf("remote cert mode is not enabled"))
+		return
+	}
+
+	kind := c.Query("kind")
+	name := c.Query("name")
+	base := c.Query("base")
+	if kind == "" || name == "" || base == "" {
+		util.ErrorResponse(c, http.StatusBadRequest, "api", fmt.Errorf("kind, base and name are required"))
+		return
+	}
+
+	remote, err := url.Parse(cfg.Certificates.RemoteCertURL)
+	if err != nil {
+		util.ErrorResponse(c, http.StatusInternalServerError, "api", fmt.Errorf("invalid remote certificate URL: %w", err))
+		return
+	}
+
+	downloadURL := remote.ResolveReference(&url.URL{Path: "/api/certs/download"})
+	req, err := http.NewRequest(http.MethodGet, downloadURL.String(), nil)
+	if err != nil {
+		util.ErrorResponse(c, http.StatusInternalServerError, "api", fmt.Errorf("creating remote download request: %w", err))
+		return
+	}
+
+	q := req.URL.Query()
+	q.Set("kind", kind)
+	q.Set("base", base)
+	q.Set("name", name)
+	req.URL.RawQuery = q.Encode()
+
+	resp, err := util.GetRemoteHttpClient().Do(req)
+	if err != nil {
+		util.ErrorResponse(c, http.StatusBadGateway, "api", fmt.Errorf("requesting remote certificate: %w", err))
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		util.ErrorResponse(c, http.StatusBadGateway, "api", fmt.Errorf("remote certificate download failed: %s - %s", resp.Status, strings.TrimSpace(string(body))))
+		return
+	}
+
+	certsBase := cfg.Certificates.CertsDir
+	destDir := filepath.Join(certsBase, kind, base)
+	if err := os.MkdirAll(destDir, 0o755); err != nil {
+		util.ErrorResponse(c, http.StatusInternalServerError, "api", fmt.Errorf("creating certificate destination dir: %w", err))
+		return
+	}
+
+	safeName := filepath.Base(name)
+	destPath := filepath.Join(destDir, safeName)
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		util.ErrorResponse(c, http.StatusInternalServerError, "api", fmt.Errorf("reading remote certificate body: %w", err))
+		return
+	}
+
+	if err := os.WriteFile(destPath, data, 0o644); err != nil {
+		util.ErrorResponse(c, http.StatusInternalServerError, "api", fmt.Errorf("saving certificate to local store: %w", err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"path": destPath})
 }

@@ -920,7 +920,22 @@ function CertsScreen() {
             setDetail(null);
             loadCerts();
         } catch (err) {
-            await showAlert(`Failed to delete certificate: ${err.error}`);
+            await showAlert(`Failed to delete certificate: ${err.error || err.message || err}`);
+        }
+    }
+
+    async function saveRemoteCert(file) {
+        if (!detail) return;
+
+        try {
+            await request(
+                `/api/certs/save?kind=${encodeURIComponent(detail.kind)}&base=${encodeURIComponent(detail.group.name)}&name=${encodeURIComponent(file)}`,
+                { method: "POST" }
+            );
+            await showAlert(`Saved ${file} to server`, "Success");
+            loadCerts();
+        } catch (err) {
+            await showAlert(`Failed to save ${file}: ${err.error || err.message || err}`, "Error");
         }
     }
 
@@ -962,7 +977,7 @@ function CertsScreen() {
         loading
             ? Spinner({ label: "Loading certificates..." })
             : Mini.div({ class: "mui-stack" },
-                section("root", "Root CAs", "Create Root", "root"),
+                section("root", "Certificate Authorities", "Create Root", "root"),
                 section("server", "Server Certificates", "Create Server Cert", "server"),
                 section("client", "Client Certificates", "Create Client Cert", "client")
             ),
@@ -975,17 +990,23 @@ function CertsScreen() {
             detail && Mini.div({ class: "mui-stack" },
                 Mini.small({ class: "mui-muted" }, `${detail.kind} certificate`),
                 Mini.div({ class: "mui-stack" },
-                    (detail.group.files || []).map(file => Mini.vnode("a", {
+                    (detail.group.files || []).map(file => Mini.a({
                         class: "mui-button secondary",
                         key: file,
                         href: `/api/certs/download?kind=${detail.kind}&name=${encodeURIComponent(file)}&base=${encodeURIComponent(detail.group.name)}`
-                    }, `Download ${file}`))
+                    }, `Download ${file}`)),
+                    remoteCertMode && (detail.group.files || []).map(file => Mini.button({
+                        class: "mui-button secondary",
+                        key: file,
+                        type: "button",
+                        onclick: () => saveRemoteCert(file)
+                    }, `Save ${file} to server`))
                 ),
                 Mini.div({ class: "mui-form-actions" },
                     Mini.button({ class: "mui-button danger", onclick: () => deleteGroup(detail.kind, detail.group.name) }, "Delete"),
                     Mini.button({ class: "mui-button secondary", onclick: () => setDetail(null) }, "Close")
                 )
-            )
+            ),
         ),
 
         Mini.vnode(Modal, {
