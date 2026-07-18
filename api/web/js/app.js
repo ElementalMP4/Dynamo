@@ -1003,11 +1003,11 @@ function CertsScreen() {
                     }, `Download ${file}`)),
                 ),
                 Mini.div({ class: "mui-form-actions" },
-                    Mini.button({ class: "mui-button danger", onclick: () => deleteGroup(detail.kind, detail.group.name) }, "Delete"),
                     remoteCertMode && Mini.button({
                         class: "mui-button secondary",
                         onclick: () => saveRemoteCert()
                     }, `Save ${detail.group.name} to server`),
+                    Mini.button({ class: "mui-button danger", onclick: () => deleteGroup(detail.kind, detail.group.name) }, "Delete"),
                     Mini.button({ class: "mui-button secondary", onclick: () => setDetail(null) }, "Close")
                 )
             ),
