@@ -472,7 +472,7 @@ function HomeScreen() {
         ? circuits.DNAT.on + circuits.DNAT.off + circuits.REDIRECT.on + circuits.REDIRECT.off + circuits.LOCAL.on + circuits.LOCAL.off
         : 0;
 
-    return Mini.div({ class: "mui-screen mui-screen-overview" },
+    return Mini.div({ class: "mui-screen" },
         PageHeader({
             title: "Overview",
             subtitle: "Traffic, service totals, and live interface rates"
