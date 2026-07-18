@@ -23,10 +23,7 @@ import (
 
 func certsBaseDir() string {
 	cfg := config.GetConfig()
-	if cfg.CertsDir != "" {
-		return cfg.CertsDir
-	}
-	return "./certs"
+	return cfg.Certificates.CertsDir
 }
 
 func ensureCertDirs(group string, crt string) error {

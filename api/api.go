@@ -8,9 +8,15 @@ import (
 	"Dynamo/util"
 	"Dynamo/vpn"
 	"bufio"
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -53,13 +59,50 @@ func StartAPI() {
 	})
 
 	// Cert management routes
+	cfg := config.GetConfig()
 	certs := r.Group("/api/certs")
-	certs.GET("", certificate.ListCerts)
-	certs.DELETE("", certificate.DeleteCertGroup)
-	certs.POST("/root", certificate.CreateRootCA)
-	certs.POST("/server", certificate.CreateServerCert)
-	certs.POST("/client", certificate.CreateClientCert)
-	certs.GET("/download", certificate.DownloadCert)
+	if cfg.RemoteCertModeEnabled() {
+		remote, err := url.Parse(cfg.Certificates.RemoteCertURL)
+		if err != nil {
+			log.Fatalf("api/certs", "Invalid remote certificate URL: %v", err)
+		}
+
+		proxy := &httputil.ReverseProxy{
+			Rewrite: func(r *httputil.ProxyRequest) {
+				r.SetURL(remote)
+				r.Out.URL.Path = r.In.URL.Path
+				r.Out.URL.RawQuery = r.In.URL.RawQuery
+				r.Out.Header.Set("X-Dynamo-ID", cfg.System.InstanceName)
+			},
+		}
+
+		if cfg.RemoteCertMtlsEnabled() {
+			tlsCfg, err := buildMTLSConfig(cfg)
+			if err != nil {
+				log.Fatalf("api/certs", "Failed to build mTLS config for cert proxy: %v", err)
+			}
+			proxy.Transport = &http.Transport{TLSClientConfig: tlsCfg}
+			log.Info("api/certs", "Remote cert proxy using mTLS")
+		}
+
+		certProxy := func(c *gin.Context) {
+			c.Request.URL.Path = strings.TrimSuffix(
+				"/api/certs"+c.Param("path"),
+				"/",
+			)
+
+			proxy.ServeHTTP(c.Writer, c.Request)
+		}
+
+		certs.Any("/*path", certProxy)
+	} else {
+		certs.GET("", certificate.ListCerts)
+		certs.DELETE("", certificate.DeleteCertGroup)
+		certs.POST("/root", certificate.CreateRootCA)
+		certs.POST("/server", certificate.CreateServerCert)
+		certs.POST("/client", certificate.CreateClientCert)
+		certs.GET("/download", certificate.DownloadCert)
+	}
 
 	// DNS routes
 	api := r.Group("/api/dns")
@@ -102,34 +145,135 @@ func StartAPI() {
 	r.GET("/api/stats/network", getNetStatsHandler)
 	r.GET("/api/stats/system", getSystemStatsHandler)
 	r.GET("/api/system/interfaces", listNetworkInterfaces)
+	r.GET("/api/system/info", getSystemInfoHandler)
 
-	log.Info("api", "Starting admin API on "+config.GetConfig().ServerAddress)
-	if err := r.Run(config.GetConfig().ServerAddress); err != nil {
+	log.Info("api", "Starting admin API on "+config.GetConfig().System.ServerAddress)
+	if err := r.Run(config.GetConfig().System.ServerAddress); err != nil {
 		log.Fatalf("api", "admin API failed: %v", err)
 	}
 }
 
-func getCountsHandler(c *gin.Context) {
-	dnsCounts, err := dns.CountDNSRecords()
+func buildMTLSConfig(cfg config.Config) (*tls.Config, error) {
+	tlsCfg := &tls.Config{}
 
+	cert, err := tls.LoadX509KeyPair(cfg.Certificates.RemoteCertClientCert, cfg.Certificates.RemoteCertClientKey)
 	if err != nil {
-		c.JSON(500, gin.H{"error": fmt.Errorf("failed to count DNS records: %v", err.Error())})
+		return nil, fmt.Errorf("loading client cert/key: %w", err)
+	}
+	tlsCfg.Certificates = []tls.Certificate{cert}
+
+	pem, err := os.ReadFile(cfg.Certificates.RemoteCertCACert)
+	if err != nil {
+		return nil, fmt.Errorf("reading CA cert: %w", err)
+	}
+	pool := x509.NewCertPool()
+	if !pool.AppendCertsFromPEM(pem) {
+		return nil, fmt.Errorf("failed to parse CA cert from %s", cfg.Certificates.RemoteCertCACert)
+	}
+	tlsCfg.RootCAs = pool
+
+	return tlsCfg, nil
+}
+
+func fetchRemoteCertCounts(cfg config.Config) (map[string]int, error) {
+	remote, err := url.Parse(cfg.Certificates.RemoteCertURL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid remote certificate URL: %w", err)
+	}
+
+	statsURL := remote.ResolveReference(&url.URL{Path: "/api/stats/dynamo"})
+
+	req, err := http.NewRequest(http.MethodGet, statsURL.String(), nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating remote stats request: %w", err)
+	}
+	req.Header.Set("X-Dynamo-ID", cfg.System.InstanceName)
+
+	client := &http.Client{}
+	if cfg.RemoteCertMtlsEnabled() {
+		tlsCfg, err := buildMTLSConfig(cfg)
+		if err != nil {
+			return nil, fmt.Errorf("building remote stats mTLS config: %w", err)
+		}
+		client.Transport = &http.Transport{TLSClientConfig: tlsCfg}
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("requesting remote stats: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("remote stats request failed: %s - %s", resp.Status, strings.TrimSpace(string(body)))
+	}
+
+	var payload struct {
+		Certs map[string]int `json:"certs"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		return nil, fmt.Errorf("decoding remote stats response: %w", err)
+	}
+
+	return payload.Certs, nil
+}
+
+func getSystemInfoHandler(c *gin.Context) {
+	cfg := config.GetConfig()
+
+	if cfg.RemoteCertModeEnabled() {
+		c.JSON(http.StatusOK, gin.H{
+			"remoteCertMode": cfg.RemoteCertModeEnabled(),
+			"remoteCertURL":  cfg.Certificates.RemoteCertURL,
+			"remoteCertMTLS": cfg.RemoteCertMtlsEnabled(),
+		})
+	} else {
+		c.JSON(http.StatusOK, gin.H{
+			"remoteCertMode": cfg.RemoteCertModeEnabled(),
+		})
+	}
+}
+
+func getCountsHandler(c *gin.Context) {
+	cfg := config.GetConfig()
+
+	dnsCounts, err := dns.CountDNSRecords()
+	if err != nil {
+		errFmt := fmt.Errorf("failed to count DNS records: %v", err.Error())
+		log.Errorf("stats", "%v", errFmt)
+		c.JSON(500, gin.H{"error": errFmt})
 		return
 	}
 
-	certCounts, err := certificate.CountCerts()
-	if err != nil {
-		c.JSON(500, gin.H{"error": fmt.Errorf("failed to count certs: %v", err.Error())})
-		return
+	var certCounts map[string]int
+	if cfg.RemoteCertModeEnabled() {
+		certCounts, err = fetchRemoteCertCounts(cfg)
+		if err != nil {
+			errFmt := fmt.Errorf("failed to fetch remote cert counts: %v", err)
+			log.Errorf("stats", "%v", errFmt)
+			c.JSON(500, gin.H{"error": errFmt})
+			return
+		}
+	} else {
+		certCounts, err = certificate.CountCerts()
+		if err != nil {
+			errFmt := fmt.Errorf("failed to count certs: %v", err.Error())
+			log.Errorf("stats", "%v", errFmt)
+			c.JSON(500, gin.H{"error": errFmt})
+			return
+		}
 	}
 
 	circuitCounts, err := circuit.CountCircuits()
 	if err != nil {
-		c.JSON(500, gin.H{"error": fmt.Errorf("failed to count circuits: %v", err.Error())})
+		errFmt := fmt.Errorf("failed to count circuits: %v", err.Error())
+		log.Errorf("stats", "%v", errFmt)
+		c.JSON(500, gin.H{"error": errFmt})
 		return
 	}
 
-	c.JSON(200, gin.H{"dns": dnsCounts, "certs": certCounts, "circuits": circuitCounts, "instance": config.GetConfig().InstanceName})
+	c.JSON(200, gin.H{"dns": dnsCounts, "certs": certCounts, "circuits": circuitCounts, "instance": cfg.System.InstanceName})
 }
 
 func getNetStatsHandler(c *gin.Context) {

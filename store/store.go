@@ -15,8 +15,8 @@ type JSONStore[T any] struct {
 }
 
 func NewJSONStore[T any](file string) *JSONStore[T] {
-	filePath := filepath.Join(config.GetConfig().DataDirectory, file)
-	os.MkdirAll(config.GetConfig().DataDirectory, 0o755)
+	filePath := filepath.Join(config.GetConfig().System.DataDirectory, file)
+	os.MkdirAll(config.GetConfig().System.DataDirectory, 0o755)
 	return &JSONStore[T]{file: filePath}
 }
 

@@ -17,35 +17,39 @@ func main() {
 	banner.ShowTheBanner()
 
 	config := config.GetConfig()
-	if _, err := os.Stat(config.DataDirectory); os.IsNotExist(err) {
-		err := os.MkdirAll(config.DataDirectory, 0755)
+	if _, err := os.Stat(config.System.DataDirectory); os.IsNotExist(err) {
+		err := os.MkdirAll(config.System.DataDirectory, 0755)
 		if err != nil {
 			log.Fatalf("config", "Failed to create data directory: %v", err)
 		}
 	}
 
-	err := certificate.EnsureSslDirs()
-	if err != nil {
-		log.Fatalf("certificates", "Failed to check SSL dirs: %v", err)
+	validCertMode := config.CheckCertMode()
+	if !validCertMode {
+		log.Fatalf("config", "Certificate configuration is invalid")
 	}
 
-	err = dns.EnsureWritable()
-	if err != nil {
+	if config.RemoteCertModeEnabled() {
+		log.Infof("certificates", "Using certificates from %s", config.Certificates.RemoteCertURL)
+	} else {
+		if err := certificate.EnsureSslDirs(); err != nil {
+			log.Fatalf("certificates", "Failed to check SSL dirs: %v", err)
+		}
+	}
+
+	if err := dns.EnsureWritable(); err != nil {
 		log.Fatalf("dns", "DNS config file is not writable: %v", err)
 	}
 
-	err = circuit.SyncCircuits()
-	if err != nil {
+	if err := circuit.SyncCircuits(); err != nil {
 		log.Fatalf("circuit-sync", "An error occurred whilst syncing circuits: %v", err)
 	}
 
-	err = vpn.SyncWireguard()
-	if err != nil {
+	if err := vpn.SyncWireguard(); err != nil {
 		log.Fatalf("vpn-sync", "An error occurred whilst syncing VPN state: %v", err)
 	}
 
-	err = dns.SyncDns()
-	if err != nil {
+	if err := dns.SyncDns(); err != nil {
 		log.Fatalf("dns-sync", "An error occurred whilst syncing DNS state: %v", err)
 	}
 
