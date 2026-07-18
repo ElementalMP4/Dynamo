@@ -52,7 +52,7 @@ async function request(path, options = {}) {
     const res = await fetch(path, options);
     if (!res.ok) {
         const body = await res.text();
-        throw new Error(`${res.status} ${res.statusText} ${body || ""}` );
+        throw new Error(`${res.status} ${res.statusText} ${body || ""}`);
     }
     const contentType = res.headers.get("content-type") || "";
     if (contentType.includes("application/json")) return res.json();
@@ -272,7 +272,7 @@ function HomeScreen() {
 
         async function cycle() {
             try {
-                await Promise.all([loadSummary(), pollNetwork(), pollSystem().catch(() => {})]);
+                await Promise.all([loadSummary(), pollNetwork(), pollSystem().catch(() => { })]);
                 if (alive) {
                     setError("");
                     setIsLoading(false);
@@ -697,26 +697,32 @@ function DnsScreen() {
         const fields = RECORD_FIELDS[form.type] || [];
 
         return Mini.div({ class: "mui-field-grid" },
-            editableType && Field({ label: "Type", children: Mini.vnode("select", {
-                value: form.type,
-                onchange: event => setter({ ...form, type: event.target.value })
-            },
-                Mini.vnode("option", { value: "A" }, "A Record"),
-                Mini.vnode("option", { value: "CNAME" }, "CNAME Record"),
-                Mini.vnode("option", { value: "TXT" }, "TXT Record"),
-                Mini.vnode("option", { value: "SRV" }, "SRV Record")
-            ) }),
-            Field({ label: "Name", children: Mini.vnode("input", {
-                type: "text",
-                value: form.name,
-                required: true,
-                oninput: event => setter({ ...form, name: event.target.value })
-            }) }),
-            Field({ label: "TTL (seconds)", children: Mini.vnode("input", {
-                type: "number",
-                value: form.ttl,
-                oninput: event => setter({ ...form, ttl: event.target.value })
-            }) }),
+            editableType && Field({
+                label: "Type", children: Mini.vnode("select", {
+                    value: form.type,
+                    onchange: event => setter({ ...form, type: event.target.value })
+                },
+                    Mini.vnode("option", { value: "A" }, "A Record"),
+                    Mini.vnode("option", { value: "CNAME" }, "CNAME Record"),
+                    Mini.vnode("option", { value: "TXT" }, "TXT Record"),
+                    Mini.vnode("option", { value: "SRV" }, "SRV Record")
+                )
+            }),
+            Field({
+                label: "Name", children: Mini.vnode("input", {
+                    type: "text",
+                    value: form.name,
+                    required: true,
+                    oninput: event => setter({ ...form, name: event.target.value })
+                })
+            }),
+            Field({
+                label: "TTL (seconds)", children: Mini.vnode("input", {
+                    type: "number",
+                    value: form.ttl,
+                    oninput: event => setter({ ...form, ttl: event.target.value })
+                })
+            }),
             fields.map(field => Field({
                 key: field.id,
                 label: field.label,
@@ -924,18 +930,18 @@ function CertsScreen() {
         }
     }
 
-    async function saveRemoteCert(file) {
+    async function saveRemoteCert() {
         if (!detail) return;
 
         try {
             await request(
-                `/api/certs/save?kind=${encodeURIComponent(detail.kind)}&base=${encodeURIComponent(detail.group.name)}&name=${encodeURIComponent(file)}`,
+                `/api/certs/save?kind=${encodeURIComponent(detail.kind)}&base=${encodeURIComponent(detail.group.name)}`,
                 { method: "POST" }
             );
-            await showAlert(`Saved ${file} to server`, "Success");
+            await showAlert(`Saved ${detail.group.name} to server`, "Success");
             loadCerts();
         } catch (err) {
-            await showAlert(`Failed to save ${file}: ${err.error || err.message || err}`, "Error");
+            await showAlert(`Failed to save ${detail.group.name}: ${err.error || err.message || err}`, "Error");
         }
     }
 
@@ -995,15 +1001,13 @@ function CertsScreen() {
                         key: file,
                         href: `/api/certs/download?kind=${detail.kind}&name=${encodeURIComponent(file)}&base=${encodeURIComponent(detail.group.name)}`
                     }, `Download ${file}`)),
-                    remoteCertMode && (detail.group.files || []).map(file => Mini.button({
-                        class: "mui-button secondary",
-                        key: file,
-                        type: "button",
-                        onclick: () => saveRemoteCert(file)
-                    }, `Save ${file} to server`))
                 ),
                 Mini.div({ class: "mui-form-actions" },
                     Mini.button({ class: "mui-button danger", onclick: () => deleteGroup(detail.kind, detail.group.name) }, "Delete"),
+                    remoteCertMode && Mini.button({
+                        class: "mui-button secondary",
+                        onclick: () => saveRemoteCert()
+                    }, `Save ${detail.group.name} to server`),
                     Mini.button({ class: "mui-button secondary", onclick: () => setDetail(null) }, "Close")
                 )
             ),
@@ -1015,16 +1019,20 @@ function CertsScreen() {
             onClose: () => setActiveModal("")
         },
             Mini.vnode("form", { class: "mui-stack", onsubmit: createRoot },
-                Field({ label: "Name", children: Mini.vnode("input", {
-                    value: rootForm.name,
-                    required: true,
-                    oninput: event => setRootForm({ ...rootForm, name: event.target.value })
-                }) }),
-                Field({ label: "Days", children: Mini.vnode("input", {
-                    type: "number",
-                    value: rootForm.days,
-                    oninput: event => setRootForm({ ...rootForm, days: event.target.value })
-                }) }),
+                Field({
+                    label: "Name", children: Mini.vnode("input", {
+                        value: rootForm.name,
+                        required: true,
+                        oninput: event => setRootForm({ ...rootForm, name: event.target.value })
+                    })
+                }),
+                Field({
+                    label: "Days", children: Mini.vnode("input", {
+                        type: "number",
+                        value: rootForm.days,
+                        oninput: event => setRootForm({ ...rootForm, days: event.target.value })
+                    })
+                }),
                 Mini.div({ class: "mui-form-actions" },
                     Mini.button({ type: "button", class: "mui-button secondary", onclick: () => setActiveModal("") }, "Cancel"),
                     Mini.button({ type: "submit", class: "mui-button" }, "Create")
@@ -1038,23 +1046,27 @@ function CertsScreen() {
             onClose: () => setActiveModal("")
         },
             Mini.vnode("form", { class: "mui-stack", onsubmit: createServer },
-                Field({ label: "Domain", children: Mini.vnode("select", {
-                    value: serverForm.domain,
-                    required: true,
-                    onchange: event => setServerForm({ ...serverForm, domain: event.target.value })
-                },
-                    domains.length === 0
-                        ? Mini.vnode("option", { value: "" }, "-- no domains configured --")
-                        : domains.map(domain => Mini.vnode("option", { value: domain, key: domain }, domain))
-                ) }),
-                Field({ label: "Root CA", children: Mini.vnode("select", {
-                    value: serverForm.caBase,
-                    onchange: event => setServerForm({ ...serverForm, caBase: event.target.value })
-                },
-                    rootNames.length === 0
-                        ? Mini.vnode("option", { value: "" }, "-- no root CA available --")
-                        : rootNames.map(name => Mini.vnode("option", { value: name, key: name }, name))
-                ) }),
+                Field({
+                    label: "Domain", children: Mini.vnode("select", {
+                        value: serverForm.domain,
+                        required: true,
+                        onchange: event => setServerForm({ ...serverForm, domain: event.target.value })
+                    },
+                        domains.length === 0
+                            ? Mini.vnode("option", { value: "" }, "-- no domains configured --")
+                            : domains.map(domain => Mini.vnode("option", { value: domain, key: domain }, domain))
+                    )
+                }),
+                Field({
+                    label: "Root CA", children: Mini.vnode("select", {
+                        value: serverForm.caBase,
+                        onchange: event => setServerForm({ ...serverForm, caBase: event.target.value })
+                    },
+                        rootNames.length === 0
+                            ? Mini.vnode("option", { value: "" }, "-- no root CA available --")
+                            : rootNames.map(name => Mini.vnode("option", { value: name, key: name }, name))
+                    )
+                }),
                 Mini.div({ class: "mui-form-actions" },
                     Mini.button({ type: "button", class: "mui-button secondary", onclick: () => setActiveModal("") }, "Cancel"),
                     Mini.button({ type: "submit", class: "mui-button" }, "Create")
@@ -1068,28 +1080,36 @@ function CertsScreen() {
             onClose: () => setActiveModal("")
         },
             Mini.vnode("form", { class: "mui-stack", onsubmit: createClient },
-                Field({ label: "Name", children: Mini.vnode("input", {
-                    value: clientForm.name,
-                    required: true,
-                    oninput: event => setClientForm({ ...clientForm, name: event.target.value })
-                }) }),
-                Field({ label: "Root CA", children: Mini.vnode("select", {
-                    value: clientForm.caBase,
-                    onchange: event => setClientForm({ ...clientForm, caBase: event.target.value })
-                },
-                    rootNames.length === 0
-                        ? Mini.vnode("option", { value: "" }, "-- no root CA available --")
-                        : rootNames.map(name => Mini.vnode("option", { value: name, key: name }, name))
-                ) }),
-                Field({ label: "Client Identity", hint: "Usually an email address", children: Mini.vnode("input", {
-                    value: clientForm.identity,
-                    oninput: event => setClientForm({ ...clientForm, identity: event.target.value })
-                }) }),
-                Field({ label: "P12 Password", children: Mini.vnode("input", {
-                    type: "password",
-                    value: clientForm.p12Pass,
-                    oninput: event => setClientForm({ ...clientForm, p12Pass: event.target.value })
-                }) }),
+                Field({
+                    label: "Name", children: Mini.vnode("input", {
+                        value: clientForm.name,
+                        required: true,
+                        oninput: event => setClientForm({ ...clientForm, name: event.target.value })
+                    })
+                }),
+                Field({
+                    label: "Root CA", children: Mini.vnode("select", {
+                        value: clientForm.caBase,
+                        onchange: event => setClientForm({ ...clientForm, caBase: event.target.value })
+                    },
+                        rootNames.length === 0
+                            ? Mini.vnode("option", { value: "" }, "-- no root CA available --")
+                            : rootNames.map(name => Mini.vnode("option", { value: name, key: name }, name))
+                    )
+                }),
+                Field({
+                    label: "Client Identity", hint: "Usually an email address", children: Mini.vnode("input", {
+                        value: clientForm.identity,
+                        oninput: event => setClientForm({ ...clientForm, identity: event.target.value })
+                    })
+                }),
+                Field({
+                    label: "P12 Password", children: Mini.vnode("input", {
+                        type: "password",
+                        value: clientForm.p12Pass,
+                        oninput: event => setClientForm({ ...clientForm, p12Pass: event.target.value })
+                    })
+                }),
                 Mini.div({ class: "mui-form-actions" },
                     Mini.button({ type: "button", class: "mui-button secondary", onclick: () => setActiveModal("") }, "Cancel"),
                     Mini.button({ type: "submit", class: "mui-button" }, "Create")
@@ -1272,7 +1292,7 @@ function CircuitsScreen() {
                             Mini.div({ class: "mui-stack tight" },
                                 Mini.div({ class: "mui-row" },
                                     Mini.span({ class: `mui-status-dot ${circuit.enabled ? "on" : "off"}` }),
-                                    Mini.strong({class: "mui-truncate"}, circuit.name),
+                                    Mini.strong({ class: "mui-truncate" }, circuit.name),
                                     Mini.span({ class: "mui-badge" }, circuit.type)
                                 ),
                                 Mini.small({ class: "mui-muted mono" }, buildMeta(circuit))
@@ -1298,52 +1318,68 @@ function CircuitsScreen() {
             onClose: () => setEditing(null)
         },
             Mini.vnode("form", { class: "mui-stack", onsubmit: saveCircuit },
-                Field({ label: "Name", children: Mini.vnode("input", {
-                    required: true,
-                    value: form.name,
-                    oninput: event => setForm({ ...form, name: event.target.value })
-                }) }),
-                Field({ label: "Type", children: Mini.vnode("select", {
-                    value: form.type,
-                    onchange: event => setForm({ ...form, type: event.target.value })
-                },
-                    Mini.vnode("option", { value: "DNAT" }, "Port Forwarding"),
-                    Mini.vnode("option", { value: "REDIRECT" }, "Inbound Redirect"),
-                    Mini.vnode("option", { value: "LOCAL" }, "Local Redirect")
-                ) }),
-                !isLocal && Field({ label: "Inbound Interface", children: Mini.vnode("select", {
-                    value: form.in_interface,
-                    onchange: event => setForm({ ...form, in_interface: event.target.value })
-                },
-                    interfaces.map(iface => Mini.vnode("option", { value: iface, key: iface }, iface))
-                ) }),
-                Field({ label: "Protocol", children: Mini.vnode("select", {
-                    value: form.protocol,
-                    onchange: event => setForm({ ...form, protocol: event.target.value })
-                },
-                    Mini.vnode("option", { value: "tcp" }, "TCP"),
-                    Mini.vnode("option", { value: "udp" }, "UDP"),
-                    Mini.vnode("option", { value: "both" }, "Both")
-                ) }),
-                Field({ label: "Source Port", children: Mini.vnode("input", {
-                    type: "number",
-                    value: form.src_port,
-                    oninput: event => setForm({ ...form, src_port: event.target.value })
-                }) }),
-                (isRedirect || isLocal) && Field({ label: "Redirect Port", children: Mini.vnode("input", {
-                    type: "number",
-                    value: form.redirect_port,
-                    oninput: event => setForm({ ...form, redirect_port: event.target.value })
-                }) }),
-                isDNAT && Field({ label: "Destination IP", children: Mini.vnode("input", {
-                    value: form.dest_ip,
-                    oninput: event => setForm({ ...form, dest_ip: event.target.value })
-                }) }),
-                isDNAT && Field({ label: "Destination Port", children: Mini.vnode("input", {
-                    type: "number",
-                    value: form.dest_port,
-                    oninput: event => setForm({ ...form, dest_port: event.target.value })
-                }) }),
+                Field({
+                    label: "Name", children: Mini.vnode("input", {
+                        required: true,
+                        value: form.name,
+                        oninput: event => setForm({ ...form, name: event.target.value })
+                    })
+                }),
+                Field({
+                    label: "Type", children: Mini.vnode("select", {
+                        value: form.type,
+                        onchange: event => setForm({ ...form, type: event.target.value })
+                    },
+                        Mini.vnode("option", { value: "DNAT" }, "Port Forwarding"),
+                        Mini.vnode("option", { value: "REDIRECT" }, "Inbound Redirect"),
+                        Mini.vnode("option", { value: "LOCAL" }, "Local Redirect")
+                    )
+                }),
+                !isLocal && Field({
+                    label: "Inbound Interface", children: Mini.vnode("select", {
+                        value: form.in_interface,
+                        onchange: event => setForm({ ...form, in_interface: event.target.value })
+                    },
+                        interfaces.map(iface => Mini.vnode("option", { value: iface, key: iface }, iface))
+                    )
+                }),
+                Field({
+                    label: "Protocol", children: Mini.vnode("select", {
+                        value: form.protocol,
+                        onchange: event => setForm({ ...form, protocol: event.target.value })
+                    },
+                        Mini.vnode("option", { value: "tcp" }, "TCP"),
+                        Mini.vnode("option", { value: "udp" }, "UDP"),
+                        Mini.vnode("option", { value: "both" }, "Both")
+                    )
+                }),
+                Field({
+                    label: "Source Port", children: Mini.vnode("input", {
+                        type: "number",
+                        value: form.src_port,
+                        oninput: event => setForm({ ...form, src_port: event.target.value })
+                    })
+                }),
+                (isRedirect || isLocal) && Field({
+                    label: "Redirect Port", children: Mini.vnode("input", {
+                        type: "number",
+                        value: form.redirect_port,
+                        oninput: event => setForm({ ...form, redirect_port: event.target.value })
+                    })
+                }),
+                isDNAT && Field({
+                    label: "Destination IP", children: Mini.vnode("input", {
+                        value: form.dest_ip,
+                        oninput: event => setForm({ ...form, dest_ip: event.target.value })
+                    })
+                }),
+                isDNAT && Field({
+                    label: "Destination Port", children: Mini.vnode("input", {
+                        type: "number",
+                        value: form.dest_port,
+                        oninput: event => setForm({ ...form, dest_port: event.target.value })
+                    })
+                }),
                 Mini.div({ class: "mui-form-actions" },
                     Mini.button({ type: "button", class: "mui-button secondary", onclick: () => setEditing(null) }, "Cancel"),
                     Mini.button({ type: "submit", class: "mui-button" }, editing?.mode === "edit" ? "Save" : "Create")
@@ -1847,36 +1883,48 @@ function VpnScreen() {
             onClose: () => setIfaceModal({ open: false, editName: "" })
         },
             Mini.vnode("form", { class: "mui-stack", onsubmit: saveInterface },
-                Field({ label: "Name", children: Mini.vnode("input", {
-                    value: ifaceForm.name,
-                    disabled: !!ifaceModal.editName,
-                    required: !ifaceModal.editName,
-                    oninput: event => setIfaceForm({ ...ifaceForm, name: event.target.value })
-                }) }),
-                !ifaceModal.editName && Field({ label: "Address (CIDR)", children: Mini.vnode("input", {
-                    value: ifaceForm.address,
-                    required: true,
-                    oninput: event => setIfaceForm({ ...ifaceForm, address: event.target.value })
-                }) }),
-                !ifaceModal.editName && Field({ label: "Listen Port", children: Mini.vnode("input", {
-                    type: "number",
-                    value: ifaceForm.listen_port,
-                    required: true,
-                    oninput: event => setIfaceForm({ ...ifaceForm, listen_port: event.target.value })
-                }) }),
-                Field({ label: "Endpoint (host:port)", children: Mini.vnode("input", {
-                    value: ifaceForm.endpoint,
-                    required: !ifaceModal.editName,
-                    oninput: event => setIfaceForm({ ...ifaceForm, endpoint: event.target.value })
-                }) }),
-                Field({ label: "Default DNS", children: Mini.vnode("input", {
-                    value: ifaceForm.default_dns,
-                    oninput: event => setIfaceForm({ ...ifaceForm, default_dns: event.target.value })
-                }) }),
-                Field({ label: "Default Allowed IPs", children: Mini.vnode("input", {
-                    value: ifaceForm.default_allowed_ips,
-                    oninput: event => setIfaceForm({ ...ifaceForm, default_allowed_ips: event.target.value })
-                }) }),
+                Field({
+                    label: "Name", children: Mini.vnode("input", {
+                        value: ifaceForm.name,
+                        disabled: !!ifaceModal.editName,
+                        required: !ifaceModal.editName,
+                        oninput: event => setIfaceForm({ ...ifaceForm, name: event.target.value })
+                    })
+                }),
+                !ifaceModal.editName && Field({
+                    label: "Address (CIDR)", children: Mini.vnode("input", {
+                        value: ifaceForm.address,
+                        required: true,
+                        oninput: event => setIfaceForm({ ...ifaceForm, address: event.target.value })
+                    })
+                }),
+                !ifaceModal.editName && Field({
+                    label: "Listen Port", children: Mini.vnode("input", {
+                        type: "number",
+                        value: ifaceForm.listen_port,
+                        required: true,
+                        oninput: event => setIfaceForm({ ...ifaceForm, listen_port: event.target.value })
+                    })
+                }),
+                Field({
+                    label: "Endpoint (host:port)", children: Mini.vnode("input", {
+                        value: ifaceForm.endpoint,
+                        required: !ifaceModal.editName,
+                        oninput: event => setIfaceForm({ ...ifaceForm, endpoint: event.target.value })
+                    })
+                }),
+                Field({
+                    label: "Default DNS", children: Mini.vnode("input", {
+                        value: ifaceForm.default_dns,
+                        oninput: event => setIfaceForm({ ...ifaceForm, default_dns: event.target.value })
+                    })
+                }),
+                Field({
+                    label: "Default Allowed IPs", children: Mini.vnode("input", {
+                        value: ifaceForm.default_allowed_ips,
+                        oninput: event => setIfaceForm({ ...ifaceForm, default_allowed_ips: event.target.value })
+                    })
+                }),
                 Mini.label({ class: "mui-check" },
                     Mini.vnode("input", {
                         type: "checkbox",
@@ -1889,12 +1937,14 @@ function VpnScreen() {
                     }),
                     Mini.span({}, "Enable NAT masquerade")
                 ),
-                ifaceForm.enable_nat && Field({ label: "Outbound Interface", children: Mini.vnode("select", {
-                    value: ifaceForm.out_interface,
-                    onchange: event => setIfaceForm({ ...ifaceForm, out_interface: event.target.value })
-                },
-                    systemIfaces.map(iface => Mini.vnode("option", { value: iface, key: iface }, iface))
-                ) }),
+                ifaceForm.enable_nat && Field({
+                    label: "Outbound Interface", children: Mini.vnode("select", {
+                        value: ifaceForm.out_interface,
+                        onchange: event => setIfaceForm({ ...ifaceForm, out_interface: event.target.value })
+                    },
+                        systemIfaces.map(iface => Mini.vnode("option", { value: iface, key: iface }, iface))
+                    )
+                }),
                 Mini.div({ class: "mui-form-actions" },
                     Mini.button({ type: "button", class: "mui-button secondary", onclick: () => setIfaceModal({ open: false, editName: "" }) }, "Cancel"),
                     Mini.button({ type: "submit", class: "mui-button" }, ifaceModal.editName ? "Save" : "Create")
@@ -1908,19 +1958,25 @@ function VpnScreen() {
             onClose: () => setPeerModal({ open: false, iface: "", editId: "" })
         },
             Mini.vnode("form", { class: "mui-stack", onsubmit: savePeer },
-                Field({ label: "Name", children: Mini.vnode("input", {
-                    value: peerForm.name,
-                    required: true,
-                    oninput: event => setPeerForm({ ...peerForm, name: event.target.value })
-                }) }),
-                Field({ label: "DNS", hint: "Leave blank for interface default", children: Mini.vnode("input", {
-                    value: peerForm.dns,
-                    oninput: event => setPeerForm({ ...peerForm, dns: event.target.value })
-                }) }),
-                Field({ label: "Allowed IPs", hint: "Leave blank for interface default", children: Mini.vnode("input", {
-                    value: peerForm.allowed_ips,
-                    oninput: event => setPeerForm({ ...peerForm, allowed_ips: event.target.value })
-                }) }),
+                Field({
+                    label: "Name", children: Mini.vnode("input", {
+                        value: peerForm.name,
+                        required: true,
+                        oninput: event => setPeerForm({ ...peerForm, name: event.target.value })
+                    })
+                }),
+                Field({
+                    label: "DNS", hint: "Leave blank for interface default", children: Mini.vnode("input", {
+                        value: peerForm.dns,
+                        oninput: event => setPeerForm({ ...peerForm, dns: event.target.value })
+                    })
+                }),
+                Field({
+                    label: "Allowed IPs", hint: "Leave blank for interface default", children: Mini.vnode("input", {
+                        value: peerForm.allowed_ips,
+                        oninput: event => setPeerForm({ ...peerForm, allowed_ips: event.target.value })
+                    })
+                }),
                 Mini.div({ class: "mui-form-actions" },
                     Mini.button({ type: "button", class: "mui-button secondary", onclick: () => setPeerModal({ open: false, iface: "", editId: "" }) }, "Cancel"),
                     Mini.button({ type: "submit", class: "mui-button" }, peerModal.editId ? "Save" : "Add")
