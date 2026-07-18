@@ -10,7 +10,9 @@ import (
 	"bufio"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -173,6 +175,50 @@ func buildMTLSConfig(cfg config.Config) (*tls.Config, error) {
 	return tlsCfg, nil
 }
 
+func fetchRemoteCertCounts(cfg config.Config) (map[string]int, error) {
+	remote, err := url.Parse(cfg.Certificates.RemoteCertURL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid remote certificate URL: %w", err)
+	}
+
+	statsURL := remote.ResolveReference(&url.URL{Path: "/api/stats/dynamo"})
+
+	req, err := http.NewRequest(http.MethodGet, statsURL.String(), nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating remote stats request: %w", err)
+	}
+	req.Header.Set("X-Dynamo-ID", cfg.System.InstanceName)
+
+	client := &http.Client{}
+	if cfg.RemoteCertMtlsEnabled() {
+		tlsCfg, err := buildMTLSConfig(cfg)
+		if err != nil {
+			return nil, fmt.Errorf("building remote stats mTLS config: %w", err)
+		}
+		client.Transport = &http.Transport{TLSClientConfig: tlsCfg}
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("requesting remote stats: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("remote stats request failed: %s - %s", resp.Status, strings.TrimSpace(string(body)))
+	}
+
+	var payload struct {
+		Certs map[string]int `json:"certs"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		return nil, fmt.Errorf("decoding remote stats response: %w", err)
+	}
+
+	return payload.Certs, nil
+}
+
 func getSystemInfoHandler(c *gin.Context) {
 	cfg := config.GetConfig()
 
@@ -190,8 +236,9 @@ func getSystemInfoHandler(c *gin.Context) {
 }
 
 func getCountsHandler(c *gin.Context) {
-	dnsCounts, err := dns.CountDNSRecords()
+	cfg := config.GetConfig()
 
+	dnsCounts, err := dns.CountDNSRecords()
 	if err != nil {
 		errFmt := fmt.Errorf("failed to count DNS records: %v", err.Error())
 		log.Errorf("stats", "%v", errFmt)
@@ -199,12 +246,23 @@ func getCountsHandler(c *gin.Context) {
 		return
 	}
 
-	certCounts, err := certificate.CountCerts()
-	if err != nil {
-		errFmt := fmt.Errorf("failed to count certs: %v", err.Error())
-		log.Errorf("stats", "%v", errFmt)
-		c.JSON(500, gin.H{"error": errFmt})
-		return
+	var certCounts map[string]int
+	if cfg.RemoteCertModeEnabled() {
+		certCounts, err = fetchRemoteCertCounts(cfg)
+		if err != nil {
+			errFmt := fmt.Errorf("failed to fetch remote cert counts: %v", err)
+			log.Errorf("stats", "%v", errFmt)
+			c.JSON(500, gin.H{"error": errFmt})
+			return
+		}
+	} else {
+		certCounts, err = certificate.CountCerts()
+		if err != nil {
+			errFmt := fmt.Errorf("failed to count certs: %v", err.Error())
+			log.Errorf("stats", "%v", errFmt)
+			c.JSON(500, gin.H{"error": errFmt})
+			return
+		}
 	}
 
 	circuitCounts, err := circuit.CountCircuits()
@@ -215,7 +273,7 @@ func getCountsHandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, gin.H{"dns": dnsCounts, "certs": certCounts, "circuits": circuitCounts, "instance": config.GetConfig().System.InstanceName})
+	c.JSON(200, gin.H{"dns": dnsCounts, "certs": certCounts, "circuits": circuitCounts, "instance": cfg.System.InstanceName})
 }
 
 func getNetStatsHandler(c *gin.Context) {
