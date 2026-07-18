@@ -572,6 +572,33 @@ select {
     }
 }
 
+@media (min-width: 861px) and (max-height: 900px) {
+    .mui-screen-overview {
+        gap: 0.85rem;
+    }
+
+    .mui-screen-overview .mui-dashboard {
+        gap: 0.8rem;
+    }
+
+    .mui-screen-overview .mui-grid-2,
+    .mui-screen-overview .mui-summary-grid {
+        gap: 0.72rem;
+    }
+
+    .mui-screen-overview .mui-chart-line {
+        height: 78px;
+    }
+
+    .mui-screen-overview .mui-chart-small {
+        height: 98px;
+    }
+
+    .mui-screen-overview .mui-card {
+        padding: 0.92rem;
+    }
+}
+
 @media (max-width: 1080px) {
     .mui-summary-grid {
         grid-template-columns: 1fr;

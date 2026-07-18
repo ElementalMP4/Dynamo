@@ -472,7 +472,7 @@ function HomeScreen() {
         ? circuits.DNAT.on + circuits.DNAT.off + circuits.REDIRECT.on + circuits.REDIRECT.off + circuits.LOCAL.on + circuits.LOCAL.off
         : 0;
 
-    return Mini.div({ class: "mui-screen" },
+    return Mini.div({ class: "mui-screen mui-screen-overview" },
         PageHeader({
             title: "Overview",
             subtitle: "Traffic, service totals, and live interface rates"
@@ -480,7 +480,7 @@ function HomeScreen() {
         error && Mini.div({ class: "mui-alert danger" }, error),
         isLoading
             ? Spinner({ label: "Loading dashboard..." })
-            : Mini.div({ class: "mui-dashboard" },
+            : Mini.div({ class: "mui-dashboard mui-overview" },
                 Mini.div({ class: "mui-grid-2" },
                     Mini.div({ class: "mui-card" },
                         Mini.h3({}, "CPU Usage"),
