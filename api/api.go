@@ -71,8 +71,6 @@ func StartAPI() {
 				r.Out.URL.Path = r.In.URL.Path
 				r.Out.URL.RawQuery = r.In.URL.RawQuery
 				r.Out.Header.Set("X-Dynamo-ID", cfg.System.InstanceName)
-
-				fmt.Println(r.Out.URL.String())
 			},
 		}
 

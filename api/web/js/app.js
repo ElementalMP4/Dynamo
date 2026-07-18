@@ -77,7 +77,7 @@ function useAsyncData(loader, deps = []) {
             })
             .catch(err => {
                 if (!alive) return;
-                setError(err.message || "Failed to load");
+                setError(err.error || "Failed to load");
                 setLoading(false);
             });
 
@@ -279,7 +279,7 @@ function HomeScreen() {
                 }
             } catch (err) {
                 if (alive) {
-                    setError(err.message || "Failed to load dashboard");
+                    setError(err.error || "Failed to load dashboard");
                     setIsLoading(false);
                 }
             } finally {
@@ -572,7 +572,7 @@ function DnsScreen() {
             setRecords(data || []);
             setError("");
         } catch (err) {
-            setError(err.message || "Failed to load DNS records");
+            setError(err.error || "Failed to load DNS records");
         } finally {
             setLoading(false);
         }
@@ -643,7 +643,7 @@ function DnsScreen() {
             setAddOpen(false);
             loadRecords();
         } catch (err) {
-            await showAlert(`Error creating record: ${err.message}`);
+            await showAlert(`Error creating record: ${err.error}`);
         }
     }
 
@@ -664,7 +664,7 @@ function DnsScreen() {
             setEditRecord(null);
             loadRecords();
         } catch (err) {
-            await showAlert(`Error updating record: ${err.message}`);
+            await showAlert(`Error updating record: ${err.error}`);
         }
     }
 
@@ -674,7 +674,7 @@ function DnsScreen() {
             await request(`/api/dns/${id}`, { method: "DELETE" });
             loadRecords();
         } catch (err) {
-            await showAlert(`Error deleting record: ${err.message}`);
+            await showAlert(`Error deleting record: ${err.error}`);
         }
     }
 
@@ -845,7 +845,7 @@ function CertsScreen() {
 
             setError("");
         } catch (err) {
-            setError(err.message || "Failed to load certificates");
+            setError(err.error || "Failed to load certificates");
         } finally {
             setLoading(false);
         }
@@ -870,7 +870,7 @@ function CertsScreen() {
             setRootForm({ name: "", days: "3650" });
             loadCerts();
         } catch (err) {
-            await showAlert(`Failed to create root CA: ${err.message}`);
+            await showAlert(`Failed to create root CA: ${err.error}`);
         }
     }
 
@@ -888,7 +888,7 @@ function CertsScreen() {
             setActiveModal("");
             loadCerts();
         } catch (err) {
-            await showAlert(`Failed to create server certificate: ${err.message}`);
+            await showAlert(`Failed to create server certificate: ${err.error}`);
         }
     }
 
@@ -909,7 +909,7 @@ function CertsScreen() {
             setClientForm({ name: "", caBase: clientForm.caBase, identity: "", p12Pass: "" });
             loadCerts();
         } catch (err) {
-            await showAlert(`Failed to create client certificate: ${err.message}`);
+            await showAlert(`Failed to create client certificate: ${err.error}`);
         }
     }
 
@@ -920,7 +920,7 @@ function CertsScreen() {
             setDetail(null);
             loadCerts();
         } catch (err) {
-            await showAlert(`Failed to delete certificate: ${err.message}`);
+            await showAlert(`Failed to delete certificate: ${err.error}`);
         }
     }
 
@@ -1107,7 +1107,7 @@ function CircuitsScreen() {
             setCircuits(data || []);
             setError("");
         } catch (err) {
-            setError(err.message || "Failed to load circuits");
+            setError(err.error || "Failed to load circuits");
         } finally {
             setLoading(false);
         }
@@ -1121,7 +1121,7 @@ function CircuitsScreen() {
             ));
             setInterfaces(list);
         } catch (err) {
-            setError(err.message || "Failed to load interfaces");
+            setError(err.error || "Failed to load interfaces");
         }
     }
 
@@ -1184,7 +1184,7 @@ function CircuitsScreen() {
             setEditing(null);
             loadCircuits();
         } catch (err) {
-            await showAlert(`Failed to save circuit: ${err.message}`);
+            await showAlert(`Failed to save circuit: ${err.error}`);
         }
     }
 
@@ -1193,7 +1193,7 @@ function CircuitsScreen() {
             await request(`/api/circuits/${id}/${enable ? "enable" : "disable"}`, { method: "POST" });
             loadCircuits();
         } catch (err) {
-            await showAlert(`Failed to update circuit: ${err.message}`);
+            await showAlert(`Failed to update circuit: ${err.error}`);
         }
     }
 
@@ -1204,7 +1204,7 @@ function CircuitsScreen() {
             setDeleting(null);
             loadCircuits();
         } catch (err) {
-            await showAlert(`Failed to delete circuit: ${err.message}`);
+            await showAlert(`Failed to delete circuit: ${err.error}`);
         }
     }
 
@@ -1428,7 +1428,7 @@ function VpnScreen() {
                 setIfaceForm(old => ({ ...old, out_interface: values[0] }));
             }
         } catch (err) {
-            setError(err.message || "Failed to load system interfaces");
+            setError(err.error || "Failed to load system interfaces");
         }
     }
 
@@ -1439,7 +1439,7 @@ function VpnScreen() {
             setInterfaces(data || []);
             setError("");
         } catch (err) {
-            setError(err.message || "Failed to load VPN interfaces");
+            setError(err.error || "Failed to load VPN interfaces");
         } finally {
             setLoading(false);
         }
@@ -1634,7 +1634,7 @@ function VpnScreen() {
             setIfaceModal({ open: false, editName: "" });
             loadInterfaces();
         } catch (err) {
-            await showAlert(`Failed to save interface: ${err.message}`);
+            await showAlert(`Failed to save interface: ${err.error}`);
         }
     }
 
@@ -1647,7 +1647,7 @@ function VpnScreen() {
             });
             loadInterfaces();
         } catch (err) {
-            await showAlert(`Failed to toggle interface: ${err.message}`);
+            await showAlert(`Failed to toggle interface: ${err.error}`);
         }
     }
 
@@ -1658,7 +1658,7 @@ function VpnScreen() {
             setDeleteIface(null);
             loadInterfaces();
         } catch (err) {
-            await showAlert(`Failed to delete interface: ${err.message}`);
+            await showAlert(`Failed to delete interface: ${err.error}`);
         }
     }
 
@@ -1701,7 +1701,7 @@ function VpnScreen() {
             setPeerModal({ open: false, iface: "", editId: "" });
             loadInterfaces();
         } catch (err) {
-            await showAlert(`Failed to save peer: ${err.message}`);
+            await showAlert(`Failed to save peer: ${err.error}`);
         }
     }
 
@@ -1714,7 +1714,7 @@ function VpnScreen() {
             });
             loadInterfaces();
         } catch (err) {
-            alert(`Failed to toggle peer: ${err.message}`);
+            alert(`Failed to toggle peer: ${err.error}`);
         }
     }
 
@@ -1727,7 +1727,7 @@ function VpnScreen() {
             setDeletePeer(null);
             loadInterfaces();
         } catch (err) {
-            alert(`Failed to delete peer: ${err.message}`);
+            alert(`Failed to delete peer: ${err.error}`);
         }
     }
 
@@ -1742,7 +1742,7 @@ function VpnScreen() {
             link.click();
             URL.revokeObjectURL(url);
         } catch (err) {
-            await showAlert(`Failed to download config: ${err.message}`);
+            await showAlert(`Failed to download config: ${err.error}`);
         }
     }
 
