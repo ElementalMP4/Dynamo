@@ -572,70 +572,13 @@ select {
     }
 }
 
-@media (min-width: 861px){
-    .mui-screen-overview {
-        gap: 0.85rem;
-    }
-
-    .mui-screen-overview .mui-dashboard {
-        gap: 0.8rem;
-    }
-
-    .mui-screen-overview .mui-grid-2,
-    .mui-screen-overview .mui-summary-grid {
-        gap: 0.72rem;
-    }
-
-    .mui-screen-overview .mui-chart-line {
-        height: 78px;
-    }
-
-    .mui-screen-overview .mui-chart-small {
-        height: 98px;
-    }
-
-    .mui-screen-overview .mui-card {
-        padding: 0.92rem;
-    }
-}
-
-@media (min-width: 861px) {
+@media (max-width: 1080px) {
     .mui-summary-grid {
         grid-template-columns: 1fr;
     }
 
     .mui-grid-2 {
         grid-template-columns: 1fr;
-    }
-
-    .mui-screen-overview {
-        gap: 0.85rem;
-    }
-
-    .mui-screen-overview .mui-dashboard {
-        gap: 0.8rem;
-    }
-
-    .mui-screen-overview .mui-grid-2 {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 0.72rem;
-    }
-
-    .mui-screen-overview .mui-summary-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 0.72rem;
-    }
-
-    .mui-screen-overview .mui-chart-line {
-        height: 78px;
-    }
-
-    .mui-screen-overview .mui-chart-small {
-        height: 98px;
-    }
-
-    .mui-screen-overview .mui-card {
-        padding: 0.92rem;
     }
 }
 
