@@ -955,10 +955,8 @@ function CertsScreen() {
             subtitle: "Issue root, server, and client certificates"
         }),
         remoteCertMode && Mini.div({ class: "mui-alert warning" },
-            Mini.strong({}, "Remote Certificate Mode is active. "),
-            `All certificate operations are proxied to ${remoteCertURL}`,
-            remoteCertMTLS ? " (mTLS). " : ". ",
-            Mini.strong({}, "No certificate files will be written to disk on this instance.")
+            "Certificates sourced from ",
+            Mini.strong({}, remoteCertURL),
         ),
         error && Mini.div({ class: "mui-alert danger" }, error),
         loading
