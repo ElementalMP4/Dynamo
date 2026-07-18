@@ -24,9 +24,9 @@ func main() {
 		}
 	}
 
-	validCertMode := config.CheckCertMode()
-	if !validCertMode {
-		log.Fatalf("config", "Certificate configuration is invalid")
+	err := config.CheckConfig()
+	if err != nil {
+		log.Fatalf("config", "Invalid config: %v", err)
 	}
 
 	if config.RemoteCertModeEnabled() {

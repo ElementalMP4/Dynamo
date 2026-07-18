@@ -17,7 +17,7 @@ type Config struct {
 }
 
 type SystemConfig struct {
-	ServerAddress string `json:"serverBind"`
+	ServerBind    string `json:"serverBind"`
 	DnsmasqFile   string `json:"dnsmasqConfigFile"`
 	DataDirectory string `json:"dataDirectory"`
 	InstanceName  string `json:"instance"`
@@ -47,9 +47,9 @@ func GetConfig() Config {
 	return config
 }
 
-func (c *Config) CheckCertMode() bool {
-	if c.Certificates.RemoteCertURL == "" {
-		return true
+func (c *Config) CheckConfig() error {
+	if c.Certificates.CertsDir == "" {
+		return fmt.Errorf("certsDir cannot be empty")
 	}
 
 	clientCertSet := c.Certificates.RemoteCertClientCert != ""
@@ -59,7 +59,27 @@ func (c *Config) CheckCertMode() bool {
 	allEmpty := !clientCertSet && !clientKeySet && !caCertSet
 	allSet := clientCertSet && clientKeySet && caCertSet
 
-	return allEmpty || allSet
+	if !allEmpty && !allSet {
+		return fmt.Errorf("all mTLS fields must either be set or unset")
+	}
+
+	if c.System.ServerBind == "" {
+		return fmt.Errorf("serverBind cannot be empty")
+	}
+
+	if c.System.DataDirectory == "" {
+		return fmt.Errorf("dataDirectory cannot be empty")
+	}
+
+	if c.System.DnsmasqFile == "" {
+		return fmt.Errorf("dnsmasqConfigFile cannot be empty")
+	}
+
+	if c.System.InstanceName == "" {
+		return fmt.Errorf("instanceName cannot be empty")
+	}
+
+	return nil
 }
 
 func (c *Config) RemoteCertModeEnabled() bool {

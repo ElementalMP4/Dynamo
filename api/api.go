@@ -148,8 +148,8 @@ func StartAPI() {
 	r.GET("/api/system/interfaces", listNetworkInterfaces)
 	r.GET("/api/system/info", getSystemInfoHandler)
 
-	log.Info("api", "Starting admin API on "+config.GetConfig().System.ServerAddress)
-	if err := r.Run(config.GetConfig().System.ServerAddress); err != nil {
+	log.Info("api", "Starting admin API on "+config.GetConfig().System.ServerBind)
+	if err := r.Run(config.GetConfig().System.ServerBind); err != nil {
 		log.Fatalf("api", "admin API failed: %v", err)
 	}
 }
