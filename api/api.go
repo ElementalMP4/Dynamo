@@ -56,9 +56,6 @@ func StartAPI() {
 		http.FileServer(htmlFS).ServeHTTP(c.Writer, c.Request)
 	})
 
-	// Disable the 301 nightmare
-	r.RedirectTrailingSlash = false
-
 	// Cert management routes
 	cfg := config.GetConfig()
 	certs := r.Group("/api/certs")
@@ -89,8 +86,14 @@ func StartAPI() {
 		}
 
 		certProxy := func(c *gin.Context) {
+			c.Request.URL.Path = strings.TrimSuffix(
+				"/api/certs"+c.Param("path"),
+				"/",
+			)
+
 			proxy.ServeHTTP(c.Writer, c.Request)
 		}
+
 		certs.Any("/*path", certProxy)
 	} else {
 		certs.GET("", certificate.ListCerts)
