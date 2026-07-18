@@ -87,8 +87,8 @@ func StartAPI() {
 			proxy.Transport = &http.Transport{TLSClientConfig: tlsCfg}
 			log.Info("api/certs", "Remote cert proxy using mTLS")
 		}
+
 		certProxy := func(c *gin.Context) {
-			c.Request.URL.Path = "/api/certs" + c.Param("path")
 			proxy.ServeHTTP(c.Writer, c.Request)
 		}
 		certs.Any("/*path", certProxy)
