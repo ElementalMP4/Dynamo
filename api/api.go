@@ -83,7 +83,7 @@ func StartAPI() {
 		}
 
 		r.NoRoute(func(c *gin.Context) {
-			if !strings.HasPrefix(c.Request.URL.Path, "/api/certs/") {
+			if !strings.HasPrefix(c.Request.URL.Path, "/api/certs/") && !strings.HasPrefix(c.Request.URL.Path, "/api/certs") {
 				c.Next()
 				return
 			}
