@@ -219,20 +219,20 @@ func DeleteCertGroup(c *gin.Context) {
 func SaveRemoteCertHandler(c *gin.Context) {
 	cfg := config.GetConfig()
 	if !cfg.RemoteCertModeEnabled() {
-		util.ErrorResponse(c, http.StatusBadRequest, "api", fmt.Errorf("remote cert mode is not enabled"))
+		util.ErrorResponse(c, http.StatusBadRequest, "api/certs", fmt.Errorf("remote cert mode is not enabled"))
 		return
 	}
 
 	kind := c.Query("kind")
 	base := c.Query("base")
 	if kind == "" || base == "" {
-		util.ErrorResponse(c, http.StatusBadRequest, "api", fmt.Errorf("kind and base are required"))
+		util.ErrorResponse(c, http.StatusBadRequest, "api/certs", fmt.Errorf("kind and base are required"))
 		return
 	}
 
 	remote, err := url.Parse(cfg.Certificates.RemoteCertURL)
 	if err != nil {
-		util.ErrorResponse(c, http.StatusInternalServerError, "api", fmt.Errorf("invalid remote certificate URL: %w", err))
+		util.ErrorResponse(c, http.StatusInternalServerError, "api/certs", fmt.Errorf("invalid remote certificate URL: %w", err))
 		return
 	}
 
@@ -245,7 +245,7 @@ func SaveRemoteCertHandler(c *gin.Context) {
 
 	filesReq, err := http.NewRequest(http.MethodGet, filesURL.String(), nil)
 	if err != nil {
-		util.ErrorResponse(c, http.StatusInternalServerError, "api", fmt.Errorf("creating remote files request: %w", err))
+		util.ErrorResponse(c, http.StatusInternalServerError, "api/certs", fmt.Errorf("creating remote files request: %w", err))
 		return
 	}
 
@@ -256,7 +256,7 @@ func SaveRemoteCertHandler(c *gin.Context) {
 
 	filesResp, err := client.Do(filesReq)
 	if err != nil {
-		util.ErrorResponse(c, http.StatusInternalServerError, "api", fmt.Errorf("requesting remote certificate files: %w", err))
+		util.ErrorResponse(c, http.StatusInternalServerError, "api/certs", fmt.Errorf("requesting remote certificate files: %w", err))
 		return
 	}
 	defer filesResp.Body.Close()
@@ -264,13 +264,13 @@ func SaveRemoteCertHandler(c *gin.Context) {
 	if filesResp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(filesResp.Body)
 		fmtErr := fmt.Errorf("remote certificate files request failed: %s - %s", filesResp.Status, strings.TrimSpace(string(body)))
-		util.ErrorResponse(c, http.StatusInternalServerError, "api", fmtErr)
+		util.ErrorResponse(c, http.StatusInternalServerError, "api/certs", fmtErr)
 		return
 	}
 
 	var certDir CertDir
 	if err := json.NewDecoder(filesResp.Body).Decode(&certDir); err != nil {
-		util.ErrorResponse(c, http.StatusInternalServerError, "api", fmt.Errorf("decoding remote certificate files response: %w", err))
+		util.ErrorResponse(c, http.StatusInternalServerError, "api/certs", fmt.Errorf("decoding remote certificate files response: %w", err))
 		return
 	}
 
@@ -278,7 +278,7 @@ func SaveRemoteCertHandler(c *gin.Context) {
 	destDir := filepath.Join(certsBase, kind, base)
 
 	if err := os.MkdirAll(destDir, 0o755); err != nil {
-		util.ErrorResponse(c, http.StatusInternalServerError, "api", fmt.Errorf("creating certificate destination dir: %w", err))
+		util.ErrorResponse(c, http.StatusInternalServerError, "api/certs", fmt.Errorf("creating certificate destination dir: %w", err))
 		return
 	}
 
@@ -297,7 +297,7 @@ func SaveRemoteCertHandler(c *gin.Context) {
 		)
 		if err != nil {
 			fmtErr := fmt.Errorf("creating remote download request for %q: %w", name, err)
-			util.ErrorResponse(c, http.StatusInternalServerError, "api", fmtErr)
+			util.ErrorResponse(c, http.StatusInternalServerError, "api/certs", fmtErr)
 			return
 		}
 
@@ -310,7 +310,7 @@ func SaveRemoteCertHandler(c *gin.Context) {
 		downloadResp, err := client.Do(downloadReq)
 		if err != nil {
 			fmtErr := fmt.Errorf("requesting remote certificate %q: %w", name, err)
-			util.ErrorResponse(c, http.StatusBadGateway, "api", fmtErr)
+			util.ErrorResponse(c, http.StatusBadGateway, "api/certs", fmtErr)
 			return
 		}
 
@@ -318,7 +318,7 @@ func SaveRemoteCertHandler(c *gin.Context) {
 			body, _ := io.ReadAll(downloadResp.Body)
 			downloadResp.Body.Close()
 			fmtErr := fmt.Errorf("remote certificate download failed for %q: %s - %s", name, downloadResp.Status, strings.TrimSpace(string(body)))
-			util.ErrorResponse(c, http.StatusBadGateway, "api", fmtErr)
+			util.ErrorResponse(c, http.StatusBadGateway, "api/certs", fmtErr)
 			return
 		}
 
@@ -327,7 +327,7 @@ func SaveRemoteCertHandler(c *gin.Context) {
 
 		if err != nil {
 			fmtErr := fmt.Errorf("reading remote certificate %q: %w", name, err)
-			util.ErrorResponse(c, http.StatusInternalServerError, "api", fmtErr)
+			util.ErrorResponse(c, http.StatusInternalServerError, "api/certs", fmtErr)
 			return
 		}
 
@@ -336,7 +336,7 @@ func SaveRemoteCertHandler(c *gin.Context) {
 
 		if err := os.WriteFile(destPath, data, 0o644); err != nil {
 			fmtErr := fmt.Errorf("saving certificate %q to local store: %w", name, err)
-			util.ErrorResponse(c, http.StatusInternalServerError, "api", fmtErr)
+			util.ErrorResponse(c, http.StatusInternalServerError, "api/certs", fmtErr)
 			return
 		}
 
