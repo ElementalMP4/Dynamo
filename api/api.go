@@ -16,6 +16,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -67,8 +68,18 @@ func StartAPI() {
 
 		proxy := &httputil.ReverseProxy{
 			Rewrite: func(req *httputil.ProxyRequest) {
-				req.Out.URL = remote
-				req.Out.URL.Path = req.In.URL.Path
+				// copy base remote URL then append the full tail from the incoming request
+				// preserve query and fragment
+				req.Out.URL = &url.URL{}
+				*req.Out.URL = *remote
+
+				// append incoming path tail to remote base path
+				tail := strings.TrimPrefix(req.In.URL.Path, "/api/certs")
+				// ensure single slash separation
+				req.Out.URL.Path = path.Join(req.Out.URL.Path, tail)
+
+				req.Out.URL.RawQuery = req.In.URL.RawQuery
+				req.Out.URL.Fragment = req.In.URL.Fragment
 				req.Out.Header.Set("X-Dynamo-ID", cfg.System.InstanceName)
 			},
 		}
