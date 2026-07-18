@@ -147,6 +147,12 @@ func GetCertFiles(c *gin.Context) {
 	kind := c.Query("kind")
 	base := c.Query("base")
 
+	if kind == "" || base == "" {
+		fmtErr := fmt.Errorf("kind and base are required")
+		util.ErrorResponse(c, http.StatusBadRequest, loggingSource, fmtErr)
+		return
+	}
+
 	files, err := listFilesForCertificate(kind, base)
 	if err != nil {
 		fmtErr := fmt.Errorf("Failed to list certs: %v", err)
