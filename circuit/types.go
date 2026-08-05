@@ -152,7 +152,7 @@ func (c *RoutingCircuit) expandProtocols() []RoutingCircuit {
 }
 
 func (c *RoutingCircuit) EnableCircuit() error {
-	log.Infof("circuits", "Enabling circuit %s", c.Name)
+	log.Infof("circuits", "Enabling circuit %s (%s)", c.Name, c.Protocol)
 
 	enabled, err := c.CircuitIsEnabled()
 	if err != nil {
@@ -160,7 +160,7 @@ func (c *RoutingCircuit) EnableCircuit() error {
 	}
 
 	if enabled {
-		log.Okf("circuits", "Circuit %s is already enabled", c.Name)
+		log.Okf("circuits", "Circuit %s (%s) is already enabled", c.Name, c.Protocol)
 		return nil
 	}
 
@@ -176,7 +176,7 @@ func (c *RoutingCircuit) EnableCircuit() error {
 			}
 		}
 	}
-	log.Okf("circuits", "Enabled circuit %s successfully", c.Name)
+	log.Okf("circuits", "Enabled circuit %s (%s) successfully", c.Name, c.Protocol)
 	return nil
 }
 
@@ -281,7 +281,7 @@ func (c *RoutingCircuit) deleteCircuitRulesByComment() error {
 }
 
 func (c *RoutingCircuit) DisableCircuit() error {
-	log.Infof("circuits", "Disabling circuit %s", c.Name)
+	log.Infof("circuits", "Disabling circuit %s (%s)", c.Name, c.Protocol)
 
 	enabled, err := c.CircuitIsEnabled()
 	if err != nil {
@@ -289,7 +289,7 @@ func (c *RoutingCircuit) DisableCircuit() error {
 	}
 
 	if !enabled {
-		log.Okf("circuits", "Circuit %s is already disabled", c.Name)
+		log.Okf("circuits", "Circuit %s (%s) is already disabled", c.Name, c.Protocol)
 		return nil
 	}
 
@@ -301,6 +301,6 @@ func (c *RoutingCircuit) DisableCircuit() error {
 		return fmt.Errorf("rules removed but failed to drop connections: %w", err)
 	}
 
-	log.Okf("circuits", "Disabled circuit %s successfully", c.Name)
+	log.Okf("circuits", "Disabled circuit %s (%s) successfully", c.Name, c.Protocol)
 	return nil
 }

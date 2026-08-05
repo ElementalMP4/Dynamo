@@ -41,7 +41,7 @@ func SyncCircuits() error {
 	}
 
 	for _, rc := range circuits {
-		log.Infof("circuit-sync", "Syncing circuit %s (%s)", rc.Name, rc.Protocol)
+		log.Infof("circuit-sync", "Syncing circuit %s", rc.Name)
 
 		if rc.Enabled {
 			if err := rc.EnableCircuit(); err != nil {
