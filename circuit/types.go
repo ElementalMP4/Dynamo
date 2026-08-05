@@ -142,13 +142,13 @@ func (c *RoutingCircuit) expandProtocols() []RoutingCircuit {
 		return []RoutingCircuit{*c}
 	}
 
-	tcp := c
+	tcp := *c
 	tcp.Protocol = "tcp"
 
-	udp := c
+	udp := *c
 	udp.Protocol = "udp"
 
-	return []RoutingCircuit{*tcp, *udp}
+	return []RoutingCircuit{tcp, udp}
 }
 
 func (c *RoutingCircuit) EnableCircuit() error {
