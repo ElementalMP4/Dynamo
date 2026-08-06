@@ -164,9 +164,9 @@ func (c *RoutingCircuit) EnableCircuit() error {
 		return nil
 	}
 
-	for _, expanded := range c.expandProtocols() { // Loop over TCP & UDP
-		for _, rule := range expanded.IPTablesRules() { // Loop over individual iptables commands
-			log.Okf("circuits", "Enabling circuit %s protocol %s", expanded.Name, expanded.Protocol)
+	for _, expanded := range c.expandProtocols() {
+		log.Okf("circuits", "Enabling circuit %s protocol %s", expanded.Name, expanded.Protocol)
+		for _, rule := range expanded.IPTablesRules() {
 			ctx, cancel := context.WithTimeout(context.Background(), iptablesTimeout)
 			defer cancel()
 			cmd := exec.CommandContext(ctx, "iptables", rule...)
