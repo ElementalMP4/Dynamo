@@ -137,6 +137,8 @@ const Mini = (() => {
         vNode.dom = dom;
         updateProps(dom, {}, vNode.props);
         vNode.props.children.forEach(child => dom.appendChild(createDom(child)));
+        // Re-apply value after children so <select> elements reflect the correct option.
+        if (vNode.props.value !== undefined) dom.value = vNode.props.value;
         return dom;
     }
 
