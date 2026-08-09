@@ -750,6 +750,21 @@ function DnsScreen() {
                     });
                 }
 
+                if (form.type === "SRV" && field.id === "target" && targetOptions.length > 0) {
+                    return Field({
+                        key: field.id,
+                        label: field.label,
+                        children: Mini.vnode("select", {
+                            value: form.target,
+                            required: field.required,
+                            onchange: event => setter({ ...form, target: event.target.value })
+                        },
+                            Mini.vnode("option", { value: "" }, "Select target record"),
+                            targetOptions.map(option => Mini.vnode("option", { value: option, key: option }, option))
+                        )
+                    });
+                }
+
                 return Field({
                     key: field.id,
                     label: field.label,
