@@ -794,17 +794,8 @@ function DnsScreen() {
                     ),
                     groups[type].length === 0
                         ? Mini.p({ class: "mui-muted" }, "No records yet")
-                        : Mini.div({ class: "mui-stack" },
-                            Mini.div({ class: "mui-chip-grid mui-group-summary" },
-                                groups[type].map(record => Mini.button({
-                                    key: String(record.id),
-                                    type: "button",
-                                    class: "mui-chip ghost",
-                                    onclick: () => openEdit(record),
-                                    title: `Edit ${record.name}`
-                                }, record.name))
-                            ),
-                            openGroups[type] ? Mini.div({ class: "mui-stack mui-group-details" },
+                        : openGroups[type]
+                            ? Mini.div({ class: "mui-stack mui-group-details" },
                                 groups[type].map(record => Mini.div({ class: "mui-item dns-record-row", key: String(record.id) },
                                     Mini.div({ class: "mui-row spread wrap" },
                                         Mini.strong({ class: "mui-truncate" }, record.name),
@@ -817,7 +808,6 @@ function DnsScreen() {
                                     Mini.p({}, recordContent(record))
                                 ))
                             ) : null
-                        )
                 ))
             ),
         Mini.vnode(Modal, {
