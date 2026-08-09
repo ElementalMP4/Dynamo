@@ -49,7 +49,10 @@ function formatRate(bitsPerSec) {
 }
 
 async function request(path, options = {}) {
-    const res = await fetch(path, options);
+    const res = await fetch(path, {
+        cache: "no-store",
+        ...options
+    });
     if (!res.ok) {
         const body = await res.text();
         throw new Error(`${res.status} ${res.statusText} ${body || ""}`);
