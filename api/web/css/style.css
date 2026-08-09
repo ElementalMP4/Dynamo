@@ -270,6 +270,24 @@ select {
     gap: 0.72rem;
 }
 
+.dns-group-list {
+    width: 100%;
+}
+
+.dns-group-card {
+    width: 100%;
+}
+
+.dns-record-row {
+    padding: 0.85rem;
+}
+
+.dns-group-summary {
+    display: grid;
+    gap: 0.55rem;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+}
+
 .mui-stack.tight {
     gap: 0.35rem;
 }

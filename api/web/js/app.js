@@ -781,8 +781,8 @@ function DnsScreen() {
         error && Mini.div({ class: "mui-alert danger" }, error),
         loading
             ? Spinner({ label: "Loading DNS records..." })
-            : Mini.div({ class: "mui-grid-2" },
-                Object.keys(groups).map(type => Mini.section({ class: "mui-card", key: type },
+            : Mini.div({ class: "mui-stack dns-group-list" },
+                Object.keys(groups).map(type => Mini.section({ class: "mui-card dns-group-card", key: type },
                     Mini.div({ class: "mui-row spread wrap" },
                         Mini.h3({}, `${type} Records`),
                         Mini.div({ class: "mui-row" },
@@ -805,7 +805,7 @@ function DnsScreen() {
                                 }, record.name))
                             ),
                             openGroups[type] ? Mini.div({ class: "mui-stack mui-group-details" },
-                                groups[type].map(record => Mini.div({ class: "mui-item", key: String(record.id) },
+                                groups[type].map(record => Mini.div({ class: "mui-item dns-record-row", key: String(record.id) },
                                     Mini.div({ class: "mui-row spread wrap" },
                                         Mini.strong({ class: "mui-truncate" }, record.name),
                                         Mini.div({ class: "mui-row" },
