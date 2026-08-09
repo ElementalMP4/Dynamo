@@ -791,22 +791,20 @@ function DnsScreen() {
                             )
                         )
                     ),
-                    groups[type].length === 0
-                        ? Mini.p({ class: "mui-muted" }, "No records yet")
-                        : openGroups[type]
-                            ? Mini.div({ class: "mui-stack mui-group-details" },
-                                groups[type].map(record => Mini.div({ class: "mui-item dns-record-row", key: String(record.id) },
-                                    Mini.div({ class: "mui-row spread wrap" },
-                                        Mini.strong({ class: "mui-truncate" }, record.name),
-                                        Mini.div({ class: "mui-row" },
-                                            Mini.button({ class: "mui-button secondary sm", onclick: () => openEdit(record), type: "button" }, "Edit"),
-                                            Mini.button({ class: "mui-button danger sm", onclick: () => removeRecord(record.id), type: "button" }, "Delete")
-                                        )
-                                    ),
-                                    Mini.small({ class: "mui-muted" }, `TTL: ${record.ttl}s`),
-                                    Mini.p({}, recordContent(record))
-                                ))
-                            ) : null
+                    openGroups[type]
+                        ? Mini.div({ class: "mui-stack mui-group-details" },
+                            groups[type].map(record => Mini.div({ class: "mui-item dns-record-row", key: String(record.id) },
+                                Mini.div({ class: "mui-row spread wrap" },
+                                    Mini.strong({ class: "mui-truncate" }, record.name),
+                                    Mini.div({ class: "mui-row" },
+                                        Mini.button({ class: "mui-button secondary sm", onclick: () => openEdit(record), type: "button" }, "Edit"),
+                                        Mini.button({ class: "mui-button danger sm", onclick: () => removeRecord(record.id), type: "button" }, "Delete")
+                                    )
+                                ),
+                                Mini.small({ class: "mui-muted" }, `TTL: ${record.ttl}s`),
+                                Mini.p({}, recordContent(record))
+                            ))
+                        ) : null
                 ))
             ),
         Mini.vnode(Modal, {
