@@ -681,7 +681,7 @@ function DnsScreen() {
         if (!(await showConfirm("Are you sure you want to delete this record?"))) return;
         try {
             await request(`/api/dns/${id}`, { method: "DELETE" });
-            await loadRecords();
+            //await loadRecords();
         } catch (err) {
             await showAlert(`Error deleting record: ${err.error}`);
         }
