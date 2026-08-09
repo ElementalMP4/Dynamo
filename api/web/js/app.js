@@ -628,6 +628,15 @@ function DnsScreen() {
         });
     }
 
+    function recordTargetOptions() {
+        const options = records
+            .filter(record => ["A", "CNAME"].includes(record.type) && record.name)
+            .filter(record => !editRecord || record.id !== editRecord.id)
+            .map(record => record.name);
+
+        return [...new Set(options)].sort();
+    }
+
     async function createRecord(event) {
         event.preventDefault();
         try {
@@ -637,7 +646,7 @@ function DnsScreen() {
                 body: JSON.stringify(formToPayload(newRecord))
             });
             setAddOpen(false);
-            loadRecords();
+            await loadRecords();
         } catch (err) {
             await showAlert(`Error creating record: ${err.error}`);
         }
@@ -658,7 +667,7 @@ function DnsScreen() {
                 body: JSON.stringify(payload)
             });
             setEditRecord(null);
-            loadRecords();
+            await loadRecords();
         } catch (err) {
             await showAlert(`Error updating record: ${err.error}`);
         }
@@ -668,7 +677,7 @@ function DnsScreen() {
         if (!(await showConfirm("Are you sure you want to delete this record?"))) return;
         try {
             await request(`/api/dns/${id}`, { method: "DELETE" });
-            loadRecords();
+            await loadRecords();
         } catch (err) {
             await showAlert(`Error deleting record: ${err.error}`);
         }
@@ -691,6 +700,7 @@ function DnsScreen() {
 
     function renderDynamic(form, setter, editableType = true) {
         const fields = RECORD_FIELDS[form.type] || [];
+        const targetOptions = recordTargetOptions();
 
         return Mini.div({ class: "mui-field-grid" },
             editableType && Field({
@@ -719,22 +729,39 @@ function DnsScreen() {
                     oninput: event => setter({ ...form, ttl: event.target.value })
                 })
             }),
-            fields.map(field => Field({
-                key: field.id,
-                label: field.label,
-                children: field.type === "textarea"
-                    ? Mini.vnode("textarea", {
-                        value: form[field.id] || "",
-                        required: field.required,
-                        oninput: event => setter({ ...form, [field.id]: event.target.value })
-                    })
-                    : Mini.vnode("input", {
-                        type: field.type,
-                        value: form[field.id] || "",
-                        required: field.required,
-                        oninput: event => setter({ ...form, [field.id]: event.target.value })
-                    })
-            }))
+            fields.map(field => {
+                if (form.type === "CNAME" && field.id === "cname" && targetOptions.length > 0) {
+                    return Field({
+                        key: field.id,
+                        label: field.label,
+                        children: Mini.vnode("select", {
+                            value: form.cname,
+                            required: field.required,
+                            onchange: event => setter({ ...form, cname: event.target.value })
+                        },
+                            Mini.vnode("option", { value: "" }, "Select target record"),
+                            targetOptions.map(option => Mini.vnode("option", { value: option, key: option }, option))
+                        )
+                    });
+                }
+
+                return Field({
+                    key: field.id,
+                    label: field.label,
+                    children: field.type === "textarea"
+                        ? Mini.vnode("textarea", {
+                            value: form[field.id] || "",
+                            required: field.required,
+                            oninput: event => setter({ ...form, [field.id]: event.target.value })
+                        })
+                        : Mini.vnode("input", {
+                            type: field.type,
+                            value: form[field.id] || "",
+                            required: field.required,
+                            oninput: event => setter({ ...form, [field.id]: event.target.value })
+                        })
+                });
+            })
         );
     }
 
