@@ -7,13 +7,16 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 
 	"github.com/ElementalMP4/loggerino/log"
+	"github.com/google/uuid"
 )
 
 const loggingSource string = "dns-router"
 
 var dnsStore *store.JSONStore[[]DNSRecord]
+var dnsMutationMu sync.Mutex
 
 func SyncDns() error {
 	dnsStore = store.NewJSONStore[[]DNSRecord]("dns.json")
@@ -22,6 +25,20 @@ func SyncDns() error {
 	records, err := dnsStore.Load()
 	if err != nil {
 		return err
+	}
+
+	idsMigrated := false
+	for i := range records {
+		if _, err := uuid.Parse(records[i].ID); err == nil {
+			continue
+		}
+
+		records[i].ID = uuid.NewString()
+		idsMigrated = true
+	}
+
+	if idsMigrated {
+		log.Warn("dns-sync", "Migrated legacy DNS IDs to UUIDs")
 	}
 
 	err = writeRecords(records)

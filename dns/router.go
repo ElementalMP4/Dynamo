@@ -4,11 +4,25 @@ import (
 	"Dynamo/util"
 	"fmt"
 	"net/http"
-	"strconv"
+	"strings"
 
 	"github.com/ElementalMP4/loggerino/log"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
+
+func parseRecordID(c *gin.Context) (string, error) {
+	id := strings.TrimSpace(c.Param("id"))
+	if id == "" {
+		return "", fmt.Errorf("missing record id")
+	}
+
+	if _, err := uuid.Parse(id); err != nil {
+		return "", fmt.Errorf("invalid record id")
+	}
+
+	return id, nil
+}
 
 func ListRecords(c *gin.Context) {
 	records, err := dnsStore.Load()
@@ -27,6 +41,16 @@ func CreateRecord(c *gin.Context) {
 		util.ErrorResponse(c, http.StatusBadRequest, loggingSource, fmtErr)
 		return
 	}
+	if strings.TrimSpace(rec.Name) == "" || strings.TrimSpace(rec.Type) == "" {
+		fmtErr := fmt.Errorf("name and type are required")
+		util.ErrorResponse(c, http.StatusBadRequest, loggingSource, fmtErr)
+		return
+	}
+
+	rec.ID = uuid.NewString()
+
+	dnsMutationMu.Lock()
+	defer dnsMutationMu.Unlock()
 
 	records, err := dnsStore.Load()
 	if err != nil {
@@ -35,7 +59,6 @@ func CreateRecord(c *gin.Context) {
 		return
 	}
 
-	rec.ID = len(records) + 1
 	records = append(records, rec)
 
 	if err := writeRecords(records); err != nil {
@@ -49,7 +72,12 @@ func CreateRecord(c *gin.Context) {
 }
 
 func GetRecordByID(c *gin.Context) {
-	id, _ := strconv.Atoi(c.Param("id"))
+	id, err := parseRecordID(c)
+	if err != nil {
+		util.ErrorResponse(c, http.StatusBadRequest, loggingSource, err)
+		return
+	}
+
 	records, err := dnsStore.Load()
 	if err != nil {
 		fmtErr := fmt.Errorf("Failed to load DNS records: %v", err)
@@ -63,18 +91,26 @@ func GetRecordByID(c *gin.Context) {
 			return
 		}
 	}
-	fmtErr := fmt.Errorf("DNS record %d not found", id)
+	fmtErr := fmt.Errorf("DNS record %s not found", id)
 	util.ErrorResponse(c, http.StatusNotFound, loggingSource, fmtErr)
 }
 
 func UpdateRecord(c *gin.Context) {
-	id, _ := strconv.Atoi(c.Param("id"))
-	var update DNSRecord
+	id, err := parseRecordID(c)
+	if err != nil {
+		util.ErrorResponse(c, http.StatusBadRequest, loggingSource, err)
+		return
+	}
+
+	var update DNSRecordPatch
 	if err := c.BindJSON(&update); err != nil {
 		fmtErr := fmt.Errorf("Invalid JSON: %v", err)
 		util.ErrorResponse(c, http.StatusBadRequest, loggingSource, fmtErr)
 		return
 	}
+
+	dnsMutationMu.Lock()
+	defer dnsMutationMu.Unlock()
 
 	records, err := dnsStore.Load()
 	if err != nil {
@@ -83,60 +119,76 @@ func UpdateRecord(c *gin.Context) {
 		return
 	}
 
+	found := false
+	var updatedRecord DNSRecord
+
 	for i := range records {
 		if records[i].ID != id {
 			continue
 		}
+		found = true
 
-		if update.Name != "" && update.Name != records[i].Name {
-			records[i].Name = update.Name
+		if update.Name != nil {
+			records[i].Name = *update.Name
 		}
-		if update.Type != "" && update.Type != records[i].Type {
-			records[i].Type = update.Type
+		if update.Type != nil {
+			records[i].Type = *update.Type
 		}
-		if update.TTL != records[i].TTL {
-			records[i].TTL = update.TTL
+		if update.TTL != nil {
+			records[i].TTL = *update.TTL
 		}
-		if update.IPv4 != "" && update.IPv4 != records[i].IPv4 {
-			records[i].IPv4 = update.IPv4
+		if update.IPv4 != nil {
+			records[i].IPv4 = *update.IPv4
 		}
-		if update.CNAME != "" && update.CNAME != records[i].CNAME {
-			records[i].CNAME = update.CNAME
+		if update.CNAME != nil {
+			records[i].CNAME = *update.CNAME
 		}
-		if len(update.TXT) > 0 {
-			records[i].TXT = update.TXT
+		if update.TXT != nil {
+			records[i].TXT = *update.TXT
 		}
-		if update.Target != "" && update.Target != records[i].Target {
-			records[i].Target = update.Target
+		if update.Target != nil {
+			records[i].Target = *update.Target
 		}
-		if update.Port != records[i].Port && update.Port != 0 {
-			records[i].Port = update.Port
+		if update.Port != nil {
+			records[i].Port = *update.Port
 		}
-		if update.Priority != records[i].Priority && update.Priority != 0 {
-			records[i].Priority = update.Priority
+		if update.Priority != nil {
+			records[i].Priority = *update.Priority
 		}
-		if update.Weight != records[i].Weight && update.Weight != 0 {
-			records[i].Weight = update.Weight
-		}
-
-		if err := writeRecords(records); err != nil {
-			fmtErr := fmt.Errorf("Failed to write DNS records: %v", err)
-			util.ErrorResponse(c, http.StatusInternalServerError, loggingSource, fmtErr)
-			return
+		if update.Weight != nil {
+			records[i].Weight = *update.Weight
 		}
 
-		log.Okf("dns-router", "Modified %s record %s", update.Type, update.Name)
-		c.Status(http.StatusOK)
-		return
-
+		updatedRecord = records[i]
+		break
 	}
 
-	fmtErr := fmt.Errorf("Record %d not found", id)
-	util.ErrorResponse(c, http.StatusNotFound, loggingSource, fmtErr)
+	if !found {
+		fmtErr := fmt.Errorf("Record %s not found", id)
+		util.ErrorResponse(c, http.StatusNotFound, loggingSource, fmtErr)
+		return
+	}
+
+	if err := writeRecords(records); err != nil {
+		fmtErr := fmt.Errorf("Failed to write DNS records: %v", err)
+		util.ErrorResponse(c, http.StatusInternalServerError, loggingSource, fmtErr)
+		return
+	}
+
+	log.Okf("dns-router", "Modified %s record %s", updatedRecord.Type, updatedRecord.Name)
+	c.Status(http.StatusOK)
 }
 
 func DeleteRecord(c *gin.Context) {
-	id, _ := strconv.Atoi(c.Param("id"))
+	id, err := parseRecordID(c)
+	if err != nil {
+		util.ErrorResponse(c, http.StatusBadRequest, loggingSource, err)
+		return
+	}
+
+	dnsMutationMu.Lock()
+	defer dnsMutationMu.Unlock()
+
 	records, err := dnsStore.Load()
 
 	if err != nil {
@@ -147,12 +199,20 @@ func DeleteRecord(c *gin.Context) {
 
 	var filtered []DNSRecord
 	var toBeDeleted DNSRecord
+	found := false
 	for _, r := range records {
 		if r.ID != id {
 			filtered = append(filtered, r)
 		} else {
 			toBeDeleted = r
+			found = true
 		}
+	}
+
+	if !found {
+		fmtErr := fmt.Errorf("Record %s not found", id)
+		util.ErrorResponse(c, http.StatusNotFound, loggingSource, fmtErr)
+		return
 	}
 
 	if err := writeRecords(filtered); err != nil {

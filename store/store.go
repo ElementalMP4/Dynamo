@@ -14,6 +14,25 @@ type JSONStore[T any] struct {
 	cache *T
 }
 
+func cloneValue[T any](in T) (T, error) {
+	var out T
+
+	raw, err := json.Marshal(in)
+	if err != nil {
+		return out, err
+	}
+
+	if len(raw) == 0 {
+		return out, nil
+	}
+
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return out, err
+	}
+
+	return out, nil
+}
+
 func NewJSONStore[T any](file string) *JSONStore[T] {
 	filePath := filepath.Join(config.GetConfig().System.DataDirectory, file)
 	os.MkdirAll(config.GetConfig().System.DataDirectory, 0o755)
@@ -23,8 +42,9 @@ func NewJSONStore[T any](file string) *JSONStore[T] {
 func (s *JSONStore[T]) Load() (T, error) {
 	s.mu.RLock()
 	if s.cache != nil {
-		defer s.mu.RUnlock()
-		return *s.cache, nil
+		cached := *s.cache
+		s.mu.RUnlock()
+		return cloneValue(cached)
 	}
 	s.mu.RUnlock()
 
@@ -32,7 +52,7 @@ func (s *JSONStore[T]) Load() (T, error) {
 	defer s.mu.Unlock()
 
 	if s.cache != nil {
-		return *s.cache, nil
+		return cloneValue(*s.cache)
 	}
 
 	var data T
@@ -50,15 +70,25 @@ func (s *JSONStore[T]) Load() (T, error) {
 		}
 	}
 
-	s.cache = &data
-	return data, nil
+	cached, err := cloneValue(data)
+	if err != nil {
+		return data, err
+	}
+	s.cache = &cached
+
+	return cloneValue(cached)
 }
 
 func (s *JSONStore[T]) Save(data T) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	bytes, err := json.MarshalIndent(data, "", "  ")
+	cached, err := cloneValue(data)
+	if err != nil {
+		return err
+	}
+
+	bytes, err := json.MarshalIndent(cached, "", "  ")
 	if err != nil {
 		return err
 	}
@@ -73,7 +103,7 @@ func (s *JSONStore[T]) Save(data T) error {
 		return err
 	}
 
-	s.cache = &data
+	s.cache = &cached
 	return nil
 }
 
@@ -96,7 +126,12 @@ func (s *JSONStore[T]) Update(fn func(*T) error) error {
 		return err
 	}
 
-	out, err := json.MarshalIndent(data, "", "  ")
+	cached, err := cloneValue(data)
+	if err != nil {
+		return err
+	}
+
+	out, err := json.MarshalIndent(cached, "", "  ")
 	if err != nil {
 		return err
 	}
@@ -110,7 +145,7 @@ func (s *JSONStore[T]) Update(fn func(*T) error) error {
 		return err
 	}
 
-	s.cache = &data
+	s.cache = &cached
 	return nil
 }
 
@@ -133,6 +168,11 @@ func (s *JSONStore[T]) Reload() error {
 		return err
 	}
 
-	s.cache = &data
+	cached, err := cloneValue(data)
+	if err != nil {
+		return err
+	}
+
+	s.cache = &cached
 	return nil
 }
