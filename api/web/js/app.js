@@ -220,8 +220,8 @@ function HomeScreen() {
             Object.keys(data.net || {}).forEach(iface => {
                 if (iface.startsWith("veth") || iface.startsWith("docker") || iface.startsWith("br-")) return;
 
-                const rx = Number(data[iface].rx) || 0;
-                const tx = Number(data[iface].tx) || 0;
+                const rx = Number(data.net[iface]?.rx) || 0;
+                const tx = Number(data.net[iface]?.tx) || 0;
                 const previous = samples[iface];
 
                 if (!history[iface]) {
@@ -267,7 +267,10 @@ function HomeScreen() {
 
         async function cycle() {
             try {
-                await Promise.all([pollSystem().catch(() => { })]);
+                await Promise.all([
+                    loadSummary().catch(() => { }),
+                    pollSystem().catch(() => { })
+                ]);
                 if (alive) {
                     setError("");
                     setIsLoading(false);
