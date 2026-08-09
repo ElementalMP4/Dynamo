@@ -784,9 +784,8 @@ function DnsScreen() {
             : Mini.div({ class: "mui-stack dns-group-list" },
                 Object.keys(groups).map(type => Mini.section({ class: "mui-card dns-group-card", key: type },
                     Mini.div({ class: "mui-row spread wrap" },
-                        Mini.h3({}, `${type} Records`),
+                        Mini.h3({}, `${type} Records (${groups[type].length})`),
                         Mini.div({ class: "mui-row" },
-                            Mini.span({ class: "mui-pill" }, `${groups[type].length} records`),
                             groups[type].length > 0 && Mini.button({ class: "mui-button secondary sm", type: "button", onclick: () => toggleGroup(type) },
                                 openGroups[type] ? "Hide" : "Show"
                             )
