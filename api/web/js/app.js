@@ -267,10 +267,7 @@ function HomeScreen() {
 
         async function cycle() {
             try {
-                await Promise.all([
-                    loadSummary().catch(() => { }),
-                    pollSystem().catch(() => { })
-                ]);
+                await pollSystem().catch(() => { });
                 if (alive) {
                     setError("");
                     setIsLoading(false);
@@ -285,6 +282,7 @@ function HomeScreen() {
             }
         }
 
+        loadSummary();
         cycle();
 
         return () => {
