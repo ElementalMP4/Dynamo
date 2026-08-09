@@ -471,7 +471,7 @@ select {
 
 .mui-chip-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: 0.6rem;
 }
 
@@ -480,24 +480,31 @@ select {
     background: var(--surface-2);
     color: var(--text);
     border-radius: var(--radius-sm);
-    padding: 0.55rem 0.62rem;
+    padding: 0.65rem 0.8rem;
     text-align: left;
     display: grid;
     gap: 0.12rem;
     cursor: pointer;
 }
 
-.mui-chip strong {
-    min-width: 0;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    display: block;
+.mui-chip.ghost {
+    border-color: transparent;
+    background: transparent;
 }
 
 .mui-chip:hover {
     border-color: rgba(235, 107, 45, 0.45);
     background: rgba(235, 107, 45, 0.08);
+}
+
+.mui-group-summary {
+    margin-bottom: 0.65rem;
+}
+
+.mui-group-details {
+    border-top: 1px solid var(--line);
+    padding-top: 0.75rem;
+    gap: 0.75rem;
 }
 
 .mui-empty {

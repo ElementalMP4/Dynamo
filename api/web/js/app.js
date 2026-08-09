@@ -534,6 +534,7 @@ function DnsScreen() {
     const [error, setError] = Mini.useState("");
     const [addOpen, setAddOpen] = Mini.useState(false);
     const [editRecord, setEditRecord] = Mini.useState(null);
+    const [openGroups, setOpenGroups] = Mini.useState({ A: false, CNAME: false, TXT: false, SRV: false });
 
     const [newRecord, setNewRecord] = Mini.useState({
         type: "A",
@@ -691,6 +692,10 @@ function DnsScreen() {
         return groups;
     }
 
+    function toggleGroup(type) {
+        setOpenGroups(old => ({ ...old, [type]: !old[type] }));
+    }
+
     function recordContent(record) {
         if (record.type === "A") return record.ipv4;
         if (record.type === "CNAME") return record.cname;
@@ -778,21 +783,40 @@ function DnsScreen() {
             ? Spinner({ label: "Loading DNS records..." })
             : Mini.div({ class: "mui-grid-2" },
                 Object.keys(groups).map(type => Mini.section({ class: "mui-card", key: type },
-                    Mini.h3({}, `${type} Records`),
+                    Mini.div({ class: "mui-row spread wrap" },
+                        Mini.h3({}, `${type} Records`),
+                        Mini.div({ class: "mui-row" },
+                            Mini.span({ class: "mui-pill" }, `${groups[type].length} records`),
+                            groups[type].length > 0 && Mini.button({ class: "mui-button secondary sm", type: "button", onclick: () => toggleGroup(type) },
+                                openGroups[type] ? "Hide" : "Show"
+                            )
+                        )
+                    ),
                     groups[type].length === 0
                         ? Mini.p({ class: "mui-muted" }, "No records yet")
                         : Mini.div({ class: "mui-stack" },
-                            groups[type].map(record => Mini.div({ class: "mui-item", key: String(record.id) },
-                                Mini.div({ class: "mui-row spread wrap" },
-                                    Mini.strong({ class: "mui-truncate" }, record.name),
-                                    Mini.div({ class: "mui-row" },
-                                        Mini.button({ class: "mui-button secondary sm", onclick: () => openEdit(record) }, "Edit"),
-                                        Mini.button({ class: "mui-button danger sm", onclick: () => removeRecord(record.id) }, "Delete")
-                                    )
-                                ),
-                                Mini.small({ class: "mui-muted" }, `TTL: ${record.ttl}s`),
-                                Mini.p({}, recordContent(record))
-                            ))
+                            Mini.div({ class: "mui-chip-grid mui-group-summary" },
+                                groups[type].map(record => Mini.button({
+                                    key: String(record.id),
+                                    type: "button",
+                                    class: "mui-chip ghost",
+                                    onclick: () => openEdit(record),
+                                    title: `Edit ${record.name}`
+                                }, record.name))
+                            ),
+                            openGroups[type] ? Mini.div({ class: "mui-stack mui-group-details" },
+                                groups[type].map(record => Mini.div({ class: "mui-item", key: String(record.id) },
+                                    Mini.div({ class: "mui-row spread wrap" },
+                                        Mini.strong({ class: "mui-truncate" }, record.name),
+                                        Mini.div({ class: "mui-row" },
+                                            Mini.button({ class: "mui-button secondary sm", onclick: () => openEdit(record), type: "button" }, "Edit"),
+                                            Mini.button({ class: "mui-button danger sm", onclick: () => removeRecord(record.id), type: "button" }, "Delete")
+                                        )
+                                    ),
+                                    Mini.small({ class: "mui-muted" }, `TTL: ${record.ttl}s`),
+                                    Mini.p({}, recordContent(record))
+                                ))
+                            ) : null
                         )
                 ))
             ),
