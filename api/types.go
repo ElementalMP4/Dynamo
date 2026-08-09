@@ -22,6 +22,7 @@ type MemStats struct {
 }
 
 type SystemStats struct {
-	CPU CPUStats `json:"cpu"`
-	Mem MemStats `json:"mem"`
+	CPU CPUStats                  `json:"cpu"`
+	Mem MemStats                  `json:"mem"`
+	Net map[string]InterfaceStats `json:"net"`
 }

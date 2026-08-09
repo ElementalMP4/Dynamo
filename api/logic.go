@@ -75,18 +75,6 @@ func getCountsHandler(c *gin.Context) {
 	c.JSON(200, gin.H{"dns": dnsCounts, "certs": certCounts, "circuits": circuitCounts, "instance": cfg.System.InstanceName})
 }
 
-func getNetStatsHandler(c *gin.Context) {
-	stats, err := getNetStats()
-	if err != nil {
-		c.JSON(500, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-
-	c.JSON(200, stats)
-}
-
 func getNetStats() (map[string]InterfaceStats, error) {
 	file, err := os.Open("/proc/net/dev")
 	if err != nil {
@@ -157,7 +145,12 @@ func getSystemStatsHandler(c *gin.Context) {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(200, SystemStats{CPU: cpu, Mem: mem})
+	net, err := getNetStats()
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, SystemStats{CPU: cpu, Mem: mem, Net: net})
 }
 
 func getCPUStats() (CPUStats, error) {

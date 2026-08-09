@@ -143,7 +143,6 @@ func StartAPI() {
 
 	// Statistics routes
 	r.GET("/api/stats/dynamo", getCountsHandler)
-	r.GET("/api/stats/network", getNetStatsHandler)
 	r.GET("/api/stats/system", getSystemStatsHandler)
 	r.GET("/api/system/interfaces", listNetworkInterfaces)
 	r.GET("/api/system/info", getSystemInfoHandler)

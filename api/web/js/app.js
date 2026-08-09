@@ -186,13 +186,38 @@ function HomeScreen() {
             if (data?.instance) appStore.setState({ instanceName: data.instance });
         }
 
-        async function pollNetwork() {
-            const data = await request("/api/stats/network");
+        async function pollSystem() {
+            const data = await request("/api/stats/system");
             if (!alive) return;
+
+            const cpu = data.cpu;
+            const mem = data.mem;
+            const total = cpu.user + cpu.nice + cpu.system + cpu.idle + cpu.iowait + cpu.irq + cpu.softirq + cpu.steal;
+            const idle = cpu.idle + cpu.iowait;
+
+            let pct = 0;
+            if (sysPrev.cpu) {
+                const totalDelta = total - sysPrev.cpu.total;
+                const idleDelta = idle - sysPrev.cpu.idle;
+                pct = totalDelta > 0 ? Math.max(0, Math.min(100, ((totalDelta - idleDelta) / totalDelta) * 100)) : 0;
+            }
+            sysPrev.cpu = { total, idle };
+            sysPrev.cpuHist.push(pct);
+            if (sysPrev.cpuHist.length > 60) sysPrev.cpuHist.shift();
+
+            const usedKB = mem.total_kb - mem.available_kb;
+            const memPct = mem.total_kb > 0 ? (usedKB / mem.total_kb) * 100 : 0;
+            sysPrev.memHist.push(memPct);
+            if (sysPrev.memHist.length > 60) sysPrev.memHist.shift();
+
+            setCpuPct(Math.round(pct * 10) / 10);
+            setMemUsedGB((usedKB / 1024 / 1024).toFixed(1));
+            setMemTotalGB((mem.total_kb / 1024 / 1024).toFixed(1));
+            setSysTick(t => t + 1);
 
             const now = Date.now();
             const rows = [];
-            Object.keys(data || {}).forEach(iface => {
+            Object.keys(data.net || {}).forEach(iface => {
                 if (iface.startsWith("veth") || iface.startsWith("docker") || iface.startsWith("br-")) return;
 
                 const rx = Number(data[iface].rx) || 0;
@@ -240,39 +265,9 @@ function HomeScreen() {
             setNetRows(rows);
         }
 
-        async function pollSystem() {
-            const data = await request("/api/stats/system");
-            if (!alive) return;
-
-            const cpu = data.cpu;
-            const mem = data.mem;
-            const total = cpu.user + cpu.nice + cpu.system + cpu.idle + cpu.iowait + cpu.irq + cpu.softirq + cpu.steal;
-            const idle = cpu.idle + cpu.iowait;
-
-            let pct = 0;
-            if (sysPrev.cpu) {
-                const totalDelta = total - sysPrev.cpu.total;
-                const idleDelta = idle - sysPrev.cpu.idle;
-                pct = totalDelta > 0 ? Math.max(0, Math.min(100, ((totalDelta - idleDelta) / totalDelta) * 100)) : 0;
-            }
-            sysPrev.cpu = { total, idle };
-            sysPrev.cpuHist.push(pct);
-            if (sysPrev.cpuHist.length > 60) sysPrev.cpuHist.shift();
-
-            const usedKB = mem.total_kb - mem.available_kb;
-            const memPct = mem.total_kb > 0 ? (usedKB / mem.total_kb) * 100 : 0;
-            sysPrev.memHist.push(memPct);
-            if (sysPrev.memHist.length > 60) sysPrev.memHist.shift();
-
-            setCpuPct(Math.round(pct * 10) / 10);
-            setMemUsedGB((usedKB / 1024 / 1024).toFixed(1));
-            setMemTotalGB((mem.total_kb / 1024 / 1024).toFixed(1));
-            setSysTick(t => t + 1);
-        }
-
         async function cycle() {
             try {
-                await Promise.all([loadSummary(), pollNetwork(), pollSystem().catch(() => { })]);
+                await Promise.all([pollSystem().catch(() => { })]);
                 if (alive) {
                     setError("");
                     setIsLoading(false);
