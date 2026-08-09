@@ -31,10 +31,23 @@ func logger() gin.HandlerFunc {
 	}
 }
 
+func apiNoStore() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if strings.HasPrefix(c.Request.URL.Path, "/api/") {
+			c.Header("Cache-Control", "no-store")
+			c.Header("Pragma", "no-cache")
+			c.Header("Expires", "0")
+		}
+
+		c.Next()
+	}
+}
+
 func StartAPI() {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 	r.Use(logger())
+	r.Use(apiNoStore())
 	r.Use(gin.Recovery())
 	htmlFS := getHTMLFileSystem()
 
