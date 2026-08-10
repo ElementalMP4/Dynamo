@@ -17,7 +17,7 @@ var config Config
 type Config struct {
 	System        SystemConfig      `json:"system"`
 	Certificates  CertificateConfig `json:"certificates"`
-	DnsmasqConfig DnsmasqConfig     `json:"dnsMasq"`
+	DnsmasqConfig DnsmasqConfig     `json:"dnsmasq"`
 }
 
 type DnsmasqConfig struct {
