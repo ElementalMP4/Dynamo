@@ -13,12 +13,15 @@ import (
 	"github.com/google/uuid"
 )
 
+const dnsmasqConf = "/etc/dnsmasq.conf"
 const loggingSource string = "dns-router"
 
 var dnsStore *store.JSONStore[[]DNSRecord]
 var dnsMutationMu sync.Mutex
 
 func SyncDns() error {
+	configFile := config.GetConfig().CreateDnsmasqConfigFile()
+
 	dnsStore = store.NewJSONStore[[]DNSRecord]("dns.json")
 	log.Info("dns-sync", "Syncing DNS")
 
@@ -39,6 +42,18 @@ func SyncDns() error {
 
 	if idsMigrated {
 		log.Warn("dns-sync", "Migrated legacy DNS IDs to UUIDs")
+	}
+
+	_, confErr := os.Stat(dnsmasqConf)
+	_, oldErr := os.Stat(dnsmasqConf + ".old")
+	if confErr == nil && os.IsNotExist(oldErr) {
+		if err := os.Rename(dnsmasqConf, dnsmasqConf+".old"); err != nil {
+			return fmt.Errorf("failed to back up dnsmasq.conf: %v", err)
+		}
+	}
+
+	if err := os.WriteFile(dnsmasqConf, []byte(configFile), 0644); err != nil {
+		return fmt.Errorf("failed to write dnsmasq.conf: %v", err)
 	}
 
 	err = writeRecords(records)

@@ -5,15 +5,27 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/ElementalMP4/loggerino/log"
 
 	"os"
 )
 
+var config Config
+
 type Config struct {
-	System       SystemConfig      `json:"system"`
-	Certificates CertificateConfig `json:"certificates"`
+	System        SystemConfig      `json:"system"`
+	Certificates  CertificateConfig `json:"certificates"`
+	DnsmasqConfig DnsmasqConfig     `json:"dnsMasq"`
+}
+
+type DnsmasqConfig struct {
+	ListenAddress string   `json:"listenAddress"`
+	Port          string   `json:"port"`
+	Domain        string   `json:"domain"`
+	Interface     []string `json:"interface"`
+	Upstream      []string `json:"upstreamDns"`
 }
 
 type SystemConfig struct {
@@ -30,8 +42,6 @@ type CertificateConfig struct {
 	RemoteCertClientKey  string `json:"remoteCertClientKey"`
 	RemoteCertCACert     string `json:"remoteCertTrust"`
 }
-
-var config Config
 
 func init() {
 	data, err := os.ReadFile("config.json")
@@ -110,4 +120,35 @@ func (c *Config) BuildMTLSConfig() (*tls.Config, error) {
 	tlsCfg.RootCAs = pool
 
 	return tlsCfg, nil
+}
+
+func (c Config) CreateDnsmasqConfigFile() string {
+	var out strings.Builder
+
+	// Bind Settings
+	out.WriteString(fmt.Sprintf("port=%s\n", c.DnsmasqConfig.Port))
+	out.WriteString(fmt.Sprintf("listen-address=%s\n", c.DnsmasqConfig.Port))
+
+	for _, iface := range c.DnsmasqConfig.Interface {
+		out.WriteString(fmt.Sprintf("interface=%s\n", iface))
+	}
+
+	// Domain Configuration
+	out.WriteString(fmt.Sprintf("domain=%s\n", c.DnsmasqConfig.Domain))
+	out.WriteString(fmt.Sprintf("local=/%s/\n", c.DnsmasqConfig.Domain))
+
+	// Upstream DNS
+	for _, dns := range c.DnsmasqConfig.Upstream {
+		out.WriteString(fmt.Sprintf("server=%s\n", dns))
+
+	}
+
+	// Hosts Config
+	out.WriteString("no-hosts\n")
+	out.WriteString(fmt.Sprintf("addn-hosts=/%s/\n", c.System.DataDirectory+"/hosts\n"))
+
+	// Config directory
+	out.WriteString("conf-dir=/etc/dnsmasq.d")
+
+	return out.String()
 }
