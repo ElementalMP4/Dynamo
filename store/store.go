@@ -10,7 +10,7 @@ import (
 
 type JSONStore[T any] struct {
 	file  string
-	mu    sync.Mutex
+	mu    sync.RWMutex
 	cache *T
 }
 
@@ -40,13 +40,13 @@ func NewJSONStore[T any](file string) *JSONStore[T] {
 }
 
 func (s *JSONStore[T]) Load() (T, error) {
-	s.mu.Lock()
+	s.mu.RLock()
 	if s.cache != nil {
 		cached := *s.cache
-		s.mu.Lock()
+		s.mu.RUnlock()
 		return cloneValue(cached)
 	}
-	s.mu.Lock()
+	s.mu.RUnlock()
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
