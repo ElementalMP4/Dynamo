@@ -82,11 +82,6 @@ func reloadDnsmasq() error {
 }
 
 func writeRecords(records []DNSRecord) error {
-	err := dnsStore.Save(records)
-	if err != nil {
-		return fmt.Errorf("failed to save DNS state: %v", err)
-	}
-
 	var out strings.Builder
 	var hosts strings.Builder
 
@@ -124,7 +119,15 @@ func writeRecords(records []DNSRecord) error {
 		return err
 	}
 
-	return reloadDnsmasq()
+	if err := reloadDnsmasq(); err != nil {
+		return fmt.Errorf("failed to reload dnsmasq: %v", err)
+	}
+
+	if err := dnsStore.Save(records); err != nil {
+		return fmt.Errorf("failed to save DNS state: %v", err)
+	}
+
+	return nil
 }
 
 func CountDNSRecords() (map[string]int, error) {
