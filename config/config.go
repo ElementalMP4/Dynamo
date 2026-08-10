@@ -145,7 +145,7 @@ func (c Config) CreateDnsmasqConfigFile() string {
 
 	// Hosts Config
 	out.WriteString("no-hosts\n")
-	out.WriteString(fmt.Sprintf("addn-hosts=/%s/\n", c.System.DataDirectory+"/hosts\n"))
+	out.WriteString(fmt.Sprintf("addn-hosts=%s\n", c.System.DataDirectory+"/hosts"))
 
 	// Config directory
 	out.WriteString("conf-dir=/etc/dnsmasq.d")
