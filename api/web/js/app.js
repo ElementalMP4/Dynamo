@@ -2094,8 +2094,8 @@ function App() {
     ];
 
     return Mini.div({ class: "mui-shell" },
-        IncludeAlertModal(),
-        IncludeConfirmModal(),
+        Mini.vnode(IncludeAlertModal, { key: "alert-modal" }),
+        Mini.vnode(IncludeConfirmModal, { key: "confirm-modal" }),
         Mini.header({ class: "mui-topbar" },
             Mini.div({ class: "mui-brand" },
                 Mini.span({ class: "mui-brand-mark" }, "D"),
