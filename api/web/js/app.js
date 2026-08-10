@@ -649,6 +649,7 @@ function DnsScreen() {
                 headers: jsonHeaders(),
                 body: JSON.stringify(formToPayload(newRecord))
             });
+            await loadRecords();
             setAddOpen(false);
         } catch (err) {
             await showAlert(`Error creating record: ${err.error}`);
@@ -669,6 +670,7 @@ function DnsScreen() {
                 headers: jsonHeaders(),
                 body: JSON.stringify(payload)
             });
+            await loadRecords();
             setEditRecord(null);
         } catch (err) {
             await showAlert(`Error updating record: ${err.error}`);
@@ -679,6 +681,7 @@ function DnsScreen() {
         if (!(await showConfirm("Are you sure you want to delete this record?"))) return;
         try {
             await request(`/api/dns/${id}`, { method: "DELETE" });
+            await loadRecords();
         } catch (err) {
             await showAlert(`Error deleting record: ${err.error}`);
         }
