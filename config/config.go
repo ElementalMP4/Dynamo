@@ -127,7 +127,7 @@ func (c Config) CreateDnsmasqConfigFile() string {
 
 	// Bind Settings
 	out.WriteString(fmt.Sprintf("port=%s\n", c.DnsmasqConfig.Port))
-	out.WriteString(fmt.Sprintf("listen-address=%s\n", c.DnsmasqConfig.Port))
+	out.WriteString(fmt.Sprintf("listen-address=%s\n", c.DnsmasqConfig.ListenAddress))
 
 	for _, iface := range c.DnsmasqConfig.Interface {
 		out.WriteString(fmt.Sprintf("interface=%s\n", iface))
