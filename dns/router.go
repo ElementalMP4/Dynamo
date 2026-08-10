@@ -36,7 +36,7 @@ func ListRecords(c *gin.Context) {
 
 func CreateRecord(c *gin.Context) {
 	var rec DNSRecord
-	if err := c.BindJSON(&rec); err != nil {
+	if err := c.ShouldBindJSON(&rec); err != nil {
 		fmtErr := fmt.Errorf("Invalid JSON: %v", err)
 		util.ErrorResponse(c, http.StatusBadRequest, loggingSource, fmtErr)
 		return
@@ -103,7 +103,7 @@ func UpdateRecord(c *gin.Context) {
 	}
 
 	var update DNSRecordPatch
-	if err := c.BindJSON(&update); err != nil {
+	if err := c.ShouldBindJSON(&update); err != nil {
 		fmtErr := fmt.Errorf("Invalid JSON: %v", err)
 		util.ErrorResponse(c, http.StatusBadRequest, loggingSource, fmtErr)
 		return

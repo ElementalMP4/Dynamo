@@ -115,6 +115,7 @@ func listNetworkInterfaces(c *gin.Context) {
 	if err != nil {
 		fmtErr := fmt.Errorf("Failed to list network interfaces: %v", err)
 		util.ErrorResponse(c, http.StatusInternalServerError, "api", fmtErr)
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"interfaces": ifaces})
