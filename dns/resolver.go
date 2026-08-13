@@ -65,6 +65,11 @@ func refreshRecordsFromStore() error {
 		log.Infof(loggingSource, "Registered %s record %s", rec.Type, rec.Name)
 	}
 
+	fmt.Println(localA)
+	fmt.Println(localCNAME)
+	fmt.Println(localSRV)
+	fmt.Println(localTXT)
+
 	return nil
 }
 
