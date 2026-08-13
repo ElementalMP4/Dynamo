@@ -83,6 +83,7 @@ func handleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
 	msg.SetReply(r)
 
 	for _, q := range r.Question {
+		log.Infof(loggingSource, "Resolving %s", q.Name)
 		switch q.Qtype {
 		case dns.TypeA:
 			if rec, ok := localA[q.Name]; ok {
