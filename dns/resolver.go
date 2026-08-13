@@ -62,6 +62,7 @@ func refreshRecordsFromStore() error {
 				localSRV[rec.NameTrailingDot()] = rec
 			}
 		}
+		log.Infof(loggingSource, "Registered %s record %s", rec.Type, rec.Name)
 	}
 
 	return nil
