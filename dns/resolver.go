@@ -96,6 +96,7 @@ func handleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
 				rr, _ := dns.NewRR(q.Name + " IN A " + ip)
 				msg.Answer = append(msg.Answer, rr)
 				w.WriteMsg(&msg)
+				return
 			}
 
 		case dns.TypeCNAME:
@@ -103,6 +104,7 @@ func handleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
 				rr, _ := dns.NewRR(q.Name + " IN CNAME " + rec.CNAME)
 				msg.Answer = append(msg.Answer, rr)
 				w.WriteMsg(&msg)
+				return
 			}
 
 		case dns.TypeTXT:
@@ -110,6 +112,7 @@ func handleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
 				rr, _ := dns.NewRR(q.Name + " IN TXT \"" + rec.ToTxtResponse() + "\"")
 				msg.Answer = append(msg.Answer, rr)
 				w.WriteMsg(&msg)
+				return
 			}
 
 		case dns.TypeSRV:
@@ -117,6 +120,7 @@ func handleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
 				rr, _ := dns.NewRR(q.Name + " IN SRV " + rec.ToSrvResponse())
 				msg.Answer = append(msg.Answer, rr)
 				w.WriteMsg(&msg)
+				return
 			}
 		}
 
@@ -124,10 +128,10 @@ func handleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
 		resp, err := forwardToUpstream(r)
 		if err == nil && resp != nil {
 			w.WriteMsg(resp)
+			return
 		}
 		// Send nothing if upstream DNS fails
 		w.WriteMsg(&msg)
-
 	}
 }
 
