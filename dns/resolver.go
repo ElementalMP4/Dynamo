@@ -65,11 +65,6 @@ func refreshRecordsFromStore() error {
 		log.Infof(loggingSource, "Registered %s record %s", rec.Type, rec.Name)
 	}
 
-	fmt.Println(localA)
-	fmt.Println(localCNAME)
-	fmt.Println(localSRV)
-	fmt.Println(localTXT)
-
 	return nil
 }
 
@@ -89,49 +84,91 @@ func handleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
 
 	for _, q := range r.Question {
 		log.Infof(loggingSource, "Resolving %s", q.Name)
+
 		switch q.Qtype {
 		case dns.TypeA:
+			// First, look for a direct A record
 			if rec, ok := localA[q.Name]; ok {
-				ip := rec.IPv4
-				rr, _ := dns.NewRR(q.Name + " IN A " + ip)
-				msg.Answer = append(msg.Answer, rr)
+				rr, err := dns.NewRR(q.Name + " IN A " + rec.IPv4)
+				if err == nil {
+					msg.Answer = append(msg.Answer, rr)
+					w.WriteMsg(&msg)
+					return
+				}
+
+				log.Errorf(loggingSource, "Failed to create A record for %s: %v", q.Name, err)
+			}
+
+			// No direct A record, so check for a CNAME
+			if cnameRec, ok := localCNAME[q.Name]; ok {
+				appendCNAMEAndA(&msg, q.Name, cnameRec)
 				w.WriteMsg(&msg)
 				return
 			}
 
 		case dns.TypeCNAME:
-			if rec, ok := localCNAME[q.Name]; ok {
-				rr, _ := dns.NewRR(q.Name + " IN CNAME " + rec.CNAME)
-				msg.Answer = append(msg.Answer, rr)
+			if cnameRec, ok := localCNAME[q.Name]; ok {
+				appendCNAMEAndA(&msg, q.Name, cnameRec)
 				w.WriteMsg(&msg)
 				return
 			}
 
 		case dns.TypeTXT:
 			if rec, ok := localTXT[q.Name]; ok {
-				rr, _ := dns.NewRR(q.Name + " IN TXT \"" + rec.ToTxtResponse() + "\"")
-				msg.Answer = append(msg.Answer, rr)
-				w.WriteMsg(&msg)
-				return
+				rr, err := dns.NewRR(q.Name + " IN TXT \"" + rec.ToTxtResponse() + "\"")
+				if err == nil {
+					msg.Answer = append(msg.Answer, rr)
+					w.WriteMsg(&msg)
+					return
+				}
+
+				log.Errorf(loggingSource, "Failed to create TXT record for %s: %v", q.Name, err)
 			}
 
 		case dns.TypeSRV:
 			if rec, ok := localSRV[q.Name]; ok {
-				rr, _ := dns.NewRR(q.Name + " IN SRV " + rec.ToSrvResponse())
-				msg.Answer = append(msg.Answer, rr)
-				w.WriteMsg(&msg)
-				return
+				rr, err := dns.NewRR(q.Name + " IN SRV " + rec.ToSrvResponse())
+				if err == nil {
+					msg.Answer = append(msg.Answer, rr)
+					w.WriteMsg(&msg)
+					return
+				}
+
+				log.Errorf(loggingSource, "Failed to create SRV record for %s: %v", q.Name, err)
 			}
 		}
 
-		// Send upstream if we don't have a record
+		// Send upstream if we don't have a local record
 		resp, err := forwardToUpstream(r)
 		if err == nil && resp != nil {
 			w.WriteMsg(resp)
 			return
 		}
+
 		// Send nothing if upstream DNS fails
 		w.WriteMsg(&msg)
+	}
+}
+
+func appendCNAMEAndA(msg *dns.Msg, name string, cnameRec DNSRecord) {
+	target := dns.Fqdn(cnameRec.CNAME)
+
+	cnameRR, err := dns.NewRR(name + " IN CNAME " + target)
+	if err != nil {
+		log.Errorf(loggingSource, "Failed to create CNAME record for %s: %v", name, err)
+		return
+	}
+
+	msg.Answer = append(msg.Answer, cnameRR)
+
+	if aRec, ok := localA[target]; ok {
+		aRR, err := dns.NewRR(target + " IN A " + aRec.IPv4)
+		if err != nil {
+			log.Errorf(loggingSource, "Failed to create A record for CNAME target %s: %v", target, err)
+			return
+		}
+
+		msg.Answer = append(msg.Answer, aRR)
 	}
 }
 
