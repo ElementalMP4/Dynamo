@@ -37,10 +37,6 @@ func main() {
 		}
 	}
 
-	if err := dns.EnsureWritable(); err != nil {
-		log.Fatalf("dns", "DNS config file is not writable: %v", err)
-	}
-
 	if err := circuit.SyncCircuits(); err != nil {
 		log.Fatalf("circuit-sync", "An error occurred whilst syncing circuits: %v", err)
 	}
@@ -49,10 +45,11 @@ func main() {
 		log.Fatalf("vpn-sync", "An error occurred whilst syncing VPN state: %v", err)
 	}
 
-	if err := dns.SyncDns(); err != nil {
+	if err := dns.SyncDNS(); err != nil {
 		log.Fatalf("dns-sync", "An error occurred whilst syncing DNS state: %v", err)
 	}
 
-	api.StartAPI()
+	go api.StartAPI()
+	go dns.StartDNS()
 	select {}
 }

@@ -1,9 +1,8 @@
 package dns
 
 import (
-	"encoding/json"
 	"fmt"
-	"strconv"
+	"strings"
 )
 
 type DNSRecord struct {
@@ -37,48 +36,14 @@ type DNSRecordPatch struct {
 	Target   *string   `json:"target,omitempty"`
 }
 
-// UnmarshalJSON accepts both legacy numeric IDs and UUID string IDs.
-func (r *DNSRecord) UnmarshalJSON(data []byte) error {
-	type wireRecord struct {
-		ID       any      `json:"id"`
-		Name     string   `json:"name"`
-		Type     string   `json:"type"`
-		TTL      int      `json:"ttl"`
-		IPv4     string   `json:"ipv4,omitempty"`
-		CNAME    string   `json:"cname,omitempty"`
-		TXT      []string `json:"txt,omitempty"`
-		Priority int      `json:"priority"`
-		Weight   int      `json:"weight"`
-		Port     int      `json:"port,omitempty"`
-		Target   string   `json:"target,omitempty"`
-	}
+func (r *DNSRecord) ToTxtResponse() string {
+	return strings.Join(r.TXT, ", ")
+}
 
-	var wire wireRecord
-	if err := json.Unmarshal(data, &wire); err != nil {
-		return err
-	}
+func (r *DNSRecord) NameTrailingDot() string {
+	return r.Name + "."
+}
 
-	switch id := wire.ID.(type) {
-	case string:
-		r.ID = id
-	case float64:
-		r.ID = strconv.FormatInt(int64(id), 10)
-	case nil:
-		r.ID = ""
-	default:
-		return fmt.Errorf("unsupported dns record id type: %T", wire.ID)
-	}
-
-	r.Name = wire.Name
-	r.Type = wire.Type
-	r.TTL = wire.TTL
-	r.IPv4 = wire.IPv4
-	r.CNAME = wire.CNAME
-	r.TXT = wire.TXT
-	r.Priority = wire.Priority
-	r.Weight = wire.Weight
-	r.Port = wire.Port
-	r.Target = wire.Target
-
-	return nil
+func (r *DNSRecord) ToSrvResponse() string {
+	return fmt.Sprintf("%d %d %d %s", r.Priority, r.Weight, r.Port, r.Target)
 }

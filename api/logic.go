@@ -36,16 +36,10 @@ func getSystemInfoHandler(c *gin.Context) {
 
 func getCountsHandler(c *gin.Context) {
 	cfg := config.GetConfig()
-
-	dnsCounts, err := dns.CountDNSRecords()
-	if err != nil {
-		errFmt := fmt.Errorf("failed to count DNS records: %v", err.Error())
-		log.Errorf("stats", "%v", errFmt)
-		c.JSON(500, gin.H{"error": errFmt})
-		return
-	}
+	dnsCounts := dns.CountDNSRecords()
 
 	var certCounts map[string]int
+	var err error
 	if cfg.RemoteCertModeEnabled() {
 		certCounts, err = fetchRemoteCertCounts(cfg)
 		if err != nil {
