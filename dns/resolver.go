@@ -24,8 +24,102 @@ var localCNAME = map[string]DNSRecord{}
 var localTXT = map[string]DNSRecord{}
 var localSRV = map[string]DNSRecord{}
 
+type UpstreamDNSCache struct {
+	msg     *dns.Msg
+	expires time.Time
+}
+
+var upstreamCacheMutex sync.RWMutex
+var upstreamCache = map[string]UpstreamDNSCache{}
+
+func cacheKey(q dns.Question) string {
+	return strings.ToLower(q.Name) + "|" + dns.TypeToString[q.Qtype]
+}
+
+func getCachedUpstream(q dns.Question) (*dns.Msg, bool) {
+	upstreamCacheMutex.RLock()
+	entry, ok := upstreamCache[cacheKey(q)]
+	upstreamCacheMutex.RUnlock()
+
+	if !ok {
+		return nil, false
+	}
+
+	remaining := time.Until(entry.expires)
+	if remaining <= 0 {
+		return nil, false
+	}
+
+	reply := entry.msg.Copy()
+	adjustTTLs(reply, uint32(remaining.Seconds()))
+	return reply, true
+}
+
+func setCachedUpstream(q dns.Question, resp *dns.Msg) {
+	minTTL := minAnswerTTL(resp)
+	if minTTL == 0 {
+		return
+	}
+
+	upstreamCacheMutex.Lock()
+	upstreamCache[cacheKey(q)] = UpstreamDNSCache{
+		msg:     resp.Copy(),
+		expires: time.Now().Add(time.Duration(minTTL) * time.Second),
+	}
+	upstreamCacheMutex.Unlock()
+}
+
+func minAnswerTTL(resp *dns.Msg) uint32 {
+	var min uint32
+	first := true
+	for _, rr := range resp.Answer {
+		ttl := rr.Header().Ttl
+		if first || ttl < min {
+			min = ttl
+			first = false
+		}
+	}
+	if first {
+		return 0
+	}
+	return min
+}
+
+func adjustTTLs(msg *dns.Msg, ttl uint32) {
+	for _, rr := range msg.Answer {
+		rr.Header().Ttl = ttl
+	}
+	for _, rr := range msg.Ns {
+		rr.Header().Ttl = ttl
+	}
+	for _, rr := range msg.Extra {
+		rr.Header().Ttl = ttl
+	}
+}
+
+func cleanupExpiredCacheEntries() {
+	ticker := time.NewTicker(5 * time.Minute)
+	for range ticker.C {
+		now := time.Now()
+		upstreamCacheMutex.Lock()
+		for k, v := range upstreamCache {
+			if now.After(v.expires) {
+				delete(upstreamCache, k)
+			}
+		}
+		upstreamCacheMutex.Unlock()
+	}
+}
+
+func isPrivateDomain(name, domain string) bool {
+	name = strings.ToLower(dns.Fqdn(name))
+	domain = strings.ToLower(dns.Fqdn(domain))
+	return name == domain || strings.HasSuffix(name, "."+domain)
+}
+
 func SyncDNS() error {
 	dnsStore = store.NewJSONStore[[]DNSRecord]("dns.json")
+	go cleanupExpiredCacheEntries()
 	return refreshRecordsFromStore()
 }
 
@@ -82,24 +176,40 @@ func StartDNS() {
 
 func handleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
 	dnsCfg := config.GetConfig().DNS
+	domain := dns.Fqdn(dnsCfg.Domain)
 	msg := dns.Msg{}
 	msg.SetReply(r)
 
 	for _, q := range r.Question {
+		// If the query is not for our private domain, check the cache and then forward upstream
+		if !isPrivateDomain(q.Name, domain) {
+			if cached, ok := getCachedUpstream(q); ok {
+				reply := new(dns.Msg)
+				reply.SetReply(r)
+				reply.Answer = cached.Answer
+				reply.Ns = cached.Ns
+				reply.Extra = cached.Extra
+				reply.Rcode = cached.Rcode
+				w.WriteMsg(reply)
+				return
+			}
 
-		// Forward upstream if we don't manage this record
-		if !strings.Contains(q.Name, dnsCfg.Domain) {
 			resp, err := forwardToUpstream(r)
 			if err == nil && resp != nil {
+				setCachedUpstream(q, resp)
 				w.WriteMsg(resp)
 				return
 			}
+
+			// Upstream failed and it's not our domain so there's nothing more we can do.
+			w.WriteMsg(&msg)
+			return
 		}
 
 		// Check our own list
 		switch q.Qtype {
 		case dns.TypeA:
-			// First, look for a direct A record
+			// Look for a direct A record
 			if rec, ok := localA[q.Name]; ok {
 				rr, err := dns.NewRR(q.Name + " IN A " + rec.IPv4)
 				if err == nil {
@@ -180,14 +290,13 @@ func appendCNAMEAndA(msg *dns.Msg, name string, cnameRec DNSRecord) {
 func forwardToUpstream(req *dns.Msg) (*dns.Msg, error) {
 	dnsCfg := config.GetConfig().DNS
 
-	c := dns.Client{
-		Net:     "udp",
-		Timeout: 2 * time.Second,
-	}
-
 	var lastErr error
-
 	for _, upstream := range dnsCfg.Upstream {
+		c := dns.Client{
+			Net:     "udp",
+			Timeout: 2 * time.Second,
+		}
+
 		if upstream.UpstreamTLSServerName != "" {
 			c.Net = "tcp-tls"
 			c.TLSConfig = &tls.Config{
