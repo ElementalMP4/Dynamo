@@ -5,6 +5,7 @@ import (
 	"Dynamo/store"
 	"crypto/tls"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -80,10 +81,22 @@ func StartDNS() {
 }
 
 func handleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
+	dnsCfg := config.GetConfig().DNS
 	msg := dns.Msg{}
 	msg.SetReply(r)
 
 	for _, q := range r.Question {
+
+		// Forward upstream if we don't manage this record
+		if !strings.Contains(q.Name, dnsCfg.Domain) {
+			resp, err := forwardToUpstream(r)
+			if err == nil && resp != nil {
+				w.WriteMsg(resp)
+				return
+			}
+		}
+
+		// Check our own list
 		switch q.Qtype {
 		case dns.TypeA:
 			// First, look for a direct A record
@@ -137,14 +150,7 @@ func handleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
 			}
 		}
 
-		// Send upstream if we don't have a local record
-		resp, err := forwardToUpstream(r)
-		if err == nil && resp != nil {
-			w.WriteMsg(resp)
-			return
-		}
-
-		// Send nothing if upstream DNS fails
+		// Send nothing if we find nothing
 		w.WriteMsg(&msg)
 	}
 }
