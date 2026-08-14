@@ -308,7 +308,6 @@ func forwardToUpstream(req *dns.Msg) (*dns.Msg, error) {
 
 		if err != nil {
 			lastErr = err
-			log.Errorf(loggingSource, "Upstream %s failed: %v", upstream.DialAddress, err)
 			continue
 		}
 
