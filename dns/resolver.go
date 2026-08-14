@@ -195,7 +195,7 @@ func forwardToUpstream(req *dns.Msg) (*dns.Msg, error) {
 				MinVersion: tls.VersionTLS12,
 			}
 		}
-		resp, err := exchangeViaPool(&c, upstream.DialAddress, req)
+		resp, _, err := c.Exchange(req, upstream.DialAddress)
 
 		if err != nil {
 			lastErr = err
