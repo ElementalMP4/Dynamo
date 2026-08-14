@@ -3,6 +3,7 @@ package dns
 import (
 	"Dynamo/config"
 	"Dynamo/store"
+	"crypto/tls"
 	"fmt"
 	"sync"
 	"time"
@@ -70,8 +71,8 @@ func refreshRecordsFromStore() error {
 
 func StartDNS() {
 	dns.HandleFunc(".", handleDNSRequest)
-	server := &dns.Server{Addr: config.GetConfig().DnsmasqConfig.ListenAddress, Net: "udp"}
-	log.Okf(loggingSource, "DNS server running on %s", config.GetConfig().DnsmasqConfig.ListenAddress)
+	server := &dns.Server{Addr: config.GetConfig().DNS.ListenAddress, Net: "udp"}
+	log.Okf(loggingSource, "DNS server running on %s", config.GetConfig().DNS.ListenAddress)
 	err := server.ListenAndServe()
 	if err != nil {
 		log.Fatalf(loggingSource, "Failed to start server: %v", err)
@@ -171,6 +172,8 @@ func appendCNAMEAndA(msg *dns.Msg, name string, cnameRec DNSRecord) {
 }
 
 func forwardToUpstream(req *dns.Msg) (*dns.Msg, error) {
+	dnsCfg := config.GetConfig().DNS
+
 	c := dns.Client{
 		Net:     "udp",
 		Timeout: 2 * time.Second,
@@ -178,12 +181,19 @@ func forwardToUpstream(req *dns.Msg) (*dns.Msg, error) {
 
 	var lastErr error
 
-	for _, upstream := range config.GetConfig().DnsmasqConfig.Upstream {
-		resp, _, err := c.Exchange(req, upstream)
+	for _, upstream := range dnsCfg.Upstream {
+		if upstream.UpstreamTLSServerName != "" {
+			c.Net = "tcp-tls"
+			c.TLSConfig = &tls.Config{
+				ServerName: upstream.UpstreamTLSServerName,
+				MinVersion: tls.VersionTLS12,
+			}
+		}
+		resp, err := exchangeViaPool(&c, upstream.DialAddress, req)
 
 		if err != nil {
 			lastErr = err
-			log.Errorf(loggingSource, "Upstream %s failed: %v", upstream, err)
+			log.Errorf(loggingSource, "Upstream %s failed: %v", upstream.DialAddress, err)
 			continue
 		}
 

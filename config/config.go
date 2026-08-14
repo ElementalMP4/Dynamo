@@ -14,15 +14,20 @@ import (
 var config Config
 
 type Config struct {
-	System        SystemConfig      `json:"system"`
-	Certificates  CertificateConfig `json:"certificates"`
-	DnsmasqConfig DNSConfig         `json:"dns"`
+	System       SystemConfig      `json:"system"`
+	Certificates CertificateConfig `json:"certificates"`
+	DNS          DNSConfig         `json:"dns"`
 }
 
 type DNSConfig struct {
-	ListenAddress string   `json:"dnsBind"`
-	Domain        string   `json:"domain"`
-	Upstream      []string `json:"upstream"`
+	ListenAddress string           `json:"dnsBind"`
+	Domain        string           `json:"domain"`
+	Upstream      []UpstreamServer `json:"upstream"`
+}
+
+type UpstreamServer struct {
+	DialAddress           string `json:"address"`
+	UpstreamTLSServerName string `json:"tlsName"`
 }
 
 type SystemConfig struct {
