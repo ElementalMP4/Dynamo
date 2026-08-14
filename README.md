@@ -55,6 +55,8 @@ Dynamo has its own built-in DNS resolver (it used to rely on dnsmasq, but no lon
 
 Upstream forwarding can optionally use DNS over TLS (DoT, RFC 7858), which lets you point Dynamo at a provider like Mullvad's encrypted DNS without leaking plaintext queries. Set `tlsName` (used for SNI and certificate verification), then point `address` at the provider's DoT addresses on port 853, e.g. Mullvad's `base.dns.mullvad.net` (`194.242.2.4:853`).
 
+**Hint:** don't use port 53 for DNS as this will conflict with your server's built-in DNS. Use a different port, then use a Dynamo circuit to redirect inbound traffic from port 53 on your desired interface to your chosen DNS port.
+
 ## Dynamo Config File
 
 ```jsonc
