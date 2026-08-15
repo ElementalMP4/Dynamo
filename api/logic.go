@@ -76,6 +76,12 @@ func getNetStats() (map[string]InterfaceStats, error) {
 	}
 	defer file.Close()
 
+	ipMap, err := buildInterfaceIPMap()
+	if err != nil {
+		// Not fatal - we can still return throughput stats without IPs
+		ipMap = map[string][]string{}
+	}
+
 	stats := map[string]InterfaceStats{}
 
 	scanner := bufio.NewScanner(file)
@@ -96,12 +102,51 @@ func getNetStats() (map[string]InterfaceStats, error) {
 		tx, _ := strconv.ParseUint(fields[8], 10, 64)
 
 		stats[iface] = InterfaceStats{
-			RX: rx,
-			TX: tx,
+			RX:  rx,
+			TX:  tx,
+			IPs: ipMap[iface],
 		}
 	}
 
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
 	return stats, nil
+}
+
+func buildInterfaceIPMap() (map[string][]string, error) {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return nil, err
+	}
+
+	ipMap := make(map[string][]string, len(ifaces))
+
+	for _, iface := range ifaces {
+		addrs, err := iface.Addrs()
+		if err != nil {
+			continue
+		}
+
+		ips := make([]string, 0, len(addrs))
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			}
+			if ip != nil {
+				ips = append(ips, ip.String())
+			}
+		}
+
+		ipMap[iface.Name] = ips
+	}
+
+	return ipMap, nil
 }
 
 func listNetworkInterfaces(c *gin.Context) {
