@@ -176,6 +176,12 @@ function HomeScreen() {
     const sysCharts = Mini.useState(() => ({}))[0];
     const sysPrev = Mini.useState(() => ({ cpu: null, cpuHist: new Array(60).fill(0), memHist: new Array(60).fill(0) }))[0];
 
+    function pickPrimaryIPv4(ipList) {
+        if (!Array.isArray(ipList)) return "";
+        const primary = ipList.find(ip => typeof ip === "string" && ip.includes(":") === false && ip.trim().length > 0);
+        return primary || "";
+    }
+
     Mini.useEffect(() => {
         let alive = true;
         const samples = {};
@@ -258,6 +264,7 @@ function HomeScreen() {
 
                 rows.push({
                     iface,
+                    ip: pickPrimaryIPv4(data.net[iface]?.ip),
                     rxRate,
                     txRate,
                     history: history[iface]
@@ -505,6 +512,9 @@ function HomeScreen() {
                                         Mini.span({ class: "mui-pill good" }, `⬇ ${formatRate(row.rxRate)}`),
                                         Mini.span({ class: "mui-pill bad" }, `⬆ ${formatRate(row.txRate)}`)
                                     )
+                                ),
+                                row.ip && Mini.div({ class: "mui-row" },
+                                    Mini.span({ class: "mui-pill info" }, row.ip)
                                 ),
                                 Mini.div({ class: "mui-chart-line" }, Mini.vnode("canvas", { ref: el => lineRefs[row.iface] = el }))
                             ))

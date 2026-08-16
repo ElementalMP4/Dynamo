@@ -14,6 +14,8 @@
     --good-soft: rgba(34,197,94,0.15);
     --bad: #ef4444;
     --bad-soft: rgba(239,68,68,0.15);
+    --info: #3b82f6;
+    --info-soft: rgba(59,130,246,0.14);
     --idle: #eab308;
     --idle-soft: rgba(234,179,8,0.15);
     --shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
@@ -332,6 +334,11 @@ select {
 .mui-pill.bad {
     color: #f87171;
     background: var(--bad-soft);
+}
+
+.mui-pill.info {
+    color: #93c5fd;
+    background: var(--info-soft);
 }
 
 .mui-badge {
