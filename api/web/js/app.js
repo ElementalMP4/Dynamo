@@ -508,13 +508,15 @@ function HomeScreen() {
                             netRows.map(row => Mini.div({ class: "mui-interface-card", key: row.iface },
                                 Mini.div({ class: "mui-row spread" },
                                     Mini.strong({}, row.iface),
-                                    Mini.div({ class: "mui-row" },
-                                        Mini.span({ class: "mui-pill good" }, `⬇ ${formatRate(row.rxRate)}`),
-                                        Mini.span({ class: "mui-pill bad" }, `⬆ ${formatRate(row.txRate)}`)
+                                    Mini.div({ class: "mui-interface-meta" },
+                                        Mini.div({ class: "mui-row" },
+                                            Mini.span({ class: "mui-pill good" }, `⬇ ${formatRate(row.rxRate)}`),
+                                            Mini.span({ class: "mui-pill bad" }, `⬆ ${formatRate(row.txRate)}`)
+                                        ),
+                                        row.ip && Mini.div({ class: "mui-row" },
+                                            Mini.span({ class: "mui-pill info" }, row.ip)
+                                        )
                                     )
-                                ),
-                                row.ip && Mini.div({ class: "mui-row" },
-                                    Mini.span({ class: "mui-pill info" }, row.ip)
                                 ),
                                 Mini.div({ class: "mui-chart-line" }, Mini.vnode("canvas", { ref: el => lineRefs[row.iface] = el }))
                             ))
