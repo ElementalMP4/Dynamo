@@ -511,10 +511,8 @@ function HomeScreen() {
                                     Mini.div({ class: "mui-interface-meta" },
                                         Mini.div({ class: "mui-row" },
                                             Mini.span({ class: "mui-pill good" }, `⬇ ${formatRate(row.rxRate)}`),
-                                            Mini.span({ class: "mui-pill bad" }, `⬆ ${formatRate(row.txRate)}`)
-                                        ),
-                                        row.ip && Mini.div({ class: "mui-row" },
-                                            Mini.span({ class: "mui-pill info" }, row.ip)
+                                            Mini.span({ class: "mui-pill bad" }, `⬆ ${formatRate(row.txRate)}`),
+                                            row.ip && Mini.span({ class: "mui-pill info" }, row.ip)
                                         )
                                     )
                                 ),

@@ -262,13 +262,14 @@ select {
 }
 
 .mui-interface-meta {
-    display: grid;
-    gap: 0.3rem;
-    justify-items: end;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
 }
 
 .mui-interface-meta .mui-row {
     justify-content: flex-end;
+    flex-wrap: wrap;
 }
 
 .mui-grid-2 {
