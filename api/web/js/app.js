@@ -371,14 +371,14 @@ function HomeScreen() {
                         labels: row.history.labels,
                         datasets: [
                             {
-                                label: "⬇",
+                                label: "Download",
                                 borderColor: "#22c55e",
                                 data: row.history.rx,
                                 pointRadius: 0,
                                 tension: 0.35
                             },
                             {
-                                label: "⬆",
+                                label: "Upload",
                                 borderColor: "#ef4444",
                                 data: row.history.tx,
                                 pointRadius: 0,
@@ -502,8 +502,8 @@ function HomeScreen() {
                                 Mini.div({ class: "mui-row spread" },
                                     Mini.strong({}, row.iface),
                                     Mini.div({ class: "mui-row" },
-                                        Mini.span({ class: "mui-pill good" }, `Down ${formatRate(row.rxRate)}`),
-                                        Mini.span({ class: "mui-pill bad" }, `Up ${formatRate(row.txRate)}`)
+                                        Mini.span({ class: "mui-pill good" }, `⬇ ${formatRate(row.rxRate)}`),
+                                        Mini.span({ class: "mui-pill bad" }, `⬆ ${formatRate(row.txRate)}`)
                                     )
                                 ),
                                 Mini.div({ class: "mui-chart-line" }, Mini.vnode("canvas", { ref: el => lineRefs[row.iface] = el }))
