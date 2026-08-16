@@ -371,14 +371,14 @@ function HomeScreen() {
                         labels: row.history.labels,
                         datasets: [
                             {
-                                label: "Download",
+                                label: "⬇",
                                 borderColor: "#22c55e",
                                 data: row.history.rx,
                                 pointRadius: 0,
                                 tension: 0.35
                             },
                             {
-                                label: "Upload",
+                                label: "⬆",
                                 borderColor: "#ef4444",
                                 data: row.history.tx,
                                 pointRadius: 0,
