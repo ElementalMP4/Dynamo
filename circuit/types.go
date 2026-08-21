@@ -152,8 +152,6 @@ func (c *RoutingCircuit) expandProtocols() []RoutingCircuit {
 }
 
 func (c *RoutingCircuit) EnableCircuit() error {
-	log.Infof("circuits", "Enabling circuit %s", c.Name)
-
 	enabled, err := c.CircuitIsEnabled()
 	if err != nil {
 		return fmt.Errorf("failed to list firewall rules: %w", err)
@@ -165,7 +163,7 @@ func (c *RoutingCircuit) EnableCircuit() error {
 	}
 
 	for _, expanded := range c.expandProtocols() {
-		log.Okf("circuits", "Enabling circuit %s protocol %s", expanded.Name, expanded.Protocol)
+		log.Okf("circuits", "Enabling circuit %s (%s)", expanded.Name, expanded.Protocol)
 		for _, rule := range expanded.IPTablesRules() {
 			ctx, cancel := context.WithTimeout(context.Background(), iptablesTimeout)
 			defer cancel()
@@ -176,6 +174,7 @@ func (c *RoutingCircuit) EnableCircuit() error {
 			}
 		}
 	}
+
 	log.Okf("circuits", "Enabled circuit %s successfully", c.Name)
 	return nil
 }

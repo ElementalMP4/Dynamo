@@ -41,8 +41,6 @@ func SyncCircuits() error {
 	}
 
 	for _, rc := range circuits {
-		log.Infof("circuit-sync", "Syncing circuit %s", rc.Name)
-
 		if rc.Enabled {
 			if err := rc.EnableCircuit(); err != nil {
 				return fmt.Errorf("enable %s failed: %w", rc.Name, err)
@@ -52,8 +50,6 @@ func SyncCircuits() error {
 				return fmt.Errorf("disable %s failed: %w", rc.Name, err)
 			}
 		}
-
-		log.Okf("circuit-sync", "Sync circuit %s completed successfully", rc.Name)
 	}
 
 	return nil
