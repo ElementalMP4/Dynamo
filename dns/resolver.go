@@ -120,10 +120,10 @@ func isPrivateDomain(name, domain string) bool {
 func SyncDNS() error {
 	dnsStore = store.NewJSONStore[[]DNSRecord]("dns.json")
 	go cleanupExpiredCacheEntries()
-	return refreshRecordsFromStore()
+	return refreshRecordsFromStore(true)
 }
 
-func refreshRecordsFromStore() error {
+func refreshRecordsFromStore(noisy bool) error {
 	log.Info("dns-sync", "Syncing DNS")
 
 	records, err := dnsStore.Load()
@@ -158,7 +158,10 @@ func refreshRecordsFromStore() error {
 				localSRV[rec.NameTrailingDot()] = rec
 			}
 		}
-		log.Infof(loggingSource, "Registered %s record %s", rec.Type, rec.Name)
+
+		if noisy {
+			log.Infof(loggingSource, "Registered %s record %s", rec.Type, rec.Name)
+		}
 	}
 
 	return nil
@@ -349,7 +352,7 @@ func createNewRecord(record DNSRecord) error {
 		return fmt.Errorf("Failed to write DNS records: %v", err)
 	}
 
-	err = refreshRecordsFromStore()
+	err = refreshRecordsFromStore(false)
 	if err != nil {
 		return fmt.Errorf("Failed to refresh DNS records: %v", err)
 	}
@@ -385,7 +388,7 @@ func deleteRecord(id string) (*DNSRecord, bool, error) {
 		return nil, true, fmt.Errorf("Failed to write DNS records: %v", err)
 	}
 
-	err = refreshRecordsFromStore()
+	err = refreshRecordsFromStore(false)
 	if err != nil {
 		return nil, true, fmt.Errorf("Failed to refresh DNS records: %v", err)
 	}
@@ -451,7 +454,7 @@ func patchRecord(id string, patch DNSRecordPatch) (*DNSRecord, bool, error) {
 		return &patchedRecord, true, fmt.Errorf("Failed to write DNS records: %v", err)
 	}
 
-	err = refreshRecordsFromStore()
+	err = refreshRecordsFromStore(false)
 	if err != nil {
 		return &patchedRecord, true, fmt.Errorf("Failed to refresh DNS records: %v", err)
 	}
