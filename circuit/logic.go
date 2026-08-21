@@ -33,7 +33,7 @@ func findCircuitByID(circuits []RoutingCircuit, id int64) (*RoutingCircuit, int)
 
 func SyncCircuits() error {
 	circuitStore = store.NewJSONStore[[]RoutingCircuit]("circuits.json")
-	log.Info("circuit-sync", "Syncing circuits")
+	log.Info("circuit-sync", "Syncing circuits...")
 
 	circuits, err := circuitStore.Load()
 	if err != nil {
@@ -51,6 +51,8 @@ func SyncCircuits() error {
 			}
 		}
 	}
+
+	log.Okf("circuit-sync", "Circuit sync completed successfully!")
 
 	return nil
 }

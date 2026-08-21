@@ -407,18 +407,19 @@ func DeletePeer(ifaceName, peerID string) error {
 }
 
 func SyncWireguard() error {
-	log.Info("vpn-sync", "Syncing VPN")
+	log.Info("vpn-sync", "Syncing VPN...")
 	state, err := vpnStore.Load()
 	if err != nil {
 		return fmt.Errorf("failed to load VPN store: %v", err)
 	}
 
 	for _, iface := range state.Interfaces {
-		log.Infof("vpn-sync", "Syncing interface %s", iface.Name)
 		if err := SetInterfaceEnabled(iface.Name, iface.Enabled); err != nil {
 			return fmt.Errorf("failed to toggle interface: %v", err)
 		}
 	}
+
+	log.Okf("vpn-sync", "VPN Sync completed successfully!")
 
 	return nil
 }

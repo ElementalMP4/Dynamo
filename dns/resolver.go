@@ -124,7 +124,7 @@ func SyncDNS() error {
 }
 
 func refreshRecordsFromStore(noisy bool) error {
-	log.Info("dns-sync", "Syncing DNS")
+	log.Info("dns-sync", "Syncing DNS...")
 
 	records, err := dnsStore.Load()
 	if err != nil {
@@ -163,6 +163,8 @@ func refreshRecordsFromStore(noisy bool) error {
 			log.Infof(loggingSource, "Registered %s record %s", rec.Type, rec.Name)
 		}
 	}
+
+	log.Okf("dns-sync", "DNS sync completed successfully!")
 
 	return nil
 }
