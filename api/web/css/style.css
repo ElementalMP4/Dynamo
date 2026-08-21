@@ -248,7 +248,7 @@ select {
 
 .mui-interface-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.75rem;
 }
 
@@ -674,6 +674,10 @@ select {
 }
 
 @media (max-width: 640px) {
+    .mui-interface-grid {
+        grid-template-columns: 1fr;
+    }
+
     .mui-topbar {
         padding: 0.72rem;
     }
