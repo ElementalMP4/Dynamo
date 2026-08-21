@@ -381,13 +381,13 @@ func deleteRecord(id string) (*DNSRecord, bool, error) {
 		return nil, false, nil
 	}
 
-	if err := dnsStore.Save(records); err != nil {
-		return &toBeDeleted, true, fmt.Errorf("Failed to write DNS records: %v", err)
+	if err := dnsStore.Save(filtered); err != nil {
+		return nil, true, fmt.Errorf("Failed to write DNS records: %v", err)
 	}
 
 	err = refreshRecordsFromStore()
 	if err != nil {
-		return &toBeDeleted, true, fmt.Errorf("Failed to refresh DNS records: %v", err)
+		return nil, true, fmt.Errorf("Failed to refresh DNS records: %v", err)
 	}
 
 	return &toBeDeleted, true, nil
