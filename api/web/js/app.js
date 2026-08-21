@@ -227,7 +227,7 @@ function HomeScreen() {
             const now = Date.now();
             const rows = [];
             Object.keys(data.net || {}).forEach(iface => {
-                let showVirtualAdapters = localStorage["showVirtualAdapters"] === "true";
+                let showVirtualAdapters = localStorage["showVirtualAdapters"] === true;
                 if ((iface.startsWith("veth") || iface.startsWith("docker") || iface.startsWith("br-")) && !showVirtualAdapters) return;
 
                 const rx = Number(data.net[iface]?.rx) || 0;
