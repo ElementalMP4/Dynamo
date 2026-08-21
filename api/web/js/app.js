@@ -227,7 +227,8 @@ function HomeScreen() {
             const now = Date.now();
             const rows = [];
             Object.keys(data.net || {}).forEach(iface => {
-                if (iface.startsWith("veth") || iface.startsWith("docker") || iface.startsWith("br-")) return;
+                let showVirtualAdapters = localStorage["showVirtualAdapters"] === "true";
+                if ((iface.startsWith("veth") || iface.startsWith("docker") || iface.startsWith("br-")) && !showVirtualAdapters) return;
 
                 const rx = Number(data.net[iface]?.rx) || 0;
                 const tx = Number(data.net[iface]?.tx) || 0;
