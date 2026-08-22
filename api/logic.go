@@ -41,7 +41,7 @@ func getCountsHandler(c *gin.Context) {
 	var certCounts map[string]int
 	var err error
 	if cfg.RemoteCertModeEnabled() {
-		certCounts, err = fetchRemoteCertCounts(cfg)
+		certCounts, err = certificate.FetchRemoteCertCounts()
 		if err != nil {
 			errFmt := fmt.Errorf("failed to fetch remote cert counts: %v", err)
 			log.Errorf("stats", "%v", errFmt)

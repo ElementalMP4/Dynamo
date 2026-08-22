@@ -633,3 +633,17 @@ func readMetadata(kind, base string) (*CertMetadata, error, string) {
 
 	return &meta, nil, path
 }
+
+func hasRootCertificate(rootCertName string) (bool, error) {
+	path := filepath.Join(certsBaseDir(), "root", rootCertName)
+
+	if _, err := os.Stat(path); err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		} else {
+			return false, err
+		}
+	}
+
+	return true, nil
+}

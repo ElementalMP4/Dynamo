@@ -51,5 +51,7 @@ func main() {
 
 	go api.StartAPI()
 	go dns.StartDNS()
+	go certificate.StartCrlRefreshLoop()
+
 	select {}
 }
