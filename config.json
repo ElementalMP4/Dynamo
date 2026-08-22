@@ -1,7 +1,0 @@
-{
-    "serverBind": "127.0.0.1:6789",
-    "certsDir": "/etc/Dynamo/ssl",
-    "dnsmasqConfigFile": "/etc/dnsmasq.d/dynamo.conf",
-    "dataDirectory": "/etc/Dynamo/data",
-    "instance": "Test Instance"
-}
