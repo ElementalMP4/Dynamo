@@ -1,6 +1,7 @@
 package certificate
 
 import (
+	"Dynamo/config"
 	"os"
 	"path/filepath"
 	"strings"
@@ -53,6 +54,11 @@ func updateWrapper() {
 }
 
 func StartCrlRefreshLoop() {
+	cfg := config.GetConfig()
+	if !cfg.RemoteCertModeEnabled() {
+		return
+	}
+
 	updateTicker := time.NewTicker(15 * time.Minute)
 	updateWrapper()
 	for range updateTicker.C {
