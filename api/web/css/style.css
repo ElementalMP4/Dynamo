@@ -507,11 +507,13 @@ select {
 
 .mui-chip-grid {
     display: grid;
-    grid-template-columns: repeat(5, minmax(180px, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 0.6rem;
 }
 
 .mui-chip {
+    min-width: 0;
+    width: 100%;
     border: 1px solid var(--line);
     background: var(--surface-2);
     color: var(--text);
@@ -521,6 +523,13 @@ select {
     display: grid;
     gap: 0.12rem;
     cursor: pointer;
+    overflow: hidden;
+}
+
+.mui-chip > * {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
     text-overflow: ellipsis;
 }
 
@@ -675,6 +684,10 @@ select {
 }
 
 @media (max-width: 640px) {
+    .mui-chip-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
     .mui-interface-grid {
         grid-template-columns: 1fr;
     }
