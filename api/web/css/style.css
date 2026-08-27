@@ -507,7 +507,7 @@ select {
 
 .mui-chip-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    grid-template-columns: repeat(5, minmax(180px, 1fr));
     gap: 0.6rem;
 }
 
@@ -521,6 +521,7 @@ select {
     display: grid;
     gap: 0.12rem;
     cursor: pointer;
+    text-overflow: ellipsis;
 }
 
 .mui-chip.ghost {
