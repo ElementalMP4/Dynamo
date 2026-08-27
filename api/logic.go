@@ -11,6 +11,8 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -214,6 +216,10 @@ func getCPUStats() (CPUStats, error) {
 			v, _ := strconv.ParseUint(fields[i], 10, 64)
 			return v
 		}
+		cores, threads, err := getCPUCounts()
+		if err != nil {
+			return CPUStats{}, err
+		}
 		return CPUStats{
 			User:    parse(1),
 			Nice:    parse(2),
@@ -223,9 +229,41 @@ func getCPUStats() (CPUStats, error) {
 			Irq:     parse(6),
 			Softirq: parse(7),
 			Steal:   parse(8),
+			Cores:   cores,
+			Threads: threads,
 		}, nil
 	}
+	if err := scanner.Err(); err != nil {
+		return CPUStats{}, err
+	}
 	return CPUStats{}, fmt.Errorf("cpu stats not found in /proc/stat")
+}
+
+func getCPUCounts() (cores, threads int, err error) {
+	threads = runtime.NumCPU()
+
+	cpus, err := filepath.Glob("/sys/devices/system/cpu/cpu[0-9]*")
+	if err != nil {
+		return 0, 0, err
+	}
+
+	coresSeen := make(map[string]struct{}, len(cpus))
+
+	for _, cpu := range cpus {
+		packageID, err := os.ReadFile(filepath.Join(cpu, "topology", "physical_package_id"))
+		if err != nil {
+			return 0, 0, err
+		}
+
+		coreID, err := os.ReadFile(filepath.Join(cpu, "topology", "core_id"))
+		if err != nil {
+			return 0, 0, err
+		}
+
+		coresSeen[string(packageID)+"\x00"+string(coreID)] = struct{}{}
+	}
+
+	return len(coresSeen), threads, nil
 }
 
 func getMemStats() (MemStats, error) {

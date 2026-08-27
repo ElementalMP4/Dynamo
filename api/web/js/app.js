@@ -169,6 +169,8 @@ function HomeScreen() {
     const lineRefs = Mini.useState(() => ({}))[0];
     const lineCharts = Mini.useState(() => ({}))[0];
     const [cpuPct, setCpuPct] = Mini.useState(0);
+    const [totalCores, setTotalCores] = Mini.useState(0);
+    const [totalThreads, setTotalThreads] = Mini.useState(0);
     const [memUsedGB, setMemUsedGB] = Mini.useState("0");
     const [memTotalGB, setMemTotalGB] = Mini.useState("0");
     const [sysTick, setSysTick] = Mini.useState(0);
@@ -219,9 +221,12 @@ function HomeScreen() {
             sysPrev.memHist.push(memPct);
             if (sysPrev.memHist.length > 60) sysPrev.memHist.shift();
 
+            setTotalCores(data.cores);
+            setTotalThreads(data.threads);
             setCpuPct(Math.round(pct * 10) / 10);
             setMemUsedGB((usedKB / 1024 / 1024).toFixed(1));
             setMemTotalGB((mem.total_kb / 1024 / 1024).toFixed(1));
+
             setSysTick(t => t + 1);
 
             const now = Date.now();
@@ -492,6 +497,7 @@ function HomeScreen() {
                     Mini.div({ class: "mui-card" },
                         Mini.h3({}, "CPU Usage"),
                         Mini.div({ class: "mui-stat" }, `${cpuPct.toFixed(1)}%`),
+                        Mini.small({ class: "mui-muted" }, `${totalThreads} threads across ${totalCores} cores`),
                         Mini.div({ class: "mui-chart-line" }, Mini.vnode("canvas", { ref: el => sysRefs.cpu = el }))
                     ),
                     Mini.div({ class: "mui-card" },

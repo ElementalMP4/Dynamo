@@ -15,6 +15,8 @@ type CPUStats struct {
 	Irq     uint64 `json:"irq"`
 	Softirq uint64 `json:"softirq"`
 	Steal   uint64 `json:"steal"`
+	Threads int    `json:"threads"`
+	Cores   int    `json:"cores"`
 }
 
 type MemStats struct {
