@@ -221,8 +221,8 @@ function HomeScreen() {
             sysPrev.memHist.push(memPct);
             if (sysPrev.memHist.length > 60) sysPrev.memHist.shift();
 
-            setTotalCores(data.cores);
-            setTotalThreads(data.threads);
+            setTotalCores(cpu.cores);
+            setTotalThreads(cpu.threads);
             setCpuPct(Math.round(pct * 10) / 10);
             setMemUsedGB((usedKB / 1024 / 1024).toFixed(1));
             setMemTotalGB((mem.total_kb / 1024 / 1024).toFixed(1));
