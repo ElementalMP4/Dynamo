@@ -7,7 +7,7 @@ import CertsScreen from "/js/screens/certs.js"
 import DnsScreen from "/js/screens/dns.js"
 import VpnScreen from "/js/screens/vpn.js"
 
-const appStore = Mini.createStore({ instanceName: "" });
+export const appStore = Mini.createStore({ instanceName: "" });
 
 const ROUTE_PATHS = ["/", "/dns", "/certs", "/circuits", "/vpn"];
 

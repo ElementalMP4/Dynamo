@@ -1,4 +1,5 @@
 import { request, chartAvailable, formatRate, PageHeader, Spinner, EmptyState } from "../utils.js"
+import { appStore } from "../app.js"
 import Mini from "../mini.js";
 
 export default function HomeScreen() {
