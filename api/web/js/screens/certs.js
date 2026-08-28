@@ -1,4 +1,4 @@
-import { jsonHeaders, request, Field, PageHeader, Spinner, Modal } from "../utils";
+import { jsonHeaders, request, Field, PageHeader, Spinner, Modal } from "../utils.js";
 
 export function CertsScreen() {
     const [groups, setGroups] = Mini.useState({ root: [], server: [], client: [] });

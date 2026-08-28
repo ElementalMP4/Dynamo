@@ -1,4 +1,4 @@
-import { request, chartAvailable, formatRate, PageHeader, Spinner, EmptyState } from "../utils"
+import { request, chartAvailable, formatRate, PageHeader, Spinner, EmptyState } from "../utils.js"
 
 export function HomeScreen() {
     const [summary, setSummary] = Mini.useState({ dns: {}, certs: {}, circuits: null });

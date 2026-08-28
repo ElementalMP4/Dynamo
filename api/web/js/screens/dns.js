@@ -1,4 +1,4 @@
-import { jsonHeaders, request, Field, PageHeader, Spinner, Modal } from "../utils";
+import { jsonHeaders, request, Field, PageHeader, Spinner, Modal } from "../utils.js";
 
 const RECORD_FIELDS = {
     A: [{ id: "ipv4", label: "IPv4 Address", type: "text", required: true }],

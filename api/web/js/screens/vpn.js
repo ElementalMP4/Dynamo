@@ -1,4 +1,4 @@
-import { jsonHeaders, request, chartAvailable, formatRate, Field, PageHeader, Spinner, Modal, EmptyState } from "../utils";
+import { jsonHeaders, request, chartAvailable, formatRate, Field, PageHeader, Spinner, Modal, EmptyState } from "../utils.js";
 
 export function VpnScreen() {
     const API = "/api/vpn"; 
