@@ -1,4 +1,5 @@
 import { jsonHeaders, request, chartAvailable, formatRate, Field, PageHeader, Spinner, Modal, EmptyState } from "../utils.js";
+import Mini from "../mini.js";
 
 export default function VpnScreen() {
     const API = "/api/vpn"; 

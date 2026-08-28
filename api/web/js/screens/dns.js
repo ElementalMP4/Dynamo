@@ -1,4 +1,5 @@
 import { jsonHeaders, request, Field, PageHeader, Spinner, Modal } from "../utils.js";
+import Mini from "../mini.js";
 
 const RECORD_FIELDS = {
     A: [{ id: "ipv4", label: "IPv4 Address", type: "text", required: true }],
