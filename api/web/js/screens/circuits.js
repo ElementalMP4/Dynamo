@@ -1,6 +1,6 @@
 import { jsonHeaders, request, Field, PageHeader, Spinner, Modal, EmptyState } from "../utils.js";
 
-export function CircuitsScreen() {
+export default function CircuitsScreen() {
     const [circuits, setCircuits] = Mini.useState([]);
     const [interfaces, setInterfaces] = Mini.useState([]);
     const [loading, setLoading] = Mini.useState(true);

@@ -1,6 +1,6 @@
 import { request, chartAvailable, formatRate, PageHeader, Spinner, EmptyState } from "../utils.js"
 
-export function HomeScreen() {
+export default function HomeScreen() {
     const [summary, setSummary] = Mini.useState({ dns: {}, certs: {}, circuits: null });
     const [netRows, setNetRows] = Mini.useState([]);
     const [error, setError] = Mini.useState("");

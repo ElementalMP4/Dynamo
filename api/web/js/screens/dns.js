@@ -12,7 +12,7 @@ const RECORD_FIELDS = {
     ]
 };
 
-export function DnsScreen() {
+export default function DnsScreen() {
     const [records, setRecords] = Mini.useState([]);
     const [loading, setLoading] = Mini.useState(true);
     const [error, setError] = Mini.useState("");
