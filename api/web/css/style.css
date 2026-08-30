@@ -1,6 +1,6 @@
 :root {
     --bg: #0f1117;
-    --bg-accent: radial-gradient(circle at 0% 0%, rgba(235, 83, 45, 0.07) 0%, transparent 45%), radial-gradient(circle at 90% 10%, rgba(59,130,246,0.06) 0%, transparent 35%), linear-gradient(160deg, #0f1117 0%, #111420 60%, #0d1019 100%);
+    --bg-accent: radial-gradient(circle at 0% 0%, rgba(235, 83, 45, 0.07) 0%, transparent 45%), radial-gradient(circle at 90% 10%, rgba(59, 130, 246, 0.06) 0%, transparent 35%), linear-gradient(160deg, #0f1117 0%, #111420 60%, #0d1019 100%);
     --surface: #181c27;
     --surface-2: #1d2130;
     --text: #e8eaf0;
@@ -11,13 +11,13 @@
     --danger: #ef4444;
     --danger-hover: #dc2626;
     --good: #22c55e;
-    --good-soft: rgba(34,197,94,0.15);
+    --good-soft: rgba(34, 197, 94, 0.15);
     --bad: #ef4444;
-    --bad-soft: rgba(239,68,68,0.15);
+    --bad-soft: rgba(239, 68, 68, 0.15);
     --info: #3b82f6;
-    --info-soft: rgba(59,130,246,0.14);
+    --info-soft: rgba(59, 130, 246, 0.14);
     --idle: #eab308;
-    --idle-soft: rgba(234,179,8,0.15);
+    --idle-soft: rgba(234, 179, 8, 0.15);
     --shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
     --radius-lg: 1rem;
     --radius-md: 0.8rem;
@@ -129,7 +129,7 @@ select {
 }
 
 .mui-nav-link.active {
-    background: linear-gradient(140deg, rgba(235,107,45,0.18) 0%, rgba(235,107,45,0.08) 100%);
+    background: linear-gradient(140deg, rgba(235, 107, 45, 0.18) 0%, rgba(235, 107, 45, 0.08) 100%);
     border-color: rgba(235, 107, 45, 0.45);
     color: #f4a46a;
     box-shadow: 0 4px 14px rgba(235, 107, 45, 0.12);
@@ -526,7 +526,7 @@ select {
     overflow: hidden;
 }
 
-.mui-chip > * {
+.mui-chip>* {
     min-width: 0;
     overflow: hidden;
     white-space: nowrap;
@@ -644,6 +644,14 @@ select {
 }
 
 @media (max-width: 860px) {
+    .mui-chip-grid {
+        grid-template-columns: minmax(0, 2fr);
+    }
+
+    .mui-interface-grid {
+        grid-template-columns: 2fr;
+    }
+
     .nav-toggle {
         display: inline-flex;
     }
