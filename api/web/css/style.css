@@ -33,7 +33,14 @@
 html,
 body {
     min-height: 100%;
-    overflow: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+.mui-main::-webkit-scrollbar {
+    display: none;
 }
 
 body {
@@ -41,6 +48,7 @@ body {
     color: var(--text);
     background: var(--bg-accent);
     line-height: 1.45;
+    overflow: auto;
 }
 
 a {
@@ -138,6 +146,9 @@ select {
 
 .mui-main {
     padding: 1.2rem;
+    overflow: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
 
 .mui-screen {
