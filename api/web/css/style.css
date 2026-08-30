@@ -644,14 +644,6 @@ select {
 }
 
 @media (max-width: 860px) {
-    .mui-chip-grid {
-        grid-template-columns: minmax(0, 2fr);
-    }
-
-    .mui-interface-grid {
-        grid-template-columns: 2fr;
-    }
-
     .nav-toggle {
         display: inline-flex;
     }
