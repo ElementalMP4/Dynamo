@@ -1,4 +1,5 @@
-import { jsonHeaders, request, Field, PageHeader, Spinner, Modal, showConfirm } from "../utils.js";
+import { jsonHeaders, request, Field, PageHeader, Spinner, Modal } from "../utils.js";
+import { showConfirm, showAlert } from "../alert.js"
 import Mini from "../mini.js";
 
 const RECORD_FIELDS = {
