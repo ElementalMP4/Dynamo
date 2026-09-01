@@ -21,7 +21,7 @@ export function showConfirm(message, title = "Confirm") {
     });
 }
 
-function closeConfirm(confirmed) {
+export function closeConfirm(confirmed) {
     const { resolve } = confirmStore.getState();
     confirmStore.setState({ open: false, title: "", message: "", resolve: null });
     if (resolve) resolve(confirmed);

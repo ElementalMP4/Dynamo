@@ -1,4 +1,4 @@
-import { jsonHeaders, request, Field, PageHeader, Spinner, Modal } from "../utils.js";
+import { jsonHeaders, request, Field, PageHeader, Spinner, Modal, showConfirm } from "../utils.js";
 import Mini from "../mini.js";
 
 export default function CertsScreen() {
