@@ -417,7 +417,7 @@ const Mini = (() => {
      */
     const tags = [
         "div", "main", "section", "header", "footer", "button", "span", "strong", "p", "input", "textarea", "form", "small", "img", "hr",
-        "h1", "h2", "h3", "label", "select", "option", "canvas", "aside", "a"
+        "h1", "h2", "h3", "label", "select", "option", "canvas", "aside", "a", "li", "ul"
     ];
 
     const api = { vnode, render, useState, useToggle, useEffect, createStore, useStore, navigate, Router };

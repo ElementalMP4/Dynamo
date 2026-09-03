@@ -1,5 +1,28 @@
 import Mini from "/js/mini.js";
 
+const modalStore = Mini.createStore({ activeId: "" });
+const modalRegistry = new Map();
+let modalIdSeed = 0;
+
+function activateModal(id) {
+    const { activeId } = modalStore.getState();
+    if (activeId === id) return;
+
+    const previous = activeId ? modalRegistry.get(activeId) : null;
+    if (previous && typeof previous.onClose === "function") previous.onClose();
+
+    if (modalStore.getState().activeId !== id) {
+        modalStore.setState({ activeId: id });
+    }
+}
+
+function removeModal(id) {
+    modalRegistry.delete(id);
+    if (modalStore.getState().activeId === id) {
+        modalStore.setState({ activeId: "" });
+    }
+}
+
 export function jsonHeaders() {
     return { "Content-Type": "application/json" };
 }
@@ -58,38 +81,75 @@ export function Spinner({ label = "Loading..." }) {
     );
 }
 
-export function Modal({ open, title, onClose, children, wide = false }) {
+export function openModal(config) {
+    const id = `modal-${++modalIdSeed}`;
+    modalRegistry.set(id, config);
+    activateModal(id);
+    return id;
+}
+
+export function closeModal(id) {
+    removeModal(id);
+}
+
+export function ModalHost() {
+    const activeId = Mini.useStore(modalStore, state => state.activeId);
+    const modal = activeId ? modalRegistry.get(activeId) : null;
+
     Mini.useEffect(() => {
-        if (!open) return undefined;
+        if (!modal) return undefined;
         const onKeyDown = event => {
-            if (event.key === "Escape") onClose();
+            if (event.key === "Escape") modal.onClose();
         };
         window.addEventListener("keydown", onKeyDown);
         return () => window.removeEventListener("keydown", onKeyDown);
-    }, [open]);
+    }, [modal]);
 
-    if (!open) return null;
+    if (!modal) return null;
 
     return Mini.div({
+        key: modal.id,
         class: "mui-modal-backdrop",
         role: "presentation",
         onclick: event => {
-            if (event.target.className === "mui-modal-backdrop") onClose();
+            if (event.target.className === "mui-modal-backdrop") modal.onClose();
         }
     },
         Mini.div({
-            class: `mui-modal ${wide ? "mui-modal-wide" : ""}`,
+            class: `mui-modal ${modal.wide ? "mui-modal-wide" : ""}`,
             role: "dialog",
             "aria-modal": "true",
             onclick: event => event.stopPropagation()
         },
             Mini.div({ class: "mui-modal-header" },
-                Mini.strong({}, title),
-                Mini.button({ class: "mui-button secondary", onclick: onClose }, "Close")
+                Mini.strong({}, modal.title),
+                Mini.button({ class: "mui-button secondary", onclick: modal.onClose }, "Close")
             ),
-            Mini.div({ class: "mui-modal-body" }, children)
+            Mini.div({ class: "mui-modal-body" }, modal.children)
         )
     );
+}
+
+export function Modal({ open, title, onClose, children, wide = false }) {
+    const [modalId] = Mini.useState(() => `modal-component-${++modalIdSeed}`);
+
+    Mini.useEffect(() => () => removeModal(modalId), []);
+
+    Mini.useEffect(() => {
+        if (!open) {
+            removeModal(modalId);
+            return;
+        }
+        activateModal(modalId);
+    }, [open]);
+
+    if (open) {
+        modalRegistry.set(modalId, { title, onClose, children, wide });
+    } else {
+        modalRegistry.delete(modalId);
+    }
+
+    return null;
 }
 
 export function EmptyState({ title, subtitle }) {

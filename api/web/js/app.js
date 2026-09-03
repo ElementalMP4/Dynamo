@@ -1,5 +1,5 @@
 import Mini from "/js/mini.js";
-import { IncludeAlertModal, IncludeConfirmModal } from "/js/alert.js";
+import { ModalHost } from "/js/utils.js";
 
 import HomeScreen from "/js/screens/home.js"
 import CircuitsScreen from "/js/screens/circuits.js"
@@ -51,8 +51,7 @@ function App() {
     ];
 
     return Mini.div({ class: "mui-shell" },
-        Mini.vnode(IncludeAlertModal, { key: "alert-modal" }),
-        Mini.vnode(IncludeConfirmModal, { key: "confirm-modal" }),
+        Mini.vnode(ModalHost, { key: "modal-host" }),
         Mini.header({ class: "mui-topbar" },
             Mini.div({ class: "mui-brand" },
                 Mini.span({ class: "mui-brand-mark" }, "D"),

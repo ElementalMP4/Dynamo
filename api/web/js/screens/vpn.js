@@ -367,7 +367,7 @@ export default function VpnScreen() {
             });
             loadInterfaces();
         } catch (err) {
-            alert(`Failed to toggle peer: ${err.error}`);
+            await showAlert(`Failed to toggle peer: ${err.error}`);
         }
     }
 
@@ -380,7 +380,7 @@ export default function VpnScreen() {
             setDeletePeer(null);
             loadInterfaces();
         } catch (err) {
-            alert(`Failed to delete peer: ${err.error}`);
+            await showAlert(`Failed to delete peer: ${err.error}`);
         }
     }
 
