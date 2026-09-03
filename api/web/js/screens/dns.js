@@ -16,6 +16,7 @@ const RECORD_FIELDS = {
 
 export default function DnsScreen() {
     const [records, setRecords] = Mini.useState([]);
+    const [domains, setDomains] = Mini.useState([]);
     const [loading, setLoading] = Mini.useState(true);
     const [error, setError] = Mini.useState("");
     const [addOpen, setAddOpen] = Mini.useState(false);
@@ -24,6 +25,7 @@ export default function DnsScreen() {
 
     const [newRecord, setNewRecord] = Mini.useState({
         type: "A",
+        domain: "",
         name: "",
         ttl: "3600",
         ipv4: "",
@@ -37,6 +39,7 @@ export default function DnsScreen() {
 
     const [editForm, setEditForm] = Mini.useState({
         type: "A",
+        domain: "",
         name: "",
         ttl: "3600",
         ipv4: "",
@@ -51,8 +54,15 @@ export default function DnsScreen() {
     async function loadRecords() {
         setLoading(true);
         try {
-            const data = await request("/api/dns");
+            const [data, domainData] = await Promise.all([
+                request("/api/dns"),
+                request("/api/dns/domains")
+            ]);
             setRecords(data || []);
+            const configuredDomains = [...new Set((domainData || [])
+                .map(domain => String(domain).trim().replace(/\.+$/, ""))
+                .filter(Boolean))].sort();
+            setDomains(configuredDomains);
             setError("");
         } catch (err) {
             setError(err.error || "Failed to load DNS records");
@@ -66,8 +76,10 @@ export default function DnsScreen() {
     }, []);
 
     function formToPayload(form) {
+        const name = form.name.trim().replace(/\.+$/, "");
+        const domain = form.domain.trim().replace(/^\.+|\.+$/g, "");
         const payload = {
-            name: form.name.trim(),
+            name: domain ? (name ? `${name}.${domain}` : domain) : name,
             type: form.type,
             ttl: parseInt(form.ttl || "0", 10),
             class: "IN"
@@ -86,6 +98,7 @@ export default function DnsScreen() {
     function openAddModal() {
         setNewRecord({
             type: "A",
+            domain: domains[0] || "",
             name: "",
             ttl: "3600",
             ipv4: "",
@@ -100,10 +113,25 @@ export default function DnsScreen() {
     }
 
     function openEdit(record) {
+        const domain = domains
+            .filter(candidate => {
+                const normalizedName = (record.name || "").replace(/\.+$/, "").toLowerCase();
+                const normalizedDomain = candidate.toLowerCase();
+                return normalizedName === normalizedDomain || normalizedName.endsWith(`.${normalizedDomain}`);
+            })
+            .sort((left, right) => right.length - left.length)[0] || "";
+        const normalizedName = (record.name || "").replace(/\.+$/, "");
+        const name = domain && normalizedName.toLowerCase() === domain.toLowerCase()
+            ? ""
+            : domain
+                ? normalizedName.slice(0, -(domain.length + 1))
+                : normalizedName;
+
         setEditRecord(record);
         setEditForm({
             type: record.type,
-            name: record.name || "",
+            domain,
+            name,
             ttl: String(record.ttl || 3600),
             ipv4: record.ipv4 || "",
             cname: record.cname || "",
@@ -203,6 +231,16 @@ export default function DnsScreen() {
                     Mini.vnode("option", { value: "CNAME" }, "CNAME Record"),
                     Mini.vnode("option", { value: "TXT" }, "TXT Record"),
                     Mini.vnode("option", { value: "SRV" }, "SRV Record")
+                )
+            }),
+            Field({
+                label: "Domain", children: Mini.vnode("select", {
+                    value: form.domain,
+                    required: true,
+                    onchange: event => setter({ ...form, domain: event.target.value })
+                },
+                    Mini.vnode("option", { value: "" }, "Select domain"),
+                    domains.map(domain => Mini.vnode("option", { value: domain, key: domain }, domain))
                 )
             }),
             Field({
