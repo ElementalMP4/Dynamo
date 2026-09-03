@@ -1,6 +1,7 @@
 package dns
 
 import (
+	"Dynamo/config"
 	"Dynamo/util"
 	"fmt"
 	"net/http"
@@ -32,6 +33,11 @@ func ListRecords(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, records)
+}
+
+func ListPrivateDomains(c *gin.Context) {
+	privateDomains := config.GetConfig().DNS.Domains
+	c.JSON(http.StatusOK, privateDomains)
 }
 
 func CreateRecord(c *gin.Context) {

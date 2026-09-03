@@ -120,6 +120,7 @@ func StartAPI() {
 
 	// DNS routes
 	api := r.Group("/api/dns")
+	api.GET("domains", dns.ListPrivateDomains)
 	api.GET("", dns.ListRecords)
 	api.POST("", dns.CreateRecord)
 	api.GET(":id", dns.GetRecordByID)

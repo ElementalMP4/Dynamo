@@ -111,10 +111,16 @@ func cleanupExpiredCacheEntries() {
 	}
 }
 
-func isPrivateDomain(name, domain string) bool {
-	name = strings.ToLower(dns.Fqdn(name))
-	domain = strings.ToLower(dns.Fqdn(domain))
-	return name == domain || strings.HasSuffix(name, "."+domain)
+func isPrivateDomain(name string, domains []string) bool {
+	for _, domain := range domains {
+		nameFq := strings.ToLower(dns.Fqdn(name))
+		domainFq := strings.ToLower(dns.Fqdn(domain))
+		if nameFq == domainFq || strings.HasSuffix(nameFq, "."+domainFq) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func SyncDNS() error {
@@ -139,24 +145,35 @@ func refreshRecordsFromStore(noisy bool) error {
 	localTXT = make(map[string]DNSRecord)
 	localSRV = make(map[string]DNSRecord)
 
+	privateDomains := config.GetConfig().DNS.Domains
+
 	for _, rec := range records {
+
+		if rec.Name == "" {
+			log.Warnf("dns-sync", "Found an unexpectedly empty domain %s", rec.ID)
+		}
+
+		isManaged := false
+		for _, domain := range privateDomains {
+			if strings.Contains(rec.Name, domain) {
+				isManaged = true
+			}
+		}
+
+		if !isManaged {
+			log.Warnf("dns-sync", "Skipping record %s because it is not a registered domain", rec.Name)
+			continue
+		}
+
 		switch rec.Type {
 		case "A":
-			if rec.Name != "" {
-				localA[rec.NameTrailingDot()] = rec
-			}
+			localA[rec.NameTrailingDot()] = rec
 		case "CNAME":
-			if rec.Name != "" {
-				localCNAME[rec.NameTrailingDot()] = rec
-			}
+			localCNAME[rec.NameTrailingDot()] = rec
 		case "TXT":
-			if rec.Name != "" {
-				localTXT[rec.NameTrailingDot()] = rec
-			}
+			localTXT[rec.NameTrailingDot()] = rec
 		case "SRV":
-			if rec.Name != "" {
-				localSRV[rec.NameTrailingDot()] = rec
-			}
+			localSRV[rec.NameTrailingDot()] = rec
 		}
 
 		if noisy {
@@ -181,13 +198,13 @@ func StartDNS() {
 
 func handleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
 	dnsCfg := config.GetConfig().DNS
-	domain := dns.Fqdn(dnsCfg.Domain)
+	privateDomains := dnsCfg.Domains
 	msg := dns.Msg{}
 	msg.SetReply(r)
 
 	for _, q := range r.Question {
 		// If the query is not for our private domain, check the cache and then forward upstream
-		if !isPrivateDomain(q.Name, domain) {
+		if !isPrivateDomain(q.Name, privateDomains) {
 			if cached, ok := getCachedUpstream(q); ok {
 				reply := new(dns.Msg)
 				reply.SetReply(r)
@@ -199,11 +216,14 @@ func handleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
 				return
 			}
 
-			resp, err := forwardToUpstream(r)
+			resp, shouldCache, err := forwardToUpstream(r)
 			if err == nil && resp != nil {
-				setCachedUpstream(q, resp)
 				w.WriteMsg(resp)
 				return
+			}
+
+			if shouldCache {
+				setCachedUpstream(q, resp)
 			}
 
 			// Upstream failed and it's not our domain so there's nothing more we can do.
@@ -292,7 +312,7 @@ func appendCNAMEAndA(msg *dns.Msg, name string, cnameRec DNSRecord) {
 	}
 }
 
-func forwardToUpstream(req *dns.Msg) (*dns.Msg, error) {
+func forwardToUpstream(req *dns.Msg) (*dns.Msg, bool, error) {
 	dnsCfg := config.GetConfig().DNS
 
 	var lastErr error
@@ -317,19 +337,22 @@ func forwardToUpstream(req *dns.Msg) (*dns.Msg, error) {
 		}
 
 		switch resp.Rcode {
-		case dns.RcodeSuccess, dns.RcodeNameError:
-			return resp, nil
+		case dns.RcodeSuccess:
+			return resp, true, nil
+
+		case dns.RcodeNameError:
+			return resp, false, nil
 
 		case dns.RcodeServerFailure, dns.RcodeRefused:
 			lastErr = fmt.Errorf("%s returned %s", upstream, dns.RcodeToString[resp.Rcode])
 			continue
 
 		default:
-			return resp, nil
+			return resp, false, nil
 		}
 	}
 
-	return nil, fmt.Errorf("all upstreams failed: %w", lastErr)
+	return nil, false, fmt.Errorf("all upstreams failed: %w", lastErr)
 }
 
 func CountDNSRecords() map[string]int {

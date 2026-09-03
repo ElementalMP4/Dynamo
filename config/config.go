@@ -21,7 +21,7 @@ type Config struct {
 
 type DNSConfig struct {
 	ListenAddress string           `json:"dnsBind"`
-	Domain        string           `json:"domain"`
+	Domains        []string           `json:"domains"`
 	Upstream      []UpstreamServer `json:"upstream"`
 }
 
