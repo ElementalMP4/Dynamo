@@ -51,7 +51,6 @@ function App() {
     ];
 
     return Mini.div({ class: "mui-shell" },
-        Mini.vnode(ModalHost, { key: "modal-host" }),
         Mini.header({ class: "mui-topbar" },
             Mini.div({ class: "mui-brand" },
                 Mini.span({ class: "mui-brand-mark" }, "D"),
@@ -79,7 +78,8 @@ function App() {
             ),
             Mini.main({ class: "mui-main" },
                 Mini.vnode(Mini.Router, { routes, fallback: NotFoundScreen })
-            )
+            ),
+            Mini.vnode(ModalHost, { key: "modal-host" })
         )
     );
 }
