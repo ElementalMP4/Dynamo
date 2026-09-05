@@ -450,7 +450,7 @@ export default function VpnScreen() {
                                             Mini.div({ class: "mui-stack tight" },
                                                 Mini.div({ class: "mui-row" },
                                                     Mini.span({ class: `mui-status-dot ${peer.enabled ? "on" : "off"}` }),
-                                                    Mini.span({ class: `mui-status-dot ${peer.active ? "on" : "idle"}` }),
+                                                    Mini.span({ class: `mui-status-dot ${peer.active ? "on" : "off"}` }),
                                                     Mini.strong({}, peer.name)
                                                 ),
                                                 Mini.small({ class: "mui-muted" }, `${peer.ip || ""}${peer.dns ? `  DNS: ${peer.dns}` : ""}`),

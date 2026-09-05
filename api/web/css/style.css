@@ -16,8 +16,6 @@
     --bad-soft: rgba(239, 68, 68, 0.15);
     --info: #3b82f6;
     --info-soft: rgba(59, 130, 246, 0.14);
-    --idle: #eab308;
-    --idle-soft: rgba(234, 179, 8, 0.15);
     --shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
     --radius-lg: 1rem;
     --radius-md: 0.8rem;
@@ -390,11 +388,6 @@ select {
 .mui-status-dot.off {
     background: var(--bad);
     box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.17);
-}
-
-.mui-status-dot.idle {
-    background: var(--idle);
-    box-shadow: 0 0 0 4px rgba(234, 179, 8, 0.2);
 }
 
 .mui-field-grid {
