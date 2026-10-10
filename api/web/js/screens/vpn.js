@@ -13,6 +13,8 @@ export default function VpnScreen() {
     const [peerModal, setPeerModal] = Mini.useState({ open: false, iface: "", editId: "" });
     const [deleteIface, setDeleteIface] = Mini.useState(null);
     const [deletePeer, setDeletePeer] = Mini.useState(null);
+    const [qrModal, setQrModal] = Mini.useState(null);
+    const qrRequest = Mini.useState(() => ({ id: 0 }))[0];
 
     const [ifaceForm, setIfaceForm] = Mini.useState({
         name: "",
@@ -155,6 +157,7 @@ export default function VpnScreen() {
 
         return () => {
             alive = false;
+            qrRequest.id++;
             Object.keys(lineCharts).forEach(key => {
                 lineCharts[key]?.destroy?.();
                 delete lineCharts[key];
@@ -384,6 +387,30 @@ export default function VpnScreen() {
         }
     }
 
+    function closeQrModal() {
+        qrRequest.id++;
+        setQrModal(null);
+    }
+
+    async function showConfigQr(ifaceName, peer) {
+        const requestId = ++qrRequest.id;
+        setQrModal({ name: peer.name, loading: true, image: "", error: "" });
+        try {
+            const [{ default: qrcode }, text] = await Promise.all([
+                import("https://cdn.jsdelivr.net/npm/qrcode-generator@2.0.4/dist/qrcode.mjs"),
+                request(`${API}/interfaces/${encodeURIComponent(ifaceName)}/peers/${encodeURIComponent(peer.id)}/config`)
+            ]);
+            if (qrRequest.id !== requestId) return;
+            const code = qrcode(0, "M");
+            code.addData(text, "Byte");
+            code.make();
+            setQrModal({ name: peer.name, loading: false, image: code.createDataURL(6, 24), error: "" });
+        } catch (err) {
+            if (qrRequest.id !== requestId) return;
+            setQrModal({ name: peer.name, loading: false, image: "", error: err.error || err.message || "Failed to generate QR code" });
+        }
+    }
+
     async function downloadConfig(ifaceName, peerId, peerName) {
         try {
             const text = await request(`${API}/interfaces/${encodeURIComponent(ifaceName)}/peers/${encodeURIComponent(peerId)}/config`);
@@ -458,6 +485,7 @@ export default function VpnScreen() {
                                             ),
                                             Mini.div({ class: "mui-row wrap" },
                                                 Mini.button({ class: "mui-button secondary sm", onclick: () => downloadConfig(iface.name, peer.id, peer.name) }, "Config"),
+                                                Mini.button({ class: "mui-button secondary sm", title: "Show WireGuard config QR code", onclick: () => showConfigQr(iface.name, peer) }, "QR Code"),
                                                 Mini.button({ class: "mui-button secondary sm", onclick: () => openEditPeer(iface.name, peer) }, "Edit"),
                                                 Mini.button({
                                                     class: `mui-button ${peer.enabled ? "secondary" : "success"} sm`,
@@ -474,6 +502,25 @@ export default function VpnScreen() {
                         );
                     })
                 ),
+
+        Mini.vnode(Modal, {
+            open: !!qrModal,
+            title: qrModal ? `WireGuard QR Code: ${qrModal.name}` : "WireGuard QR Code",
+            onClose: closeQrModal
+        },
+            qrModal && Mini.div({ class: "mui-stack" },
+                qrModal.loading && Spinner({ label: "Loading client config..." }),
+                qrModal.error && Mini.div({ class: "mui-alert danger", role: "alert" }, qrModal.error),
+                qrModal.image && Mini.img({
+                    src: qrModal.image,
+                    alt: `WireGuard configuration QR code for ${qrModal.name}`,
+                    width: 320,
+                    height: 320,
+                    style: "display:block;width:100%;max-width:320px;height:auto;aspect-ratio:1;margin:0 auto;image-rendering:pixelated;"
+                }),
+                qrModal.image && Mini.p({ class: "mui-muted" }, "Contains the client's private key. Keep this QR code private.")
+            )
+        ),
 
         Mini.vnode(Modal, {
             open: ifaceModal.open,
