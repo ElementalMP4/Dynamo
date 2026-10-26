@@ -1,4 +1,4 @@
-import { jsonHeaders, request, chartAvailable, formatRate, Field, PageHeader, Spinner, Modal, EmptyState } from "../utils.js";
+import { jsonHeaders, request, formatRate, Field, PageHeader, Spinner, Modal, EmptyState } from "../utils.js";
 import Mini from "../mini.js";
 
 export default function VpnScreen() {
@@ -33,19 +33,9 @@ export default function VpnScreen() {
         allowed_ips: ""
     });
 
-    const lineRefs = Mini.useState(() => ({}))[0];
-    const lineCharts = Mini.useState(() => ({}))[0];
-    const metricsState = Mini.useState(() => ({ samples: {}, times: {}, history: {} }))[0];
+    const metricsState = Mini.useState(() => ({ samples: {}, times: {} }))[0];
 
-    function trackHistory(key, rx, tx) {
-        if (!metricsState.history[key]) {
-            metricsState.history[key] = {
-                labels: new Array(60).fill(""),
-                rx: new Array(60).fill(0),
-                tx: new Array(60).fill(0)
-            };
-        }
-
+    function trackRates(key, rx, tx) {
         const now = Date.now();
         const prev = metricsState.samples[key];
         let rxRate = 0;
@@ -56,20 +46,12 @@ export default function VpnScreen() {
             rxRate = ((rx - prev.rx) / elapsed) * 8;
             txRate = ((tx - prev.tx) / elapsed) * 8;
 
-            metricsState.history[key].labels.push("");
-            metricsState.history[key].rx.push(rxRate || 0);
-            metricsState.history[key].tx.push(txRate || 0);
-            if (metricsState.history[key].labels.length > 60) {
-                metricsState.history[key].labels.shift();
-                metricsState.history[key].rx.shift();
-                metricsState.history[key].tx.shift();
-            }
         }
 
         metricsState.samples[key] = { rx, tx };
         metricsState.times[key] = now;
 
-        return { rxRate, txRate, history: metricsState.history[key] };
+        return { rxRate, txRate };
     }
 
     async function loadSystemIfaces(selected = "") {
@@ -109,18 +91,17 @@ export default function VpnScreen() {
                 const metricsIface = data.interfaces.find(item => item.name === iface.name);
                 if (!metricsIface) return iface;
 
-                const ifaceRates = trackHistory(`iface-${iface.name}`, Number(metricsIface.rx) || 0, Number(metricsIface.tx) || 0);
+                const ifaceRates = trackRates(`iface-${iface.name}`, Number(metricsIface.rx) || 0, Number(metricsIface.tx) || 0);
                 const nextPeers = (iface.peers || []).map(peer => {
                     const metricsPeer = (metricsIface.peers || []).find(item => item.id === peer.id);
                     if (!metricsPeer) return peer;
 
-                    const peerRates = trackHistory(`peer-${peer.id}`, Number(metricsPeer.rx) || 0, Number(metricsPeer.tx) || 0);
+                    const peerRates = trackRates(`peer-${peer.id}`, Number(metricsPeer.rx) || 0, Number(metricsPeer.tx) || 0);
                     return {
                         ...peer,
                         rxRate: peerRates.rxRate,
                         txRate: peerRates.txRate,
-                        active: !!metricsPeer.active,
-                        _history: peerRates.history
+                        active: !!metricsPeer.active
                     };
                 });
 
@@ -128,8 +109,7 @@ export default function VpnScreen() {
                     ...iface,
                     rxRate: ifaceRates.rxRate,
                     txRate: ifaceRates.txRate,
-                    peers: nextPeers,
-                    _history: ifaceRates.history
+                    peers: nextPeers
                 };
             }));
         } catch (_) {
@@ -158,65 +138,8 @@ export default function VpnScreen() {
         return () => {
             alive = false;
             qrRequest.id++;
-            Object.keys(lineCharts).forEach(key => {
-                lineCharts[key]?.destroy?.();
-                delete lineCharts[key];
-            });
         };
     }, []);
-
-    Mini.useEffect(() => {
-        if (!chartAvailable()) return;
-
-        const allKeys = new Set();
-        interfaces.forEach(iface => {
-            allKeys.add(`iface-${iface.name}`);
-            (iface.peers || []).forEach(peer => allKeys.add(`peer-${peer.id}`));
-        });
-
-        Object.keys(lineCharts).forEach(key => {
-            if (!allKeys.has(key)) {
-                lineCharts[key]?.destroy?.();
-                delete lineCharts[key];
-            }
-        });
-
-        allKeys.forEach(key => {
-            const canvas = lineRefs[key];
-            const history = metricsState.history[key] || { labels: new Array(60).fill(""), rx: new Array(60).fill(0), tx: new Array(60).fill(0) };
-            if (!canvas) return;
-
-            if (!lineCharts[key]) {
-                lineCharts[key] = new window.Chart(canvas, {
-                    type: "line",
-                    data: {
-                        labels: history.labels,
-                        datasets: [
-                            { label: "Download", borderColor: "#22c55e", data: history.rx, pointRadius: 0, tension: 0.35 },
-                            { label: "Upload", borderColor: "#ef4444", data: history.tx, pointRadius: 0, tension: 0.35 }
-                        ]
-                    },
-                    options: {
-                        animation: false,
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: {
-                            x: { display: false },
-                            y: { display: false }
-                        }
-                    }
-                });
-                return;
-            }
-
-            const chart = lineCharts[key];
-            chart.data.labels = history.labels;
-            chart.data.datasets[0].data = history.rx;
-            chart.data.datasets[1].data = history.tx;
-            chart.update("none");
-        });
-    }, [interfaces]);
 
     function openCreateInterface() {
         setIfaceModal({ open: true, editName: "" });
@@ -462,9 +385,6 @@ export default function VpnScreen() {
                                     Mini.button({ class: "mui-button danger sm", onclick: () => setDeleteIface(iface) }, "Delete")
                                 )
                             ),
-                            Mini.div({ class: "mui-chart-line compact" },
-                                Mini.vnode("canvas", { ref: el => lineRefs[`iface-${iface.name}`] = el })
-                            ),
                             Mini.button({
                                 class: "mui-button ghost sm",
                                 onclick: () => setExpanded({ ...expanded, [iface.name]: !isExpanded })
@@ -493,9 +413,6 @@ export default function VpnScreen() {
                                                 }, peer.enabled ? "Disable" : "Enable"),
                                                 Mini.button({ class: "mui-button danger sm", onclick: () => setDeletePeer({ iface: iface.name, id: peer.id, name: peer.name }) }, "Delete")
                                             )
-                                        ),
-                                        Mini.div({ class: "mui-chart-line compact" },
-                                            Mini.vnode("canvas", { ref: el => lineRefs[`peer-${peer.id}`] = el })
                                         )
                                     ))
                             )
