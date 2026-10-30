@@ -203,6 +203,7 @@ func handleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
 	msg.SetReply(r)
 
 	for _, q := range r.Question {
+		log.Debug("dns-log", q.String())
 		// If the query is not for our private domain, check the cache and then forward upstream
 		if !isPrivateDomain(q.Name, privateDomains) {
 			if cached, ok := getCachedUpstream(q); ok {
