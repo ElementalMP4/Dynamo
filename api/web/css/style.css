@@ -310,6 +310,10 @@ select {
     overflow-wrap: anywhere;
 }
 
+.upstream-dns-record .mui-badge {
+    white-space: nowrap;
+}
+
 .upstream-dns-records {
     margin: 0;
     white-space: pre-wrap;
