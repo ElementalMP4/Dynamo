@@ -373,7 +373,7 @@ export default function HomeScreen() {
                 ),
                 Mini.div({ class: "mui-summary-grid" },
                     Mini.div({ class: "mui-card" },
-                        Mini.h3({}, "DNS Records"),
+                        Mini.h3({}, "Private DNS Records"),
                         Mini.div({ class: "mui-stat" }, String(dnsValues.reduce((a, b) => a + b, 0))),
                         Mini.div({ class: "mui-chart-small" }, Mini.vnode("canvas", { ref: el => pieRefs.dns = el }))
                     ),

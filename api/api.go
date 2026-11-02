@@ -121,6 +121,10 @@ func StartAPI() {
 	// DNS routes
 	api := r.Group("/api/dns")
 	api.GET("domains", dns.ListPrivateDomains)
+	cache := api.Group("/cache")
+	cache.GET("", dns.ListUpstreamCache)
+	cache.DELETE("", dns.ClearUpstreamCache)
+	cache.DELETE("/:id", dns.DeleteUpstreamCacheRecord)
 	api.GET("", dns.ListRecords)
 	api.POST("", dns.CreateRecord)
 	api.GET(":id", dns.GetRecordByID)

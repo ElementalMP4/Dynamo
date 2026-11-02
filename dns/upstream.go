@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ElementalMP4/loggerino/log"
+	"github.com/google/uuid"
 	"github.com/miekg/dns"
 )
 
@@ -20,15 +21,17 @@ const (
 )
 
 type upstreamCacheEntry struct {
+	id      string
 	msg     *dns.Msg
 	stored  time.Time
 	expires time.Time
 }
 
 type upstreamFlight struct {
-	done chan struct{}
-	msg  *dns.Msg
-	err  error
+	done         chan struct{}
+	msg          *dns.Msg
+	err          error
+	discardCache bool
 }
 
 type upstreamResolver struct {
@@ -140,11 +143,11 @@ func (r *upstreamResolver) resolve(req *dns.Msg, upstreams []config.UpstreamServ
 
 	resp, err := r.forward(req, upstreams)
 	r.mu.Lock()
-	if err == nil {
+	if err == nil && !flight.discardCache {
 		if ttl := positiveTTL(resp); ttl > 0 {
 			now := time.Now()
 			r.cache[key] = upstreamCacheEntry{
-				msg: resp.Copy(), stored: now, expires: now.Add(time.Duration(ttl) * time.Second),
+				id: uuid.NewString(), msg: resp.Copy(), stored: now, expires: now.Add(time.Duration(ttl) * time.Second),
 			}
 		}
 	}

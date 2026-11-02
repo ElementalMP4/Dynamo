@@ -313,7 +313,7 @@ export default function DnsScreen() {
 
     return Mini.div({ class: "mui-screen" },
         PageHeader({
-            title: "DNS Records",
+            title: "Local DNS",
             subtitle: "Manage A, CNAME, TXT and SRV entries",
             actions: [Mini.button({ class: "mui-button", onclick: openAddModal }, "Add Record")]
         }),

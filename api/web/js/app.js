@@ -4,12 +4,13 @@ import { ModalHost } from "/js/utils.js";
 import HomeScreen from "/js/screens/home.js"
 import CircuitsScreen from "/js/screens/circuits.js"
 import CertsScreen from "/js/screens/certs.js"
-import DnsScreen from "/js/screens/dns.js"
+import PrivateDnsScreen from "/js/screens/private-dns.js"
+import UpstreamDnsScreen from "/js/screens/upstream-dns.js"
 import VpnScreen from "/js/screens/vpn.js"
 
 export const appStore = Mini.createStore({ instanceName: "" });
 
-const ROUTE_PATHS = ["/", "/dns", "/certs", "/circuits", "/vpn"];
+const ROUTE_PATHS = ["/", "/dns", "/upstream-dns", "/certs", "/circuits", "/vpn"];
 
 function normalizeRoute(path) {
     return ROUTE_PATHS.includes(path) ? path : "/";
@@ -36,7 +37,8 @@ function App() {
 
     const routes = {
         "/": HomeScreen,
-        "/dns": DnsScreen,
+        "/private-dns": PrivateDnsScreen,
+        "/upstream-dns": UpstreamDnsScreen,
         "/certs": CertsScreen,
         "/circuits": CircuitsScreen,
         "/vpn": VpnScreen
@@ -44,7 +46,8 @@ function App() {
 
     const links = [
         { path: "/", label: "Overview" },
-        { path: "/dns", label: "DNS" },
+        { path: "/private-dns", label: "Private DNS" },
+        { path: "/upstream-dns", label: "Upstream DNS" },
         { path: "/certs", label: "Certificates" },
         { path: "/circuits", label: "Circuits" },
         { path: "/vpn", label: "VPN" }

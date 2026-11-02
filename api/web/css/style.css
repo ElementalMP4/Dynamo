@@ -305,6 +305,18 @@ select {
     padding: 0.85rem;
 }
 
+.upstream-dns-name {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.upstream-dns-records {
+    margin: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font-size: 0.85rem;
+}
+
 .dns-group-summary {
     display: grid;
     gap: 0.55rem;
