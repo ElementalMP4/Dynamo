@@ -55,6 +55,10 @@ Dynamo has its own built-in DNS resolver (it used to rely on dnsmasq, but no lon
 
 Upstream forwarding can optionally use DNS over TLS (DoT, RFC 7858), which lets you point Dynamo at a provider like Mullvad's encrypted DNS without leaking plaintext queries. Set `tlsName` (used for SNI and certificate verification), then point `address` at the provider's DoT addresses on port 853, e.g. Mullvad's `base.dns.mullvad.net` (`194.242.2.4:853`).
 
+Positive upstream answers are cached within their record TTLs, and concurrent equivalent queries share one upstream lookup. NXDOMAIN and empty-answer responses are deliberately not cached. Cache and in-flight keys distinguish query class, flags, and EDNS options; signed and compound queries bypass sharing.
+
+DoT connections are reused in a pool of up to eight connections per upstream, with a two-second budget per attempt (including waiting for a connection). Idle connections expire after 30 seconds and are discarded on checkout or periodic cleanup. Upstreams are tried sequentially in configured order, never raced: failures trigger exponential backoff from one to 30 seconds, and a successful response resets the backoff. If all upstreams are cooling down, Dynamo probes the one due to recover first. Exhausted upstream attempts return SERVFAIL.
+
 **Hint:** don't use port 53 for DNS as this will conflict with your server's built-in DNS. Use a different port, then use a Dynamo circuit to redirect inbound traffic from port 53 on your desired interface to your chosen DNS port.
 
 ## Dynamo Config File

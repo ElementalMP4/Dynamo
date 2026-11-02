@@ -3,7 +3,6 @@ package dns
 import (
 	"Dynamo/config"
 	"Dynamo/store"
-	"crypto/tls"
 	"fmt"
 	"strings"
 	"sync"
@@ -24,90 +23,10 @@ var localCNAME = map[string]DNSRecord{}
 var localTXT = map[string]DNSRecord{}
 var localSRV = map[string]DNSRecord{}
 
-type UpstreamDNSCache struct {
-	msg     *dns.Msg
-	expires time.Time
-}
-
-var upstreamCacheMutex sync.RWMutex
-var upstreamCache = map[string]UpstreamDNSCache{}
-
-func cacheKey(q dns.Question) string {
-	return strings.ToLower(q.Name) + "|" + dns.TypeToString[q.Qtype]
-}
-
-func getCachedUpstream(q dns.Question) (*dns.Msg, bool) {
-	upstreamCacheMutex.RLock()
-	entry, ok := upstreamCache[cacheKey(q)]
-	upstreamCacheMutex.RUnlock()
-
-	if !ok {
-		return nil, false
-	}
-
-	remaining := time.Until(entry.expires)
-	if remaining <= 0 {
-		return nil, false
-	}
-
-	reply := entry.msg.Copy()
-	adjustTTLs(reply, uint32(remaining.Seconds()))
-	return reply, true
-}
-
-func setCachedUpstream(q dns.Question, resp *dns.Msg) {
-	minTTL := minAnswerTTL(resp)
-	if minTTL == 0 {
-		return
-	}
-
-	upstreamCacheMutex.Lock()
-	upstreamCache[cacheKey(q)] = UpstreamDNSCache{
-		msg:     resp.Copy(),
-		expires: time.Now().Add(time.Duration(minTTL) * time.Second),
-	}
-	upstreamCacheMutex.Unlock()
-}
-
-func minAnswerTTL(resp *dns.Msg) uint32 {
-	var min uint32
-	first := true
-	for _, rr := range resp.Answer {
-		ttl := rr.Header().Ttl
-		if first || ttl < min {
-			min = ttl
-			first = false
-		}
-	}
-	if first {
-		return 0
-	}
-	return min
-}
-
-func adjustTTLs(msg *dns.Msg, ttl uint32) {
-	for _, rr := range msg.Answer {
-		rr.Header().Ttl = ttl
-	}
-	for _, rr := range msg.Ns {
-		rr.Header().Ttl = ttl
-	}
-	for _, rr := range msg.Extra {
-		rr.Header().Ttl = ttl
-	}
-}
-
 func cleanupExpiredCacheEntries() {
 	ticker := time.NewTicker(5 * time.Minute)
 	for range ticker.C {
-		now := time.Now()
-		upstreamCacheMutex.Lock()
-		for k, v := range upstreamCache {
-			if now.After(v.expires) {
-				delete(upstreamCache, k)
-			}
-		}
-		upstreamCacheMutex.Unlock()
+		externalResolver.cleanup(time.Now())
 	}
 }
 
@@ -206,28 +125,14 @@ func handleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
 		log.Debug("dns-log", q.String())
 		// If the query is not for our private domain, check the cache and then forward upstream
 		if !isPrivateDomain(q.Name, privateDomains) {
-			if cached, ok := getCachedUpstream(q); ok {
-				reply := new(dns.Msg)
-				reply.SetReply(r)
-				reply.Answer = cached.Answer
-				reply.Ns = cached.Ns
-				reply.Extra = cached.Extra
-				reply.Rcode = cached.Rcode
-				w.WriteMsg(reply)
-				return
-			}
-
-			resp, shouldCache, err := forwardToUpstream(r)
+			resp, err := externalResolver.resolve(r, dnsCfg.Upstream)
 			if err == nil && resp != nil {
 				w.WriteMsg(resp)
 				return
 			}
 
-			if shouldCache {
-				setCachedUpstream(q, resp)
-			}
-
-			// Upstream failed and it's not our domain so there's nothing more we can do.
+			log.Errorf(loggingSource, "Upstream lookup failed for %s: %v", q.Name, err)
+			msg.Rcode = dns.RcodeServerFailure
 			w.WriteMsg(&msg)
 			return
 		}
@@ -311,49 +216,6 @@ func appendCNAMEAndA(msg *dns.Msg, name string, cnameRec DNSRecord) {
 
 		msg.Answer = append(msg.Answer, aRR)
 	}
-}
-
-func forwardToUpstream(req *dns.Msg) (*dns.Msg, bool, error) {
-	dnsCfg := config.GetConfig().DNS
-
-	var lastErr error
-	for _, upstream := range dnsCfg.Upstream {
-		c := dns.Client{
-			Net:     "udp",
-			Timeout: 2 * time.Second,
-		}
-
-		if upstream.UpstreamTLSServerName != "" {
-			c.Net = "tcp-tls"
-			c.TLSConfig = &tls.Config{
-				ServerName: upstream.UpstreamTLSServerName,
-				MinVersion: tls.VersionTLS12,
-			}
-		}
-		resp, _, err := c.Exchange(req, upstream.DialAddress)
-
-		if err != nil {
-			lastErr = err
-			continue
-		}
-
-		switch resp.Rcode {
-		case dns.RcodeSuccess:
-			return resp, true, nil
-
-		case dns.RcodeNameError:
-			return resp, false, nil
-
-		case dns.RcodeServerFailure, dns.RcodeRefused:
-			lastErr = fmt.Errorf("%s returned %s", upstream, dns.RcodeToString[resp.Rcode])
-			continue
-
-		default:
-			return resp, false, nil
-		}
-	}
-
-	return nil, false, fmt.Errorf("all upstreams failed: %w", lastErr)
 }
 
 func CountDNSRecords() map[string]int {
