@@ -732,6 +732,11 @@ select {
 }
 
 @media (max-width: 640px) {
+    .upstream-dns-record > .mui-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
     .mui-chip-grid {
         grid-template-columns: minmax(0, 1fr);
     }
